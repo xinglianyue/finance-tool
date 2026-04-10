@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>财务账单分析工具 v6</title>
+
+<!-- SheetJS -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+<style>
+/* ============ CSS VARIABLES ============ */
+:root {
+  --color-primary: #667eea;
+  --color-primary-dark: #5568d4;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-bg: #f0f2f5;
+  --color-card: #ffffff;
+  --color-text: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-border: #e2e8f0;
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.06);
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-family);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+/* ============ HEADER ============ */
+.header {
+  background: var(--color-card);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header h1 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* ============ MAIN CONTENT ============ */
+.content {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ============ UPLOAD AREA ============ */
+.upload-area {
+  border: 2px dashed #d0d7ee;
+  border-radius: var(--radius-card);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: var(--color-card);
+  margin-bottom: 16px;
+}
+.upload-area:hover, .upload-area.drag-over {
+  border-color: var(--color-primary);
+  background: rgba(102,126,234,0.04);
+}
+.upload-area input[type="file"] { display: none; }
+.upload-icon { font-size: 36px; margin-bottom: 10px; }
+.upload-text { font-size: 15px; color: var(--color-text-secondary); }
+.upload-text strong { color: var(--color-primary); }
+.upload-hint { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+
+/* ============ FILE LIST (Phase2) ============ */
+.file-list {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+}
+.file-list-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+.file-list-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.file-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--color-text);
+}
+.file-item .date {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.file-item .remove {
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+}
+.file-item .remove:hover { color: var(--color-danger); }
+
+/* ============ DATE PICKER MODAL ============ */
+.date-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.date-modal-content {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.date-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+.date-modal-file {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+.date-modal-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+.date-modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.date-modal-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+.date-modal-buttons {
+  display: flex;
+  gap: 12px;
+}
+.date-modal-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.date-modal-btn-cancel {
+  background: #f1f5f9;
+  color: var(--color-text);
+}
+.date-modal-btn-confirm {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ============ TAB NAV (Phase2) ============ */
+.tab-nav {
+  display: flex;
+  background: var(--color-card);
+  border-radius: var(--radius-btn);
+  padding: 4px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background .2s, color .2s;
+}
+.tab-btn:hover { background: #f1f5f9; }
+.tab-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+.tab-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============ SUMMARY BAR (Phase2) ============ */
+.summary-bar {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.summary-bar-text {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.summary-bar-text strong { color: var(--color-text); }
+.summary-bar-counts { font-size: 13px; }
+.summary-bar-counts .bad { color: var(--color-danger); }
+.summary-bar-counts .good { color: var(--color-success); }
+
+/* ============ CITY DIAGNOSIS CARD (Phase2) ============ */
+.city-card {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-card);
+  border-left: 4px solid transparent;
+}
+.city-card.status-red { border-left-color: var(--color-danger); }
+.city-card.status-orange { border-left-color: var(--color-warning); }
+.city-card.status-green { border-left-color: var(--color-success); }
+
+.city-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.city-card-status { font-size: 18px; }
+.city-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.city-card-rank {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.city-card-ue {
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: auto;
+}
+.city-card-ue.down { color: var(--color-danger); }
+.city-card-ue.up { color: var(--color-success); }
+
+.city-card-body {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.city-card-change { margin-bottom: 8px; }
+.city-card-killer {
+  background: #fef2f2;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  color: var(--color-danger);
+  font-size: 12px;
+}
+.city-card-killer-title { font-weight: 600; }
+.city-card-orders { color: var(--color-text-secondary); }
+
+/* ============ CROSS CITY ITEM (Phase2) ============ */
+.cross-city-item {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cross-city-item.status-red { background: #fef2f2; }
+.cross-city-item.status-orange { background: #fff7ed; }
+.cross-city-item.status-green { background: #f0fdf4; }
+
+.cross-city-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.cross-city-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  flex: 1;
+}
+.cross-city-ue {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: right;
+}
+.cross-city-margin {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ============ LOADING ============ */
+.loading-wrap {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-secondary);
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ ERROR STATE ============ */
+.error-box {
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  border-radius: var(--radius-card);
+  padding: 16px;
+  color: var(--color-danger);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* ============ CARDS GRID (Phase1) ============ */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.card {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+}
+.card-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
+.card-value { font-size: 22px; font-weight: 700; }
+.card-value.success { color: var(--color-success); }
+.card-value.warning { color: var(--color-warning); }
+.card-value.danger { color: var(--color-danger); }
+.card-value.neutral { color: var(--color-text); }
+.card-unit { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+
+/* ============ CITY TABLE (Phase1) ============ */
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 16px 0 10px;
+  padding-left: 4px;
+}
+.city-table {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.city-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.city-table th {
+  background: #f8f9fc;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  text-align: left;
+}
+.city-table td {
+  padding: 11px 14px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.city-table tr:first-child td { border-top: none; }
+.city-table .name-cell { font-weight: 600; }
+.tier-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tier-e { background: rgba(102,126,234,0.15); color: #597ef7; }
+.tier-f { background: rgba(245,158,11,0.15); color: #d97706; }
+.tier-g { background: rgba(16,185,129,0.15); color: #059669; }
+.ue-cell { font-weight: 700; }
+.ue-ok { color: var(--color-success); }
+.ue-warn { color: var(--color-warning); }
+.ue-bad { color: var(--color-danger); }
+
+/* ============ EMPTY STATE ============ */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-secondary);
+}
+.empty-icon { font-size: 48px; margin-bottom: 14px; }
+.empty-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--color-text); }
+.empty-desc { font-size: 13px; }
+
+/* ============ TOAST ============ */
+#toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(30,41,59,0.92);
+  color: #f8fafc;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============ FOOTER ============ */
+.footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ============ HEALTH SCORE (Phase1) ============ */
+.health-header {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 14px;
+}
+.health-circle-wrap { flex-shrink: 0; text-align: center; }
+.health-label { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+.health-info { flex: 1; }
+.health-city-num { font-size: 38px; font-weight: 700; color: #1e293b; line-height: 1; }
+.health-city-unit { font-size: 13px; color: #64748b; margin-top: 2px; }
+.health-score-desc { font-size: 15px; font-weight: 700; margin-top: 8px; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 600px) {
+  .cards-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .card { padding: 10px; }
+  .card-value { font-size: 16px; }
+  .health-city-num { font-size: 30px; }
+  .city-card { padding: 14px; }
+  .cross-city-item { padding: 12px; gap: 8px; }
+}
+@media (max-width: 400px) {
+  .cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 360px) {
+  .cards-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card { padding: 12px; }
+  .card-value { font-size: 18px; }
+  .city-table { font-size: 12px; }
+  .city-table th, .city-table td { padding: 9px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ APP STRUCTURE ============ -->
+<div class="header">
+  <h1>财务账单分析工具 v6</h1>
+</div>
+
+<div class="content" id="app">
+
+  <!-- Upload Area -->
+  <div class="upload-area" id="uploadArea">
+    <input type="file" id="fileInput" accept=".xlsx,.xls" multiple>
+    <div class="upload-icon">📊</div>
+    <div class="upload-text">点击上传或<strong>拖拽Excel账单</strong></div>
+    <div class="upload-hint">支持多文件上传，每个文件=某天累计值</div>
+  </div>
+
+  <!-- Dynamic Content Area -->
+  <div id="dynamicContent"></div>
+
+</div>
+
+<div id="toast"></div>
+
+<div class="footer">财务账单分析工具 v6 &copy; 2026</div>
+
+<!-- ============ JAVASCRIPT ============ -->
+<script>
+'use strict';
+
+/* ================================================================
+   1. CONFIG - 配置层
+================================================================ */
+const CONFIG = (function() {
+  // 城市分级
+  const CITY_TIERS = {
+    E: ['承德市'],
+    F: ['围场满族蒙古族自治县', '玉田县', '安国市', '安平', '献县'],
+    G: ['晋州', '威县', '深泽县', '康保县']
+  };
+
+  // Excel行列映射（0-based index）
+  const EXCEL_ROWS = {
+    CITY_NAME: 2,
+    CITY_START_COL: 5,
+    CITY_END_COL: 14,
+    METRICS: {
+      orders: 10,
+      revenue: 32,
+      subsidy: 36,
+      cost: 73,
+      profit: 74,
+    }
+  };
+
+  // UE阈值
+  const UE_THRESHOLDS = {
+    GOOD: 0.5,
+    WARN: 0.1,
+  };
+
+  // 颜色
+  const COLORS = {
+    SUCCESS: '#10b981',
+    WARNING: '#f59e0b',
+    DANGER: '#ef4444',
+    PRIMARY: '#667eea',
+  };
+
+  // 错误码映射
+  const ERROR_CODES = {
+    E001: '系统错误，请刷新重试',
+    E002: '请上传Excel文件(.xlsx)',
+    E003: '文件解析失败，请检查格式',
+    E004: '未找到城市数据行',
+    E005: '数据计算错误',
+    E006: '无法从文件名解析日期',
+  };
+
+  // 健康度评分配置
+  var SCORE_CONFIG = {
+    BASE: 10,
+    PROFIT_MIN: 0,
+    UNIT_UE_MIN: 0.3,
+    SUB_MAX: 20,
+    MARGIN_MIN: 5,
+  };
+
+  var SCORE_WEIGHTS = {
+    income: 0.25,
+    profit: 0.25,
+    cost: 0.25,
+    city: 0.25,
+  };
+
+  var SUB_RATIO_ROW = 36;
+
+  // Phase2: 日期正则
+  const DATE_PATTERNS = [
+    /(\d{1,2})月(\d{1,2})日/,
+    /(\d{2})-(\d{2})/,
+    /(\d{4})(\d{2})(\d{2})/,
+    /(\d{1,2})\.(\d{1,2})/,
+  ];
+
+  // Phase2: 需要的最低天数
+  const MIN_DAYS_FOR_WEEKLY = 14;
+
+  return {
+    CITY_TIERS,
+    EXCEL_ROWS,
+    UE_THRESHOLDS,
+    COLORS,
+    ERROR_CODES,
+    SCORE_CONFIG,
+    SCORE_WEIGHTS,
+    SUB_RATIO_ROW,
+    DATE_PATTERNS,
+    MIN_DAYS_FOR_WEEKLY,
+  };
+})();
+
+
+/* ================================================================
+   2. UTILS - 工具层
+================================================================ */
+const Utils = (function() {
+
+  function formatCurrency(n, decimals = 1) {
+    if (n == null || isNaN(n)) return '-';
+    n = Number(n);
+    if (!isFinite(n)) return '-';
+    if (Math.abs(n) >= 10000) {
+      return (n / 10000).toFixed(decimals) + '万';
+    }
+    return n.toFixed(decimals);
+  }
+
+  function formatNumber(n) {
+    if (n == null || isNaN(n)) return '-';
+    n = Number(n);
+    if (!isFinite(n)) return '-';
+    return n.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+  }
+
+  function calcMarginRate(profit, revenue) {
+    if (!revenue || revenue === 0) return 0;
+    return (profit / revenue) * 100;
+  }
+
+  function calcUnitUE(profit, orders) {
+    if (!orders || orders === 0) return 0;
+    return profit / orders;
+  }
+
+  function calcSubRatio(subsidy, revenue) {
+    if (!revenue || revenue === 0) return 0;
+    return (subsidy / revenue) * 100;
+  }
+
+  function validateFile(file) {
+    if (!file) return { ok: false, error: 'E002' };
+    const name = file.name || '';
+    if (!name.toLowerCase().endsWith('.xlsx') && !name.toLowerCase().endsWith('.xls')) {
+      return { ok: false, error: 'E002' };
+    }
+    return { ok: true };
+  }
+
+  function showToast(message, duration = 2500) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), duration);
+  }
+
+  function getCityTier(name) {
+    const { CITY_TIERS } = CONFIG;
+    if (!name) return 'G';
+    for (const [tier, cities] of Object.entries(CITY_TIERS)) {
+      if (cities.some(c => name.includes(c) || c.includes(name))) {
+        return tier;
+      }
+    }
+    return 'G';
+  }
+
+  function getUEStatus(ue) {
+    const { UE_THRESHOLDS } = CONFIG;
+    if (ue >= UE_THRESHOLDS.GOOD) return 'ok';
+    if (ue >= UE_THRESHOLDS.WARN) return 'warn';
+    return 'bad';
+  }
+
+  // Phase2: 获取状态颜色
+  function getStatus(unitUE, subRatio) {
+    if (unitUE < 0.1 || subRatio > 30) return 'red';
+    if (unitUE < 0.3 || subRatio > 20) return 'orange';
+    return 'green';
+  }
+
+  return {
+    formatCurrency,
+    formatNumber,
+    calcMarginRate,
+    calcUnitUE,
+    calcSubRatio,
+    validateFile,
+    showToast,
+    getCityTier,
+    getUEStatus,
+    getStatus,
+  };
+})();
+
+
+/* ================================================================
+   3. ENTITIES - 实体层
+================================================================ */
+const CityEntity = (function() {
+
+  function City(data) {
+    if (!data || typeof data !== 'object') {
+      throw new Error('E001: City data must be an object');
+    }
+    if (!data.name || typeof data.name !== 'string') {
+      throw new Error('E002: City name is required');
+    }
+
+    this.name = data.name.trim();
+    this.col = Number(data.col) || 0;
+    this.tier = data.tier || Utils.getCityTier(this.name);
+    this.orders = 0;
+    this.revenue = 0;
+    this.cost = 0;
+    this.profit = 0;
+    this.subsidy = 0;
+    this.unitUE = 0;
+    this.margin = 0;
+    this.subRatio = 0;
+    this.valid = false;
+  }
+
+  City.prototype.fillFromRow = function(jsonData, col) {
+    if (!jsonData || !Array.isArray(jsonData)) return;
+    const { METRICS } = CONFIG.EXCEL_ROWS;
+
+    const ordersRow = jsonData[METRICS.orders];
+    const revenueRow = jsonData[METRICS.revenue];
+    const costRow = jsonData[METRICS.cost];
+    const profitRow = jsonData[METRICS.profit];
+    const subsidyRow = jsonData[METRICS.subsidy];
+
+    this.orders = (ordersRow && Number(ordersRow[col])) || 0;
+    this.revenue = (revenueRow && Number(revenueRow[col])) || 0;
+    this.cost = (costRow && Number(costRow[col])) || 0;
+    this.profit = (profitRow && Number(profitRow[col])) || 0;
+    this.subsidy = (subsidyRow && Number(subsidyRow[col])) || 0;
+
+    if (this.orders === 0) return;
+
+    this.unitUE = Utils.calcUnitUE(this.profit, this.orders);
+    this.margin = Utils.calcMarginRate(this.profit, this.revenue);
+    this.subRatio = Utils.calcSubRatio(this.subsidy, this.revenue);
+    this.valid = true;
+    this.cityScore = this.calcCityScore();
+  };
+
+  City.prototype.calcCityScore = function() {
+    var s = CONFIG.SCORE_CONFIG.BASE;
+    if (this.profit < CONFIG.SCORE_CONFIG.PROFIT_MIN) s -= 3;
+    if (this.unitUE < CONFIG.SCORE_CONFIG.UNIT_UE_MIN) s -= 2;
+    if (this.subRatio > CONFIG.SCORE_CONFIG.SUB_MAX) s -= 2;
+    if (this.margin < CONFIG.SCORE_CONFIG.MARGIN_MIN) s -= 2;
+    return Math.max(1, s);
+  };
+
+  return { City };
+})();
+
+
+/* ================================================================
+   4. DATE PARSER (Phase2)
+================================================================ */
+const DateParser = {
+
+  parse(fileName) {
+    if (!fileName || typeof fileName !== 'string') return null;
+
+    const patterns = CONFIG.DATE_PATTERNS;
+
+    for (const pattern of patterns) {
+      const match = fileName.match(pattern);
+      if (match) {
+        try {
+          let month, day, year = 2025;
+
+          if (pattern.source.includes('月')) {
+            month = parseInt(match[1], 10);
+            day = parseInt(match[2], 10);
+          } else if (pattern.source.includes('\\d{4}')) {
+            year = parseInt(match[1], 10);
+            month = parseInt(match[2], 10);
+            day = parseInt(match[3], 10);
+          } else if (pattern.source.includes('-')) {
+            month = parseInt(match[1], 10);
+            day = parseInt(match[2], 10);
+          } else if (pattern.source.includes('\\.')) {
+            month = parseInt(match[1], 10);
+            day = parseInt(match[2], 10);
+          }
+
+          if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+
+          const date = new Date(year, month - 1, day);
+          if (date.getFullYear() === year &&
+              date.getMonth() === month - 1 &&
+              date.getDate() === day) {
+            return date;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+    }
+
+    return null;
+  },
+
+  formatDate(date) {
+    if (!date) return '-';
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
+  },
+
+  formatDateRange(startDate, endDate) {
+    if (!startDate || !endDate) return '-';
+    return `${this.formatDate(startDate)}-${this.formatDate(endDate)}`;
+  },
+
+  getWeekNumber(date) {
+    if (!date) return -1;
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  },
+
+  getMonthKey(date) {
+    if (!date) return null;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  },
+};
+
+
+/* ================================================================
+   5. DAY DATA PROCESSOR (Phase2)
+================================================================ */
+const DayDataProcessor = {
+
+  process(fileDataList) {
+    if (!Array.isArray(fileDataList) || fileDataList.length === 0) {
+      return { success: false, error: '无数据' };
+    }
+
+    const sorted = fileDataList
+      .filter(f => f && f.date && f.cities)
+      .sort((a, b) => a.date - b.date);
+
+    if (sorted.length === 0) {
+      return { success: false, error: '无法解析日期' };
+    }
+
+    const dailyActuals = this._calculateDailyActuals(sorted);
+    const weeklyData = this._aggregateByWeek(dailyActuals);
+    const monthlyData = this._aggregateByMonth(dailyActuals);
+    const weekComparison = this._calculateWeekComparison(weeklyData);
+    const latestDayData = dailyActuals[dailyActuals.length - 1];
+
+    return {
+      success: true,
+      dayCount: sorted.length,
+      startDate: sorted[0].date,
+      endDate: sorted[sorted.length - 1].date,
+      dailyActuals,
+      weeklyData,
+      monthlyData,
+      weekComparison,
+      latestDayData,
+    };
+  },
+
+  _calculateDailyActuals(sortedData) {
+    const dailyActuals = [];
+
+    for (let i = 0; i < sortedData.length; i++) {
+      const current = sortedData[i];
+      const previous = i > 0 ? sortedData[i - 1] : null;
+
+      const citiesActual = {};
+
+      current.cities.forEach(city => {
+        const name = city.name;
+        const prevCity = previous ? previous.cities.find(c => c.name === name) : null;
+
+        let actualProfit = city.profit;
+        let actualOrders = city.orders;
+        let actualRevenue = city.revenue;
+        let actualCost = city.cost;
+        let actualSubsidy = city.subsidy;
+
+        if (prevCity) {
+          actualProfit = city.profit - prevCity.profit;
+          actualOrders = city.orders - prevCity.orders;
+          actualRevenue = city.revenue - prevCity.revenue;
+          actualCost = city.cost - prevCity.cost;
+          actualSubsidy = city.subsidy - prevCity.subsidy;
+        }
+
+        if (actualOrders < 0 || actualRevenue < 0) {
+          actualProfit = 0;
+          actualOrders = 0;
+          actualRevenue = 0;
+          actualCost = 0;
+          actualSubsidy = 0;
+        }
+
+        citiesActual[name] = {
+          name,
+          profit: actualProfit,
+          orders: actualOrders,
+          revenue: actualRevenue,
+          cost: actualCost,
+          subsidy: actualSubsidy,
+          unitUE: Utils.calcUnitUE(actualProfit, actualOrders),
+          subRatio: Utils.calcSubRatio(actualSubsidy, actualRevenue),
+        };
+      });
+
+      dailyActuals.push({
+        date: current.date,
+        cities: citiesActual,
+      });
+    }
+
+    return dailyActuals;
+  },
+
+  _aggregateByWeek(dailyActuals) {
+    const weeklyData = {};
+
+    dailyActuals.forEach(day => {
+      const weekKey = DateParser.getWeekNumber(day.date);
+      const year = day.date.getFullYear();
+      const key = `${year}-W${String(weekKey).padStart(2, '0')}`;
+
+      if (!weeklyData[key]) {
+        weeklyData[key] = {
+          weekKey: key,
+          startDate: day.date,
+          endDate: day.date,
+          cities: {},
+        };
+      }
+
+      if (day.date > weeklyData[key].endDate) {
+        weeklyData[key].endDate = day.date;
+      }
+
+      Object.values(day.cities).forEach(city => {
+        if (!weeklyData[key].cities[city.name]) {
+          weeklyData[key].cities[city.name] = {
+            name: city.name,
+            profit: 0,
+            orders: 0,
+            revenue: 0,
+            cost: 0,
+            subsidy: 0,
+          };
+        }
+        weeklyData[key].cities[city.name].profit += city.profit;
+        weeklyData[key].cities[city.name].orders += city.orders;
+        weeklyData[key].cities[city.name].revenue += city.revenue;
+        weeklyData[key].cities[city.name].cost += city.cost;
+        weeklyData[key].cities[city.name].subsidy += city.subsidy;
+      });
+    });
+
+    return weeklyData;
+  },
+
+  _aggregateByMonth(dailyActuals) {
+    const monthlyData = {};
+
+    dailyActuals.forEach(day => {
+      const key = DateParser.getMonthKey(day.date);
+
+      if (!monthlyData[key]) {
+        monthlyData[key] = {
+          monthKey: key,
+          cities: {},
+        };
+      }
+
+      Object.values(day.cities).forEach(city => {
+        if (!monthlyData[key].cities[city.name]) {
+          monthlyData[key].cities[city.name] = {
+            name: city.name,
+            profit: 0,
+            orders: 0,
+            revenue: 0,
+            cost: 0,
+            subsidy: 0,
+          };
+        }
+        monthlyData[key].cities[city.name].profit += city.profit;
+        monthlyData[key].cities[city.name].orders += city.orders;
+        monthlyData[key].cities[city.name].revenue += city.revenue;
+        monthlyData[key].cities[city.name].cost += city.cost;
+        monthlyData[key].cities[city.name].subsidy += city.subsidy;
+      });
+    });
+
+    return monthlyData;
+  },
+
+  _calculateWeekComparison(weeklyData) {
+    const weekKeys = Object.keys(weeklyData).sort();
+
+    if (weekKeys.length < 2) {
+      return null;
+    }
+
+    const lastWeekKey = weekKeys[weekKeys.length - 1];
+    const prevWeekKey = weekKeys[weekKeys.length - 2];
+
+    const thisWeek = weeklyData[lastWeekKey];
+    const lastWeek = weeklyData[prevWeekKey];
+
+    if (!thisWeek || !lastWeek) {
+      return null;
+    }
+
+    const cityComparisons = [];
+
+    Object.values(thisWeek.cities).forEach(city => {
+      const prevCity = lastWeek.cities[city.name];
+
+      if (!prevCity) {
+        cityComparisons.push({
+          name: city.name,
+          thisWeek: city,
+          lastWeek: null,
+          change: null,
+          changeRate: null,
+          rootCauses: null,
+        });
+        return;
+      }
+
+      const profitChange = city.profit - prevCity.profit;
+      const ordersChange = city.orders - prevCity.orders;
+      const revenueChange = city.revenue - prevCity.revenue;
+      const costChange = city.cost - prevCity.cost;
+      const subsidyChange = city.subsidy - prevCity.subsidy;
+
+      const profitChangeRate = prevCity.profit !== 0
+        ? (profitChange / Math.abs(prevCity.profit)) * 100
+        : null;
+
+      const rootCauses = this._analyzeRootCauses(city, prevCity);
+
+      cityComparisons.push({
+        name: city.name,
+        thisWeek: city,
+        lastWeek: prevCity,
+        change: profitChange,
+        changeRate: profitChangeRate,
+        ordersChange,
+        revenueChange,
+        costChange,
+        subsidyChange,
+        rootCauses,
+      });
+    });
+
+    return {
+      thisWeekKey: lastWeekKey,
+      lastWeekKey: prevWeekKey,
+      cities: cityComparisons,
+    };
+  },
+
+  _analyzeRootCauses(thisWeek, lastWeek) {
+    if (!thisWeek || !lastWeek) return null;
+
+    const thisAvgOrders = thisWeek.orders / 7;
+    const lastAvgOrders = lastWeek.orders / 7;
+    const thisAvgRevenue = thisWeek.revenue / 7;
+    const lastAvgRevenue = lastWeek.revenue / 7;
+    const thisAvgCost = thisWeek.cost / 7;
+    const lastAvgCost = lastWeek.cost / 7;
+
+    const thisUnitUE = Utils.calcUnitUE(thisWeek.profit, thisWeek.orders);
+    const lastUnitUE = Utils.calcUnitUE(lastWeek.profit, lastWeek.orders);
+
+    const orderImpact = (thisAvgOrders - lastAvgOrders) * lastUnitUE;
+    const revenueImpact = (thisAvgRevenue - lastAvgRevenue) * thisWeek.orders;
+    const costImpact = (thisAvgCost - lastAvgCost) * thisWeek.orders;
+    const subsidyImpact = (thisWeek.subsidy - lastWeek.subsidy);
+
+    const impacts = [
+      { name: '订单变化', value: orderImpact, absValue: Math.abs(orderImpact) },
+      { name: '收入变化', value: revenueImpact, absValue: Math.abs(revenueImpact) },
+      { name: '成本变化', value: costImpact, absValue: Math.abs(costImpact) },
+      { name: '代补变化', value: subsidyImpact, absValue: Math.abs(subsidyImpact) },
+    ];
+
+    impacts.sort((a, b) => b.absValue - a.absValue);
+
+    return {
+      factors: impacts,
+      killer: impacts[0],
+      orderImpact,
+      revenueImpact,
+      costImpact,
+      subsidyImpact,
+    };
+  },
+};
+
+
+/* ================================================================
+   6. RANKING (Phase2)
+================================================================ */
+const Ranking = {
+
+  rankWeeklyComparison(comparisons) {
+    if (!Array.isArray(comparisons)) return [];
+
+    const withMetrics = comparisons.map(c => ({
+      ...c,
+      unitUE: Utils.calcUnitUE(c.thisWeek?.profit || 0, c.thisWeek?.orders || 0),
+      profit: c.thisWeek?.profit || 0,
+    }));
+
+    const sortedByUE = [...withMetrics].sort((a, b) => a.unitUE - b.unitUE);
+    sortedByUE.forEach((c, i) => c.ueRank = i + 1);
+
+    const sortedByProfit = [...withMetrics].sort((a, b) => a.profit - b.profit);
+    sortedByProfit.forEach((c, i) => c.profitRank = i + 1);
+
+    withMetrics.forEach(c => {
+      c.compositeRank = c.ueRank * 0.6 + c.profitRank * 0.4;
+    });
+
+    return withMetrics.sort((a, b) => a.compositeRank - b.compositeRank);
+  },
+
+  rankCrossCity(cities) {
+    if (!Array.isArray(cities)) return [];
+
+    const sortedByUE = [...cities].sort((a, b) => a.unitUE - b.unitUE);
+    sortedByUE.forEach((c, i) => c.ueRank = i + 1);
+
+    const sortedBySub = [...cities].sort((a, b) => b.subRatio - a.subRatio);
+    sortedBySub.forEach((c, i) => c.subRank = i + 1);
+
+    const withUnitCost = cities.map(c => ({
+      ...c,
+      unitCost: c.orders > 0 ? c.cost / c.orders : 0,
+    }));
+
+    const sortedByCost = [...withUnitCost].sort((a, b) => b.unitCost - a.unitCost);
+    sortedByCost.forEach((c, i) => c.costRank = i + 1);
+
+    withUnitCost.forEach(c => {
+      c.compositeRank = c.ueRank * 0.5 + c.subRank * 0.3 + c.costRank * 0.2;
+    });
+
+    return withUnitCost.sort((a, b) => a.compositeRank - b.compositeRank);
+  },
+};
+
+
+/* ================================================================
+   7. FEATURES - 功能层
+================================================================ */
+const FileUploadFeature = (function() {
+
+  let _fileInputEl = null;
+  let _uploadAreaEl = null;
+  let _onFileSelect = null;
+
+  function init(opts) {
+    const { fileInputId, uploadAreaId, onFileSelect } = opts;
+
+    _fileInputEl = document.getElementById(fileInputId);
+    _uploadAreaEl = document.getElementById(uploadAreaId);
+    _onFileSelect = onFileSelect;
+
+    if (!_fileInputEl || !_uploadAreaEl) {
+      console.error('[FileUpload] Elements not found:', fileInputId, uploadAreaId);
+      return;
+    }
+
+    _uploadAreaEl.addEventListener('click', function() {
+      _fileInputEl.click();
+    });
+
+    _fileInputEl.addEventListener('change', function(e) {
+      const files = e.target.files;
+      if (files && files.length) {
+        handleFiles(files);
+      }
+    });
+
+    _uploadAreaEl.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      this.classList.add('drag-over');
+    });
+    _uploadAreaEl.addEventListener('dragleave', function() {
+      this.classList.remove('drag-over');
+    });
+    _uploadAreaEl.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files && files.length) {
+        handleFiles(files);
+      }
+    });
+  }
+
+  function handleFiles(files) {
+    if (!files || !files.length) return;
+
+    const validFiles = [];
+    for (const file of files) {
+      const valid = Utils.validateFile(file);
+      if (valid.ok) {
+        validFiles.push(file);
+      } else {
+        Utils.showToast(CONFIG.ERROR_CODES[valid.error] || '文件格式错误');
+      }
+    }
+
+    if (validFiles.length && typeof _onFileSelect === 'function') {
+      _onFileSelect(validFiles);
+    }
+  }
+
+  return { init };
+})();
+
+
+/* ================================================================
+   8. WIDGETS - 组件层
+================================================================ */
+const SummaryCardsWidget = (function() {
+
+  function getHealthColor(score) {
+    if (score >= 90) return CONFIG.COLORS.SUCCESS;
+    if (score >= 80) return '#f59e0b';
+    if (score >= 60) return '#f97316';
+    return CONFIG.COLORS.DANGER;
+  }
+
+  function renderCircle(score) {
+    var color = getHealthColor(score);
+    var r = 34, circ = 2 * Math.PI * r;
+    var filled = (score / 100) * circ;
+    return '<svg width="88" height="88" viewBox="0 0 88 88" style="display:block;margin:0 auto;">' +
+      '<circle cx="44" cy="44" r="' + r + '" fill="none" stroke="#e2e8f0" stroke-width="7"/>' +
+      '<circle cx="44" cy="44" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="7"' +
+        ' stroke-dasharray="' + filled.toFixed(2) + ' ' + circ.toFixed(2) + '"' +
+        ' stroke-linecap="round" transform="rotate(-90 44 44)"/>' +
+      '<text x="44" y="40" text-anchor="middle" font-size="18" font-weight="700" fill="' + color + '">' + Math.round(score) + '</text>' +
+      '<text x="44" y="54" text-anchor="middle" font-size="10" fill="#94a3b8">分</text>' +
+    '</svg>';
+  }
+
+  function render(cities, totals) {
+    var valid = cities.filter(function(c){return c.valid;});
+    if (!valid.length) return '';
+
+    var score = totals.overallScore || 0;
+    var color = getHealthColor(score);
+    var cityNum = valid.length;
+    var ueStatus = Utils.getUEStatus(totals.avgUE);
+    var ueColor = ueStatus === 'ok' ? CONFIG.COLORS.SUCCESS
+                  : ueStatus === 'warn' ? CONFIG.COLORS.WARNING
+                  : CONFIG.COLORS.DANGER;
+    var label = score >= 90 ? '优秀' : score >= 80 ? '良好' : score >= 60 ? '一般' : '较差';
+
+    var cards = [
+      { label: '总收入', value: Utils.formatCurrency(totals.totalRevenue), unit: '元', color: CONFIG.COLORS.PRIMARY },
+      { label: '总成本', value: Utils.formatCurrency(totals.totalCost), unit: '元', color: CONFIG.COLORS.DANGER },
+      { label: '总毛利', value: Utils.formatCurrency(totals.totalProfit), unit: '元', color: totals.totalProfit >= 0 ? CONFIG.COLORS.SUCCESS : CONFIG.COLORS.DANGER },
+      { label: '单均UE', value: totals.avgUE.toFixed(3), unit: '元/单', color: ueColor },
+      { label: '毛利率', value: totals.avgMargin.toFixed(1), unit: '%', color: totals.avgMargin >= 20 ? CONFIG.COLORS.SUCCESS : CONFIG.COLORS.WARNING },
+    ];
+
+    var html = '';
+
+    html += '<div class="health-header">';
+    html += '<div class="health-circle-wrap">';
+    html += renderCircle(score);
+    html += '<div class="health-label">健康度</div></div>';
+    html += '<div class="health-info">';
+    html += '<div class="health-city-num">' + cityNum + '</div>';
+    html += '<div class="health-city-unit">个城市</div>';
+    html += '<div class="health-score-desc" style="color:' + color + '">' + label + '</div></div></div>';
+
+    html += '<div class="cards-grid">';
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      html += '<div class="card">';
+      html += '<div class="card-label">' + card.label + '</div>';
+      html += '<div class="card-value" style="color:' + card.color + '">' + card.value + '</div>';
+      html += '<div class="card-unit">' + card.unit + '</div></div>';
+    }
+    html += '</div>';
+
+    return html;
+  }
+
+  return { render };
+})();
+
+const CityTableWidget = (function() {
+
+  function render(cities) {
+    const validCities = cities.filter(c => c.valid);
+    if (!validCities.length) return '';
+
+    const sorted = [...validCities].sort((a, b) => b.profit - a.profit);
+
+    let html = `
+    <div class="section-title">城市明细</div>
+    <div class="city-table">
+    <table>
+      <thead>
+        <tr>
+          <th>城市</th>
+          <th>单均UE</th>
+          <th>毛利</th>
+          <th>毛利率</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+
+    for (const c of sorted) {
+      const ueStatus = Utils.getUEStatus(c.unitUE);
+      const ueColor = ueStatus === 'ok' ? CONFIG.COLORS.SUCCESS
+                      : ueStatus === 'warn' ? CONFIG.COLORS.WARNING
+                      : CONFIG.COLORS.DANGER;
+      const ueLabel = ueStatus === 'ok' ? '正常' : ueStatus === 'warn' ? '预警' : '危险';
+
+      html += `<tr>
+        <td class="name-cell">
+          <span class="tier-badge tier-${c.tier.toLowerCase()}">${c.tier}类</span>
+          ${c.name}
+        </td>
+        <td class="ue-cell" style="color:${ueColor}">
+          ${c.unitUE >= 0 ? '+' : ''}${c.unitUE.toFixed(3)}元
+          <span style="font-size:10px;font-weight:400">(${ueLabel})</span>
+        </td>
+        <td style="color:${c.profit >= 0 ? CONFIG.COLORS.SUCCESS : CONFIG.COLORS.DANGER}">
+          ${c.profit >= 0 ? '+' : ''}${Utils.formatCurrency(c.profit)}
+        </td>
+        <td>${c.margin.toFixed(1)}%</td>
+      </tr>`;
+    }
+
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  return { render };
+})();
+
+// Phase2 Widgets
+const Phase2Widgets = {
+
+  renderFileList(files) {
+    if (!files || files.length === 0) return '';
+
+    const items = files.map(f => `
+      <div class="file-item">
+        <span class="date">${DateParser.formatDate(f.date)}</span>
+        <span>${f.file.name}</span>
+        <span class="remove" data-index="${f.index}">×</span>
+      </div>
+    `).join('');
+
+    return `
+      <div class="file-list">
+        <div class="file-list-header">已上传 ${files.length} 个文件</div>
+        <div class="file-list-items">${items}</div>
+      </div>
+    `;
+  },
+
+  renderTabNav(hasEnoughData, activeTab) {
+    return `
+      <div class="tab-nav">
+        <button class="tab-btn ${activeTab === 'weekly' ? 'active' : ''}" id="tabWeekly" ${hasEnoughData ? '' : 'disabled'}>
+          本周诊断
+        </button>
+        <button class="tab-btn ${activeTab === 'cross' ? 'active' : ''}" id="tabCrossCity">
+          单日横评
+        </button>
+        <button class="tab-btn ${activeTab === 'phase1' ? 'active' : ''}" id="tabPhase1">
+          总览
+        </button>
+      </div>
+    `;
+  },
+
+  renderSummaryBar(data) {
+    const cities = Object.values(data.latestDayData?.cities || {});
+    const redCount = cities.filter(c => Utils.getStatus(c.unitUE, c.subRatio) === 'red').length;
+    const greenCount = cities.filter(c => Utils.getStatus(c.unitUE, c.subRatio) === 'green').length;
+
+    return `
+      <div class="summary-bar">
+        <div class="summary-bar-text">
+          数据：<strong>${DateParser.formatDateRange(data.startDate, data.endDate)}</strong>
+          （共<strong>${data.dayCount}</strong>天）
+        </div>
+        <div class="summary-bar-counts">
+          <span class="bad">🔴 ${redCount}</span>
+          <span class="good"> 🟢 ${greenCount}</span>
+        </div>
+      </div>
+    `;
+  },
+
+  renderWeeklyDiagnosis(comparisons) {
+    if (!comparisons || !comparisons.cities) {
+      return '<div class="error-box">⚠ 数据不足，需要至少14天数据</div>';
+    }
+
+    const ranked = Ranking.rankWeeklyComparison(comparisons.cities);
+
+    const cards = ranked.map((c, idx) => {
+      const status = Utils.getStatus(
+        Utils.calcUnitUE(c.thisWeek?.profit || 0, c.thisWeek?.orders || 0),
+        Utils.calcSubRatio(c.thisWeek?.subsidy || 0, c.thisWeek?.revenue || 0)
+      );
+      const statusIcon = status === 'red' ? '🔴' : status === 'orange' ? '🟠' : '🟢';
+      const ueDown = c.change < 0;
+      const unitUE = Utils.calcUnitUE(c.thisWeek?.profit || 0, c.thisWeek?.orders || 0);
+
+      let killerHtml = '';
+      if (c.rootCauses && c.rootCauses.killer) {
+        const k = c.rootCauses.killer;
+        const changeSign = k.value > 0 ? '+' : '';
+        killerHtml = `
+          <div class="city-card-killer">
+            <span class="city-card-killer-title">第一杀手：${k.name}</span>
+            ${changeSign}${Utils.formatCurrency(k.value)}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="city-card status-${status}">
+          <div class="city-card-header">
+            <span class="city-card-status">${statusIcon}</span>
+            <span class="city-card-name">${c.name}</span>
+            <span class="city-card-rank">综合#${idx + 1}</span>
+            <span class="city-card-ue ${ueDown ? 'down' : 'up'}">
+              单均UE ¥${unitUE.toFixed(2)}
+              ${ueDown ? '（↓严重）' : ''}
+            </span>
+          </div>
+          <div class="city-card-body">
+            <div class="city-card-change">
+              本周毛利 ${Utils.formatCurrency(c.thisWeek?.profit)}
+              vs 上周 ${Utils.formatCurrency(c.lastWeek?.profit)}
+              <strong style="color:${ueDown ? 'var(--color-danger)' : 'var(--color-success)'}">
+                ${c.change > 0 ? '+' : ''}${Utils.formatCurrency(c.change)}
+              </strong>
+            </div>
+            ${killerHtml}
+            <div class="city-card-orders">
+              订单：${Utils.formatNumber(c.thisWeek?.orders)}单
+              ${c.ordersChange ? ` (${c.ordersChange > 0 ? '+' : ''}${Utils.formatNumber(c.ordersChange)})` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return cards;
+  },
+
+  renderCrossCity(latestDayData) {
+    if (!latestDayData || !latestDayData.cities) {
+      return '<div class="empty-state"><div class="empty-desc">暂无数据</div></div>';
+    }
+
+    const cities = Object.values(latestDayData.cities);
+    const ranked = Ranking.rankCrossCity(cities);
+
+    const items = ranked.map((c, idx) => {
+      const status = Utils.getStatus(c.unitUE, c.subRatio);
+      const ueColor = status === 'red' ? 'var(--color-danger)' :
+                       status === 'orange' ? 'var(--color-warning)' :
+                       'var(--color-success)';
+
+      return `
+        <div class="cross-city-item status-${status}">
+          <div class="cross-city-rank">${idx + 1}</div>
+          <div class="cross-city-name">${c.name}</div>
+          <div class="cross-city-ue" style="color:${ueColor}">
+            ¥${c.unitUE.toFixed(2)}
+          </div>
+          <div class="cross-city-margin">
+            ${Utils.formatCurrency(c.profit)}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return items;
+  },
+};
+
+
+/* ================================================================
+   9. APP - 应用层
+================================================================ */
+const App = (function() {
+
+  const Store = {
+    files: [],
+    processedData: null,
+    activeTab: 'cross',
+    // Phase1 数据
+    cities: [],
+    totals: { revenue: 0, cost: 0, profit: 0, orders: 0, avgUE: 0, avgMargin: 0, overallScore: 0 },
+  };
+
+  let _dynamicEl = null;
+
+  function init() {
+    _dynamicEl = document.getElementById('dynamicContent');
+    if (!_dynamicEl) {
+      console.error('[App] #dynamicContent not found');
+      return;
+    }
+
+    FileUploadFeature.init({
+      fileInputId: 'fileInput',
+      uploadAreaId: 'uploadArea',
+      onFileSelect: handleFiles,
+    });
+
+    renderEmpty();
+  }
+
+  function renderEmpty() {
+    _dynamicEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📁</div>
+        <div class="empty-title">暂无数据</div>
+        <div class="empty-desc">上传美团账单Excel文件，开始分析</div>
+      </div>
+    `;
+  }
+
+  function renderLoading() {
+    _dynamicEl.innerHTML = `
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <div>正在解析账单...</div>
+      </div>
+    `;
+  }
+
+  // 待处理文件队列
+  let _pendingFiles = [];
+  let _currentFileIndex = 0;
+
+  async function handleFiles(files) {
+    Utils.showToast('正在解析...');
+    
+    // 先解析所有文件的Excel数据，收集需要选择日期的文件
+    const parsedFiles = [];
+    
+    for (const file of files) {
+      const valid = Utils.validateFile(file);
+      if (!valid.ok) {
+        Utils.showToast(CONFIG.ERROR_CODES[valid.error]);
+        continue;
+      }
+
+      try {
+        const arrayBuffer = await readFileAsArrayBuffer(file);
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: 0 });
+
+        const cities = parseCitiesFromSheet(jsonData);
+        if (cities.length === 0) {
+          Utils.showToast(`${file.name}: 无有效城市数据`);
+          continue;
+        }
+
+        // 尝试从文件名解析日期
+        const date = DateParser.parse(file.name);
+        
+        parsedFiles.push({
+          file,
+          date,  // 可能是 null
+          cities,
+          parsed: true,
+        });
+      } catch (err) {
+        console.error('[App] Parse error:', file.name, err);
+        Utils.showToast(`${file.name}: 解析失败`);
+      }
+    }
+
+    if (parsedFiles.length === 0) {
+      renderEmpty();
+      Utils.showToast('没有有效的文件');
+      return;
+    }
+
+    // 检查是否有需要选择日期的文件
+    const needDateSelection = parsedFiles.filter(f => !f.date);
+    
+    if (needDateSelection.length > 0) {
+      // 需要用户选择日期
+      _pendingFiles = parsedFiles;
+      _currentFileIndex = parsedFiles.findIndex(f => !f.date);
+      showDatePickerModal(parsedFiles[_currentFileIndex]);
+    } else {
+      // 所有文件都有日期，直接处理
+      finishFileProcessing(parsedFiles);
+    }
+  }
+
+  // 显示日期选择对话框
+  function showDatePickerModal(fileInfo) {
+    const today = new Date();
+    const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const modalHtml = `
+      <div class="date-modal" id="dateModal">
+        <div class="date-modal-content">
+          <div class="date-modal-title">选择账单日期</div>
+          <div class="date-modal-file">📄 ${fileInfo.file.name}</div>
+          <div class="date-modal-label">请选择该账单对应的日期：</div>
+          <input type="date" class="date-modal-input" id="dateInput" value="${defaultDate}">
+          <div class="date-modal-buttons">
+            <button class="date-modal-btn date-modal-btn-cancel" id="dateCancel">跳过</button>
+            <button class="date-modal-btn date-modal-btn-confirm" id="dateConfirm">确认</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // 保存当前状态
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = document.getElementById('dateModal');
+    const input = document.getElementById('dateInput');
+    const cancelBtn = document.getElementById('dateCancel');
+    const confirmBtn = document.getElementById('dateConfirm');
+    
+    cancelBtn.addEventListener('click', () => {
+      // 跳过这个文件
+      modal.remove();
+      skipCurrentFile();
+    });
+    
+    confirmBtn.addEventListener('click', () => {
+      const selectedDate = input.value;
+      if (!selectedDate) {
+        Utils.showToast('请选择日期');
+        return;
+      }
+      
+      const parts = selectedDate.split('-');
+      const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      
+      // 设置日期
+      _pendingFiles[_currentFileIndex].date = date;
+      
+      modal.remove();
+      
+      // 检查是否还有需要选择日期的文件
+      const nextIndex = _pendingFiles.findIndex((f, i) => i > _currentFileIndex && !f.date);
+      
+      if (nextIndex !== -1) {
+        _currentFileIndex = nextIndex;
+        showDatePickerModal(_pendingFiles[nextIndex]);
+      } else {
+        // 所有文件都已选择日期，完成处理
+        finishFileProcessing(_pendingFiles);
+      }
+    });
+  }
+
+  // 跳过当前文件
+  function skipCurrentFile() {
+    _pendingFiles[_currentFileIndex].skipped = true;
+    
+    const nextIndex = _pendingFiles.findIndex((f, i) => i > _currentFileIndex && !f.date && !f.skipped);
+    
+    if (nextIndex !== -1) {
+      _currentFileIndex = nextIndex;
+      showDatePickerModal(_pendingFiles[nextIndex]);
+    } else {
+      // 处理剩余文件
+      const validFiles = _pendingFiles.filter(f => f.date && !f.skipped);
+      finishFileProcessing(validFiles);
+    }
+  }
+
+  // 完成文件处理
+  function finishFileProcessing(parsedFiles) {
+    const validFiles = parsedFiles.filter(f => f.date && f.parsed);
+    
+    validFiles.forEach((f, i) => {
+      f.index = Store.files.length + i;
+    });
+    
+    Store.files = [...Store.files, ...validFiles];
+    
+    if (Store.files.length > 0) {
+      Store.processedData = DayDataProcessor.process(Store.files);
+      renderData();
+      Utils.showToast(`已上传 ${Store.files.length} 个文件`);
+    } else {
+      renderEmpty();
+      Utils.showToast('没有有效的文件');
+    }
+    
+    _pendingFiles = [];
+    _currentFileIndex = 0;
+  }
+
+  function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('E003'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function parseCitiesFromSheet(jsonData) {
+    const { EXCEL_ROWS } = CONFIG;
+    const cities = [];
+
+    if (!Array.isArray(jsonData) || !jsonData[EXCEL_ROWS.CITY_NAME]) {
+      return [];
+    }
+
+    const cityNameRow = jsonData[EXCEL_ROWS.CITY_NAME];
+
+    for (let col = EXCEL_ROWS.CITY_START_COL; col <= EXCEL_ROWS.CITY_END_COL; col++) {
+      const rawName = cityNameRow[col];
+      if (!rawName || typeof rawName !== 'string') continue;
+
+      const name = String(rawName).trim();
+      if (!name || name === '城市') continue;
+
+      try {
+        const city = new CityEntity.City({ name: name, col: col });
+        city.fillFromRow(jsonData, col);
+        if (city.valid) {
+          cities.push(city);
+        }
+      } catch (e) {
+        console.warn('[App] Failed to parse city:', name, e.message);
+      }
+    }
+
+    return cities;
+  }
+
+  function calculateOverallHealth(cities) {
+    var valid = cities.filter(function(c){return c.valid;});
+    if (!valid.length) return 0;
+
+    var w = CONFIG.SCORE_WEIGHTS;
+
+    var incomeOk = valid.filter(function(c){return c.revenue > 0;}).length;
+    var incomeScore = (incomeOk / valid.length) * 100;
+
+    var avgMargin = valid.reduce(function(s,c){return s+c.margin;}, 0) / valid.length;
+    var profitScore = Math.min(100, Math.max(0, (avgMargin / 20) * 100));
+
+    var avgSub = valid.reduce(function(s,c){return s+c.subRatio;}, 0) / valid.length;
+    var costScore = Math.min(100, Math.max(0, (1 - (avgSub - 10) / 20) * 100));
+
+    var avgCityScore = valid.reduce(function(s,c){return s+c.cityScore;}, 0) / valid.length;
+    var cityScore = (avgCityScore / 10) * 100;
+
+    var overall = incomeScore * w.income + profitScore * w.profit +
+                  costScore * w.cost + cityScore * w.city;
+
+    return Math.max(0, Math.min(100, overall));
+  }
+
+  function renderData() {
+    const data = Store.processedData;
+    if (!data || !data.success) {
+      renderEmpty();
+      return;
+    }
+
+    const hasEnoughData = data.dayCount >= CONFIG.MIN_DAYS_FOR_WEEKLY;
+
+    // 计算 Phase1 总览数据（所有文件合并）
+    let allCities = [];
+    let totals = { revenue: 0, cost: 0, profit: 0, orders: 0, avgUE: 0, avgMargin: 0 };
+
+    // 取最新一个文件的数据作为 Phase1 总览
+    const latestFile = Store.files[Store.files.length - 1];
+    if (latestFile && latestFile.cities) {
+      allCities = latestFile.cities.filter(c => c.valid);
+      allCities.forEach(c => {
+        totals.revenue += c.revenue;
+        totals.cost += c.cost;
+        totals.profit += c.profit;
+        totals.orders += c.orders;
+      });
+      if (totals.orders > 0) totals.avgUE = totals.profit / totals.orders;
+      if (totals.revenue > 0) totals.avgMargin = (totals.profit / totals.revenue) * 100;
+      totals.overallScore = calculateOverallHealth(allCities);
+    }
+
+    Store.cities = allCities;
+    Store.totals = totals;
+
+    let html = Phase2Widgets.renderFileList(Store.files);
+    html += Phase2Widgets.renderTabNav(hasEnoughData, Store.activeTab);
+
+    if (Store.activeTab !== 'phase1') {
+      html += Phase2Widgets.renderSummaryBar(data);
+    }
+
+    if (Store.activeTab === 'weekly' && hasEnoughData) {
+      html += Phase2Widgets.renderWeeklyDiagnosis(data.weekComparison);
+    } else if (Store.activeTab === 'phase1') {
+      html += SummaryCardsWidget.render(Store.cities, Store.totals);
+      html += CityTableWidget.render(Store.cities);
+    } else {
+      html += Phase2Widgets.renderCrossCity(data.latestDayData);
+    }
+
+    _dynamicEl.innerHTML = html;
+
+    bindTabEvents();
+    bindFileRemoveEvents();
+  }
+
+  function bindTabEvents() {
+    const tabWeekly = document.getElementById('tabWeekly');
+    const tabCross = document.getElementById('tabCrossCity');
+    const tabPhase1 = document.getElementById('tabPhase1');
+
+    if (tabWeekly) {
+      tabWeekly.addEventListener('click', () => {
+        Store.activeTab = 'weekly';
+        renderData();
+      });
+    }
+
+    if (tabCross) {
+      tabCross.addEventListener('click', () => {
+        Store.activeTab = 'cross';
+        renderData();
+      });
+    }
+
+    if (tabPhase1) {
+      tabPhase1.addEventListener('click', () => {
+        Store.activeTab = 'phase1';
+        renderData();
+      });
+    }
+  }
+
+  function bindFileRemoveEvents() {
+    document.querySelectorAll('.file-item .remove').forEach(el => {
+      el.addEventListener('click', e => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (!isNaN(idx)) {
+          Store.files.splice(idx, 1);
+          // 重新计算索引
+          Store.files.forEach((f, i) => f.index = i);
+          Store.processedData = DayDataProcessor.process(Store.files);
+          renderData();
+          Utils.showToast('已删除文件');
+        }
+      });
+    });
+  }
+
+  return { init };
+})();
+
+
+/* ================================================================
+   10. BOOTSTRAP - 启动
+================================================================ */
+document.addEventListener('DOMContentLoaded', function() {
+  App.init();
+});
+
+</script>
+</body>
+</html>
