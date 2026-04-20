@@ -1141,6 +1141,7 @@ body {
       <span class="page-title" id="pageTitle">代理商财务分析工具</span>
     </div>
     <span class="date-display" id="dateDisplay"></span>
+    <button onclick="showTokenSettings()" style="background:none;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer;padding:0 4px;" title="云端同步设置">&#9881;</button>
   </div>
   <div class="content-area">
     <!-- Welcome State -->
@@ -1424,13 +1425,31 @@ const CONFIG = {
   const CloudSync = {
     API: 'https://api.github.com/repos/xinglianyue/finance-tool/issues',
     LABEL: 'deploy-data',
-    TOKEN: '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',
+    TOKEN_KEY: 'github-token',
+    GITHUB_TOKEN: '',
+
+    init() {
+      this.GITHUB_TOKEN = localStorage.getItem(this.TOKEN_KEY) || '';
+    },
+
+    getToken() {
+      return localStorage.getItem(this.TOKEN_KEY) || '';
+    },
+
+    setToken(token) {
+      localStorage.setItem(this.TOKEN_KEY, token);
+      this.GITHUB_TOKEN = token;
+    },
+
+    hasToken() {
+      return !!this.getToken();
+    },
 
     HEADERS() {
-      return {
-        'Authorization': 'token ' + this.TOKEN,
-        'Accept': 'application/vnd.github.v3+json'
-      };
+      const h = { 'Accept': 'application/vnd.github.v3+json' };
+      const t = this.getToken();
+      if (t) h['Authorization'] = 'token ' + t;
+      return h;
     },
 
     // gzip压缩
@@ -1542,13 +1561,15 @@ const CONFIG = {
       }
     },
 
-    // 从云端拉取所有数据
+    // 从云端拉取所有数据（公开仓库无需token）
     async pullAll() {
       try {
         let allData = {};
         let page = 1;
         while (true) {
-          const r = await fetch(this.API + '?labels=' + this.LABEL + '&state=all&per_page=100&page=' + page, { headers: this.HEADERS() });
+          const r = await fetch(this.API + '?labels=' + this.LABEL + '&state=all&per_page=100&page=' + page, {
+            headers: { 'Accept': 'application/vnd.github.v3+json' }
+          });
           const issues = await r.json();
           if (!issues || issues.length === 0) break;
           for (const issue of issues) {
@@ -1601,6 +1622,59 @@ const CONFIG = {
       }
       return newCount;
     }
+  }
+
+
+  // Token设置弹窗
+  function showTokenHint() {
+    const hint = document.getElementById('tokenHint');
+    if (hint) hint.style.display = 'flex';
+  }
+
+  function hideTokenHint() {
+    const hint = document.getElementById('tokenHint');
+    if (hint) hint.style.display = 'none';
+  }
+
+  function saveToken() {
+    const input = document.getElementById('tokenInput');
+    const token = input ? input.value.trim() : '';
+    if (!token) { alert('请输入Token'); return; }
+    // 验证token有效性
+    fetch('https://api.github.com/user', { headers: { 'Authorization': 'token ' + token } })
+      .then(r => {
+        if (r.ok) return r.json();
+        throw new Error('Token无效');
+      })
+      .then(user => {
+        CloudSync.setToken(token);
+        hideTokenHint();
+        // 重新同步当前数据到云端
+        if (state.currentData && state.merchantData) {
+          CloudSync.upload(state.currentData.date, state.merchantData);
+        }
+        alert('Token设置成功（用户: ' + user.login + '），数据正在同步到云端');
+      })
+      .catch(e => {
+        alert('Token验证失败: ' + e.message + '\n\n请确保:\n1. 在 github.com/settings/tokens 生成\n2. 勾选 repo 权限\n3. Token未过期');
+      });
+  }
+
+  function showTokenSettings() {
+    const current = CloudSync.getToken();
+    const mask = current ? current.substring(0, 8) + '...' + current.substring(current.length - 4) : '未设置';
+    const input = document.getElementById('tokenInput');
+    if (input) input.value = current || '';
+    if (current) {
+      // 验证当前token
+      fetch('https://api.github.com/user', { headers: { 'Authorization': 'token ' + current } })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(u => document.getElementById('tokenStatus').textContent = '当前: ' + u.login + ' (' + mask + ')')
+        .catch(() => document.getElementById('tokenStatus').textContent = '当前Token已失效: ' + mask);
+    } else {
+      document.getElementById('tokenStatus').textContent = '未设置Token，数据将仅保存在本地';
+    }
+    showTokenHint();
   };
 
   const DataStore = {
@@ -1886,8 +1960,13 @@ const CONFIG = {
         };
 
         DataStore.save(date, { currentData: state.currentData, merchantData: state.merchantData, currentMerchant: state.currentMerchant });
-        // 自动同步到云端
-        CloudSync.upload(date, state.merchantData);
+        // 自动同步到云端（需token）
+        if (CloudSync.hasToken()) {
+          CloudSync.upload(date, state.merchantData);
+        } else {
+          console.log('[CloudSync] 未设置GitHub Token，数据仅保存在本地');
+          showTokenHint();
+        }
         onDataLoaded();
         renderHistory();
         renderMerchantSelector();
@@ -3243,7 +3322,7 @@ function renderRawData() {
 
     initEvents();
     // 从云端同步最新数据
-    CloudSync.syncToLocal().then(() => {
+    CloudSync.init(); CloudSync.syncToLocal().then(() => {
       // Try to load last data
       const allData = DataStore.loadAll();
     const dates = Object.keys(allData).sort().reverse();
@@ -3295,5 +3374,23 @@ function renderRawData() {
   };
 })();
 </script>
+
+  <!-- GitHub Token 设置弹窗 -->
+  <div id="tokenHint" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:none;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:12px;padding:24px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <h3 style="margin:0 0 8px;font-size:16px;">GitHub Token 设置</h3>
+      <p id="tokenStatus" style="color:#666;font-size:12px;margin:0 0 16px;">设置Token后可将数据同步到云端，团队共享</p>
+      <div style="margin-bottom:12px;">
+        <input type="text" id="tokenInput" placeholder="粘贴GitHub Personal Access Token" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="font-size:11px;color:#999;margin-bottom:16px;line-height:1.6;">
+        生成步骤: github.com/settings/tokens → Generate new token(classic) → 勾选<b>repo</b>权限 → 生成
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="hideTokenHint()" style="padding:6px 16px;border:1px solid #ddd;border-radius:6px;background:white;cursor:pointer;">取消</button>
+        <button onclick="saveToken()" style="padding:6px 16px;border:none;border-radius:6px;background:#667eea;color:white;cursor:pointer;">保存并验证</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
