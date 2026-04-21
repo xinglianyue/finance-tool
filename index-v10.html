@@ -2,6 +2,9 @@
 
 <html lang="zh-CN">
 <head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="version" content="v10.0">
@@ -877,34 +880,34 @@ body {
 .cost-panel {
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
 }
 .cost-panel h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   color: var(--text);
 }
 .cost-bar-row {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: 4px;
+  font-size: 12px;
 }
 .cost-bar-label {
-  width: 100px;
+  width: 80px;
   flex-shrink: 0;
   color: #666;
   text-align: right;
-  padding-right: 8px;
-  font-size: 12px;
+  padding-right: 6px;
+  font-size: 11px;
 }
 .cost-bar-wrap {
   flex: 1;
-  height: 24px;
+  height: 18px;
   background: #f5f5f5;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   position: relative;
 }
@@ -916,29 +919,33 @@ body {
 }
 .cost-bar-fill.income { background: linear-gradient(90deg, #4a90d9, #6cb4ee); }
 .cost-bar-fill.expense { background: linear-gradient(90deg, #e67e22, #f5a623); }
+.cost-bar-fill.subsidy { background: linear-gradient(90deg, #e74c3c, #f1948a); }
+.cost-bar-fill.delivery { background: linear-gradient(90deg, #8e44ad, #bb8fce); }
+.cost-bar-fill.platform { background: linear-gradient(90deg, #d35400, #eb984e); }
+.cost-bar-fill.fixed { background: linear-gradient(90deg, #27ae60, #82e0aa); }
 .cost-bar-value {
-  width: 80px;
+  width: 68px;
   flex-shrink: 0;
   text-align: right;
-  padding-left: 8px;
-  font-size: 12px;
+  padding-left: 6px;
+  font-size: 11px;
   color: var(--text);
   font-weight: 500;
 }
 .cost-bar-pct {
-  width: 45px;
+  width: 42px;
   flex-shrink: 0;
   text-align: right;
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
 }
 .cost-total {
   display: flex;
   justify-content: space-between;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
-  font-size: 13px;
+  padding-top: 6px;
+  border-top: 1px solid #eee;
+  margin-top: 4px;
+  font-size: 12px;
   font-weight: 600;
 }
 .cost-total .amount {
@@ -952,24 +959,26 @@ body {
 .eff-card {
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
+  border-radius: 6px;
+  padding: 6px 10px;
   text-align: center;
+  flex: 0 0 auto;
+  min-width: 90px;
 }
 .eff-card .eff-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 .eff-card .eff-value {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
 }
 .eff-card .eff-value.negative { color: var(--danger); }
 .eff-card .eff-value.positive { color: var(--success); }
 .eff-card .eff-unit {
-  font-size: 12px;
+  font-size: 10px;
   color: #999;
 }
 .eff-card.anomaly {
@@ -1159,11 +1168,10 @@ body {
           <div class="merchant-selector-buttons" id="merchantButtons" style="display:inline-flex;gap:8px;"></div>
         </div>
         <button class="tab-btn active" data-tab="overview" id="tabOverview">概况</button>
-        <button class="tab-btn" data-tab="anomaly" id="tabAnomaly">城市异常 <span class="tab-badge hidden" id="anomalyBadge">0</span></button>
         <button class="tab-btn" data-tab="detail" id="tabDetail">详细分析</button>
-        <button class="tab-btn" data-tab="rawdata" id="tabRawdata">原始数据</button>
         <button class="tab-btn" data-tab="cost" id="tabCost">成本结构</button>
         <button class="tab-btn" data-tab="report" id="tabReport">分析报告</button>
+        <button class="tab-btn" data-tab="rawdata" id="tabRawdata">原始数据</button>
       </div>
       <!-- Tab1: Overview -->
       <div class="tab-pane" id="paneOverview">
@@ -1199,17 +1207,7 @@ body {
           </div>
         </div>
 
-          </div>
-
-      <!-- Tab2: Anomaly -->
-      <div class="tab-pane hidden" id="paneAnomaly">
-        <div class="anomaly-list" id="anomalyList">
-          <!-- Dynamic -->
-        </div>
-      </div>
-
-      <!-- Tab3: Detail -->
-      <div class="tab-pane hidden" id="paneDetail">
+          </div><div class="tab-pane hidden" id="paneDetail">
         <div class="detail-selector">
           <select id="detailCity"></select>
           <select id="detailModule">
@@ -1223,10 +1221,7 @@ body {
         <div id="detailContent">
           <!-- Dynamic -->
         </div>
-      </div>
-
-      <!-- Tab5: Cost Structure -->
-      <div class="tab-pane hidden" id="paneCost">
+      </div><div class="tab-pane hidden" id="paneCost">
         <div class="cost-selector">
           <label style="font-size:13px;font-weight:600;color:#666;">城市:</label>
           <select id="costCity"></select>
@@ -1239,6 +1234,7 @@ body {
             <option value="group">拼好饭</option>
           </select>
         </div>
+        <div class="efficiency-cards" id="effCards"></div>
         <div class="cost-layout">
           <div class="cost-panel">
             <h3>收入结构</h3>
@@ -1249,23 +1245,31 @@ body {
             <div id="costExpense"></div>
           </div>
         </div>
-        <div class="efficiency-cards" id="effCards"></div>
+        <div class="cost-layout" style="margin-top:16px;">
+          <div class="cost-panel">
+            <h3>补贴拆分</h3>
+            <div id="costSubsidy"></div>
+          </div>
+          <div class="cost-panel">
+            <h3>配送成本拆分</h3>
+            <div id="costDelivery"></div>
+          </div>
+        </div>
+        <div class="cost-layout" style="margin-top:16px;">
+          <div class="cost-panel">
+            <h3>平台成本拆分</h3>
+            <div id="costPlatform"></div>
+          </div>
+          <div class="cost-panel">
+            <h3>固定/附加成本拆分</h3>
+            <div id="costFixedAdditional"></div>
+          </div>
+        </div>
         <div class="cost-compare-section">
-          <h3>配送成本率对比（各城市）</h3>
+          <h3>关键指标对比（各城市）</h3>
           <div id="costCompare"></div>
         </div>
-      </div>
-
-      <!-- Tab4: Raw Data -->
-      <div class="tab-pane hidden" id="paneRawdata">
-        <div style="padding: 16px;">
-          <h3>原始数据校验</h3>
-          <p>此页面展示所有解析后的原始数据，用于校验数据准确性。</p>
-          <div id="rawdataContent"></div>
-        </div>
-      </div>
-      <!-- Tab6: Report -->
-      <div class="tab-pane hidden" id="paneReport">
+      </div><div class="tab-pane hidden" id="paneReport">
         <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
           <h3 style="margin:0;">UE分析报告</h3>
           <div>
@@ -1276,6 +1280,12 @@ body {
         </div>
         <div id="reportContent" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:24px;font-size:14px;line-height:1.8;white-space:pre-wrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-height:70vh;overflow-y:auto;">
           <p style="color:#94a3b8;text-align:center;padding:60px 0;">点击"生成报告"一键输出UE分析报告</p>
+        </div>
+      </div><div class="tab-pane hidden" id="paneRawdata">
+        <div style="padding: 16px;">
+          <h3>原始数据校验</h3>
+          <p>此页面展示所有解析后的原始数据，用于校验数据准确性。</p>
+          <div id="rawdataContent"></div>
         </div>
       </div>
 
@@ -1343,7 +1353,6 @@ if (window.location.protocol === 'file:') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
       window.showSecurityWarning();
-      setupXLSXErrorHandling();
     });
   } else {
     window.showSecurityWarning();
@@ -1453,7 +1462,7 @@ const CONFIG = {
     return n.toFixed(2);
   }
   function fmtPct(n) {
-    return (n * 100).toFixed(1) + '%';
+    return (n * 100).toFixed(2) + '%';
   }
   function fmtInt(n) {
     return Math.round(n).toLocaleString('zh-CN');
@@ -1471,34 +1480,77 @@ const CONFIG = {
 
     // 字段匹配规则: [col2Or3值, col4值, 字段名]
     const FIELD_RULES = [
+      // 体量
       ['', '订单量汇总',        'orders'],
       ['', '加盟订单量',        'franchiseOrders'],
       ['', '自配订单量',        'selfOrders'],
       ['', '企客订单量',        'enterpriseOrders'],
-      ['', '原价交易额汇总',    'gmvAmount'],
       ['', '加盟原价交易额',    'franchiseGMV'],
       ['', '自配原价交易额',    'selfGMV'],
+      ['', '原价交易额汇总',    'gmvAmount'],
+      // 收入拆分
+      ['', '加盟抽佣金额',      'franchiseCommission'],
+      ['', '自配抽佣金额',      'selfCommission'],
+      ['', '企客商家抽佣金额',  'enterpriseCommission'],
       ['', '抽佣金额汇总',      'commission'],
+      ['', '加盟配送费',        'franchiseDeliveryFee'],
+      ['', '二次配送费',        'secondDeliveryFee'],
+      ['', '企客配送费',        'enterpriseDeliveryFee'],
+      ['', '一对一急送配送费',  'urgentDeliveryFee'],
       ['', '配送费汇总',        'deliveryFee'],
       ['', '其他收入汇总',      'otherRevenue'],
-      ['', '代补金额花费汇总',  'subsidyTotal'],
+      // 补贴拆分
       ['', 'B端代补金额',       'subsidyB'],
       ['', 'C端代补金额',       'subsidyC'],
       ['', '账单-代补差额',     'subsidyDiff'],
+      ['', '代补金额花费汇总',  'subsidyTotal'],
+      ['', '拼单补贴',          'pinDanSubsidy'],
+      ['', '拼好饭补贴',        'pinHaoFanSubsidy'],
+      ['', '专项补贴',          'specialSubsidy'],
+      ['', '众包补贴调账',      'crowdSubsidyAdjust'],
+      // 平台成本拆分
+      ['', '平台抽佣金额',      'platformCommissionCost'],
+      ['', '合作商售后赔付费用','afterSaleCost'],
+      ['', '关爱基金',          'careFund'],
+      ['', '保险费用',          'insuranceCost'],
+      ['', '竞价',              'biddingCost'],
+      ['', '罚款',              'penalty'],
       ['', '平台成本汇总',      'platformCost'],
-      ['', '固定成本汇总',      'fixedCost'],
-      ['', '配送成本汇总',      'deliveryCost'],
+      // 配送成本拆分
+      ['', '加盟承接订单量',    'franchiseDeliverOrders'],
+      ['', '加盟单均邮资',      'franchiseAvgPostage'],
+      ['', '加盟活动花费',      'franchiseActivityCost'],
       ['', '加盟邮资',          'franchiseDelivery'],
+      ['', '普众众包订单量',    'crowdOrders'],
+      ['', '普众众包基础邮资',  'crowdBasePostage'],
+      ['', '普众众包活动花费',  'crowdActivityCost'],
       ['', '普众众包邮资',      'crowdDelivery'],
+      ['', '悦跑订单量',        'yuepaoOrders'],
+      ['', '悦跑基础邮资',      'yuepaoBasePostage'],
+      ['', '悦跑活动花费',      'yuepaoActivityCost'],
       ['', '悦跑邮资',          'yuepaoDelivery'],
       ['', '众包天气补贴',      'weatherSubsidy'],
-      ['', '加盟单均邮资',      'franchiseAvgPostage'],
-      ['', '加盟承接订单量',    'franchiseDeliverOrders'],
-      ['', '附加成本汇总',      'additionalCost']
+      ['', '配送成本汇总',      'deliveryCost'],
+      // 固定/附加/其他成本
+      ['', '办公室房租',        'officeRent'],
+      ['', '业务团队',          'teamCost'],
+      ['', '固定成本汇总',      'fixedCost'],
+      ['', '三方服务费',        'thirdPartyServiceCost'],
+      ['', '社保',              'socialInsurance'],
+      ['', '税',                'taxCost'],
+      ['', '附加成本汇总',      'additionalCost'],
+      ['', '外卖运营增单',      'operationBoostCost'],
+      ['', '水电电话网物料费',  'utilityCost'],
+      ['', '差旅招待',          'travelCost'],
+      ['', '其他成本',          'otherMiscCost'],
+      ['', '其他成本汇总',      'otherCost'],
     ];
 
     const COL2_RULES = { '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense' };
-    const COL3_RULES = { '线上收入汇总': 'onlineRevenue', '线上支出汇总': 'onlineExpense', '线下支出汇总': 'offlineExpense' };
+    const COL3_RULES = {
+      '线上收入汇总': 'onlineRevenue', '线上支出汇总': 'onlineExpense', '线下支出汇总': 'offlineExpense',
+      '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense',
+    };
 
     const MODULE_DEFS = [
       { searchName: '全品类财务指标', key: 'all',      label: '全品类' },
@@ -1799,8 +1851,6 @@ const CONFIG = {
     renderStatCards();
     renderMatrix();
     renderAnomalyAlert();
-    renderAnomalyTab();
-    updateAnomalyBadge();
     // Init detail tab
     if (state.currentData.cities.length > 0 && !state.detailCity) {
       state.detailCity = state.currentData.cities[0].name;
@@ -1894,8 +1944,6 @@ function refreshDashboard() {
     renderStatCards();
     renderMatrix();
     renderAnomalyAlert();
-    renderAnomalyTab();
-    updateAnomalyBadge();
     renderDetailTab();
   }
   // ===== TAB1: OVERVIEW =====
@@ -1909,6 +1957,10 @@ function refreshDashboard() {
     let totalOrders = allMod ? allMod.orders : 0;
     let totalProfit = allMod ? allMod.profit : 0;
     let totalSubsidy = allMod ? allMod.subsidyTotal : 0;
+    let totalDeliveryCost = allMod ? (allMod.deliveryCost || 0) : 0;
+    let totalPenalty = allMod ? (allMod.penalty || 0) : 0;
+    let totalSubsidyB = allMod ? (allMod.subsidyB || 0) : 0;
+    let totalSubsidyC = allMod ? (allMod.subsidyC || 0) : 0;
 
     const anomalies = { danger: 0, warning: 0, missing: 0 };
     for (const city of cities) {
@@ -1934,6 +1986,12 @@ function refreshDashboard() {
       <div class="stat-card">
         <div class="label">代补总额</div>
         <div class="value">${fmtWan(totalSubsidy)}</div>
+        <div class="sub-info">B端 ${fmtWan(totalSubsidyB)} / C端 ${fmtWan(totalSubsidyC)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">配送成本</div>
+        <div class="value">${fmtWan(totalDeliveryCost)}</div>
+        <div class="sub-info">罚款 ${fmtWan(totalPenalty)}</div>
       </div>
       <div class="stat-card">
         <div class="label">异常城市数</div>
@@ -1956,9 +2014,13 @@ function refreshDashboard() {
         if (!m) continue;
         const level = getAnomalyLevel(m.ue, m.subsidyRatio);
         if (level === 'danger' || level === 'warning') {
-          const ueStr = m.ue < 0 ? fmtUE(m.ue) + '元(亏损)' : fmtUE(m.ue) + '元';
+          const ueStr = m.ue < 0 ? fmtUE(m.ue) + '元' : fmtUE(m.ue) + '元';
+          const subStr = m.subsidyRatio ? m.subsidyRatio.toFixed(2) + '%' : '-';
+          const delStr = m.deliveryCostRate ? (m.deliveryCostRate * 100).toFixed(2) + '%' : '-';
+          const penStr = m.penalty ? fmtWan(m.penalty) : '0';
           items.push({
-            level, city: city.displayName, module: block.name, ueStr,
+            level, city: city.displayName, module: block.name,
+            ueStr, subStr, delStr, penStr,
             cityName: city.name, moduleKey: block.key
           });
         }
@@ -1973,7 +2035,7 @@ function refreshDashboard() {
     bar.style.display = 'block';
     container.innerHTML = items.map(item => `
       <div class="anomaly-alert-item" data-city="${item.cityName}" data-module="${item.moduleKey}">
-        ${icon(item.level)} ${item.city} ${item.module} UE=${item.ueStr}
+        ${icon(item.level)} <b>${item.city}</b> ${item.module} &nbsp;|&nbsp; UE=${item.ueStr} &nbsp; 补贴=${item.subStr} &nbsp; 配送=${item.delStr} &nbsp; 罚款=${item.penStr}
       </div>
     `).join('');
     container.querySelectorAll('.anomaly-alert-item').forEach(el => {
@@ -2044,104 +2106,6 @@ function renderMatrix() {
       });
     });
   }
-  // ===== TAB2: ANOMALY =====
-  function updateAnomalyBadge() {
-    const items = collectAnomalies();
-    const badge = $('#anomalyBadge');
-    if (items.length > 0) {
-      badge.classList.remove('hidden');
-      badge.textContent = items.length;
-    } else {
-      badge.classList.add('hidden');
-    }
-  }
-  function collectAnomalies() {
-    const cities = getFilteredCities();
-    const items = [];
-    for (const city of cities) {
-      for (const block of CONFIG.BLOCKS) {
-        const m = city.modules[block.key];
-        if (!m) continue;
-        const level = getAnomalyLevel(m.ue, m.subsidyRatio);
-        if (level === 'danger' || level === 'warning') {
-          items.push({
-            level,
-            cityName: city.name,
-            cityDisplay: city.displayName,
-            moduleName: (city.modules[block.key] && city.modules[block.key].moduleName) || block.name,
-            moduleKey: block.key,
-            ...m
-          });
-        }
-      }
-    }
-    // Sort: danger first, then by UE ascending (worst first)
-    items.sort((a, b) => {
-      if (a.level === 'danger' && b.level !== 'danger') return -1;
-      if (a.level !== 'danger' && b.level === 'danger') return 1;
-      return a.ue - b.ue;
-    });
-    return items;
-  }
-  function renderAnomalyTab() {
-    const items = collectAnomalies();
-    const container = $('#anomalyList');
-    if (items.length === 0) {
-      container.innerHTML = `
-        <div class="no-anomaly">
-          <div class="check-icon">&#10004;</div>
-          <h3>所有城市运行正常</h3>
-          <p class="text-secondary">当前筛选范围内未发现异常数据点</p>
-        </div>
-      `;
-      return;
-    }
-    container.innerHTML = items.map((item, idx) => {
-      const dotClass = item.level === 'danger' ? 'red' : 'yellow';
-      const label = item.level === 'danger' ? '严重' : '预警';
-      const diag = getDiagnosis(item.level, item.ue, item.subsidyRatio, item.moduleName);
-      return `
-        <div class="anomaly-card">
-          <div class="anomaly-card-header" onclick="document.querySelector('#anomalyList .anomaly-card:nth-child(${idx+1}) .anomaly-card-body').classList.toggle('show')">
-            <div class="anomaly-card-title">
-              <div class="severity-dot ${dotClass}"></div>
-              <span>${item.cityDisplay} / ${item.moduleName}</span>
-              <span style="font-size:12px;color:var(--text-secondary);font-weight:400">[${label}]</span>
-            </div>
-            <button class="view-btn" data-city="${item.cityName}" data-module="${item.moduleKey}">查看详细</button>
-          </div>
-          <div class="anomaly-card-body show">
-            <div class="anomaly-metrics">
-              <div class="anomaly-metric">
-                <div class="m-label">单均UE</div>
-                <div class="m-value ${item.ue < 0 ? 'danger' : ''}">${fmtUE(item.ue)}元</div>
-              </div>
-              <div class="anomaly-metric">
-                <div class="m-label">补贴率</div>
-                <div class="m-value ${item.subsidyRatio > 0.35 ? 'danger' : ''}">${fmtPct(item.subsidyRatio)}</div>
-              </div>
-              <div class="anomaly-metric">
-                <div class="m-label">订单量</div>
-                <div class="m-value">${fmtInt(item.orders)}</div>
-              </div>
-              <div class="anomaly-metric">
-                <div class="m-label">毛利</div>
-                <div class="m-value ${item.profit < 0 ? 'danger' : 'success'}">${fmtWan(item.profit)}</div>
-              </div>
-            </div>
-            ${diag ? `<div class="anomaly-diagnosis"><strong>诊断:</strong> ${diag}</div>` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
-    // View detail buttons
-    container.querySelectorAll('.view-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        switchToDetail(btn.dataset.city, btn.dataset.module);
-      });
-    });
-  }
   // ===== TAB3: DETAIL =====
   function updateDetailSelectors() {
     const citySel = $('#detailCity');
@@ -2178,10 +2142,13 @@ function renderMatrix() {
     // Key metrics
     html += `<div class="detail-stats">`;
     html += detailStat('订单量', fmtInt(m.orders), prevData ? changeStr(m.orders, prevData.orders) : '');
-    html += detailStat('收入', fmtWan(m.onlineRevenue), prevData ? changeStr(m.onlineRevenue, prevData.revenue, true) : '');
-    html += detailStat('代补', fmtWan(m.subsidyTotal), prevData ? changeStr(m.subsidyTotal, prevData.subsidy, true) : '');
+    html += detailStat('收入', fmtWan(m.onlineRevenue), prevData ? changeStr(m.onlineRevenue, prevData.onlineRevenue, true) : '');
     html += detailStat('毛利', fmtWan(m.profit), prevData ? changeStr(m.profit, prevData.profit, true) : '', m.profit < 0 ? 'danger' : 'success');
     html += detailStat('单均UE', fmtUE(m.ue) + '元', prevData ? changeStr(m.ue, prevData.ue, false, true) : '', m.ue < 0 ? 'danger' : '');
+    html += detailStat('B端代补', fmtWan(m.subsidyB || 0), prevData ? changeStr(m.subsidyB || 0, prevData.subsidyB || 0, true) : '');
+    html += detailStat('C端代补', fmtWan(m.subsidyC || 0), prevData ? changeStr(m.subsidyC || 0, prevData.subsidyC || 0, true) : '');
+    html += detailStat('配送成本', fmtWan(m.deliveryCost), prevData ? changeStr(m.deliveryCost, prevData.deliveryCost, true) : '');
+    html += detailStat('罚款', fmtWan(m.penalty || 0), prevData ? changeStr(m.penalty || 0, prevData.penalty || 0, true) : '', (m.penalty || 0) > 0 ? 'danger' : '');
     html += `</div>`;
     // Root cause analysis
     html += renderRootCause(city.displayName, moduleName, m, anomalyLevel, prevData);
@@ -2212,7 +2179,7 @@ function renderMatrix() {
     if (isWan) displayDiff = (diff > 0 ? '+' : '') + fmtWan(diff);
     else if (isUE) displayDiff = (diff > 0 ? '+' : '') + diff.toFixed(2);
     else displayDiff = (diff > 0 ? '+' : '') + fmtInt(diff);
-    const displayRate = Math.abs(rate).toFixed(1) + '%';
+    const displayRate = Math.abs(rate).toFixed(2) + '%';
     // For UE and profit, lower is worse (negative change = red)
     // For others, context-dependent
     let dir;
@@ -2251,10 +2218,19 @@ function renderMatrix() {
     const rows = [
       { name: '订单量', cur: current.orders, prev: prev.orders, fmt: fmtInt },
       { name: '收入', cur: current.onlineRevenue, prev: prev.onlineRevenue, fmt: fmtWan },
-      { name: '代补', cur: current.subsidyTotal, prev: prev.subsidyTotal, fmt: fmtWan },
       { name: '毛利', cur: current.profit, prev: prev.profit, fmt: fmtWan },
       { name: '单均UE', cur: current.ue, prev: prev.ue, fmt: v => fmtUE(v) + '元' },
       { name: '补贴率', cur: current.subsidyRatio, prev: prev.subsidyRatio, fmt: fmtPct },
+      { name: 'B端代补', cur: current.subsidyB || 0, prev: prev.subsidyB || 0, fmt: fmtWan },
+      { name: 'C端代补', cur: current.subsidyC || 0, prev: prev.subsidyC || 0, fmt: fmtWan },
+      { name: '专项补贴', cur: current.specialSubsidy || 0, prev: prev.specialSubsidy || 0, fmt: fmtWan },
+      { name: '配送成本', cur: current.deliveryCost, prev: prev.deliveryCost, fmt: fmtWan },
+      { name: '加盟邮资', cur: current.franchiseDelivery || 0, prev: prev.franchiseDelivery || 0, fmt: fmtWan },
+      { name: '普众邮资', cur: current.crowdDelivery || 0, prev: prev.crowdDelivery || 0, fmt: fmtWan },
+      { name: '悦跑邮资', cur: current.yuepaoDelivery || 0, prev: prev.yuepaoDelivery || 0, fmt: fmtWan },
+      { name: '天气补贴', cur: current.weatherSubsidy || 0, prev: prev.weatherSubsidy || 0, fmt: fmtWan },
+      { name: '罚款', cur: current.penalty || 0, prev: prev.penalty || 0, fmt: fmtWan },
+      { name: '平台成本', cur: current.platformCost, prev: prev.platformCost, fmt: fmtWan },
     ];
     let html = `<div class="comparison-card">
       <div class="card-title">本期 vs 上期对比</div>
@@ -2271,7 +2247,7 @@ function renderMatrix() {
         <td>${r.fmt(r.cur)}</td>
         <td>${r.fmt(r.prev)}</td>
         <td class="${cls}">${diff > 0 ? '+' : ''}${r.fmt(diff)}</td>
-        <td class="${cls}">${arrow} ${Math.abs(rate).toFixed(1)}%</td>
+        <td class="${cls}">${arrow} ${Math.abs(rate).toFixed(2)}%</td>
       </tr>`;
     }
     html += '</tbody></table></div>';
@@ -2285,7 +2261,14 @@ function renderMatrix() {
     if (currentIdx < 0 || currentIdx >= dates.length - 1) return null;
     const prevDate = dates[currentIdx + 1];
     const prevFile = allData[prevDate];
-    const prevCities = prevFile.cities || (prevFile.currentData && prevFile.currentData.cities) || [];
+    // 支持KA/城商维度：优先从 merchantData 中获取
+    const merchantKey = state.currentMerchant || 'all';
+    let prevCities;
+    if (prevFile.merchantData && prevFile.merchantData[merchantKey]) {
+      prevCities = prevFile.merchantData[merchantKey].cities;
+    } else {
+      prevCities = prevFile.cities || (prevFile.currentData && prevFile.currentData.cities) || [];
+    }
     const prevCity = prevCities.find(c => c.name === cityName);
     if (!prevCity) return null;
     return prevCity.modules[moduleKey] || null;
@@ -2342,16 +2325,22 @@ function renderMatrix() {
     const wb = XLSX.utils.book_new();
 
     // Sheet 1: UE Matrix
-    const matrixData = [['城市', '模块', '订单量', '收入', '代补', '毛利', 'UE', '补贴率', 'GMV']];
+    const matrixData = [['城市', '模块', '订单量', '收入', '毛利', 'UE', '补贴率', 'GMV',
+      'B端代补', 'C端代补', '专项补贴', '配送成本', '加盟邮资', '普众邮资', '悦跑邮资', '天气补贴',
+      '罚款', '平台成本', '固定成本', '附加成本']];
     for (const city of cities) {
       for (const block of CONFIG.BLOCKS) {
         const m = city.modules[block.key];
         if (!m) continue;
         matrixData.push([
           city.displayName, block.name, m.orders,
-          m.onlineRevenue, m.subsidyTotal, m.profit,
+          m.onlineRevenue, m.profit,
           +m.ue.toFixed(2), +m.subsidyRatio.toFixed(4),
-          m.gmvAmount
+          m.gmvAmount,
+          m.subsidyB || 0, m.subsidyC || 0, m.specialSubsidy || 0,
+          m.deliveryCost || 0, m.franchiseDelivery || 0, m.crowdDelivery || 0,
+          m.yuepaoDelivery || 0, m.weatherSubsidy || 0,
+          m.penalty || 0, m.platformCost || 0, m.fixedCost || 0, m.additionalCost || 0
         ]);
       }
     }
@@ -2360,9 +2349,19 @@ function renderMatrix() {
     XLSX.utils.book_append_sheet(wb, ws1, 'UE矩阵');
 
     // Sheet 2: Anomaly Summary
-    const anomalies = collectAnomalies();
+    const anomalyItems = [];
+    for (const city of state.currentData.cities.filter(c => c.name !== '总商')) {
+      for (const block of CONFIG.BLOCKS) {
+        const m = city.modules[block.key];
+        if (!m) continue;
+        const level = getAnomalyLevel(m.ue, m.subsidyRatio);
+        if (level === 'danger' || level === 'warning') {
+          anomalyItems.push({ cityDisplay: city.displayName, moduleName: block.name, level, ue: m.ue, subsidyRatio: m.subsidyRatio, orders: m.orders, profit: m.profit });
+        }
+      }
+    }
     const anomalyData = [['城市', '模块', '严重级别', 'UE', '补贴率', '订单量', '毛利', '诊断']];
-    for (const a of anomalies) {
+    for (const a of anomalyItems) {
       const diag = getDiagnosis(a.level, a.ue, a.subsidyRatio, a.moduleName) || '';
       anomalyData.push([
         a.cityDisplay, a.moduleName,
@@ -2394,7 +2393,7 @@ function renderMatrix() {
           ];
           for (const r of rows) {
             const diff = r.cur - r.prev;
-            const rate = r.prev !== 0 ? (diff / Math.abs(r.prev) * 100).toFixed(1) + '%' : '-';
+            const rate = r.prev !== 0 ? (diff / Math.abs(r.prev) * 100).toFixed(2) + '%' : '-';
             compData.push([city.displayName, block.name, r.name, r.cur, r.prev, diff, rate]);
           }
         }
@@ -2447,7 +2446,7 @@ function renderMatrix() {
       for (const block of CONFIG.BLOCKS) {
         const m = city.modules[block.key];
         if (m && m.orders > 0) {
-          row.push(+m.ue.toFixed(2), +(m.subsidyRatio * 100).toFixed(1) + '%');
+          row.push(+m.ue.toFixed(2), +(m.subsidyRatio * 100).toFixed(2) + '%');
         } else {
           row.push('-', '-');
         }
@@ -2584,6 +2583,185 @@ function renderMatrix() {
   }
 
   
+
+function generateReportLocal() {
+    if (!state.currentData || !state.currentData.cities || state.currentData.cities.length === 0) return;
+    const cities = state.currentData.cities.filter(c => c.name !== '总商');
+    const totalCity = state.currentData.cities.find(c => c.name === '总商');
+    const blocks = CONFIG.BLOCKS;
+    const dateStr = state.currentData.fileName || '未知日期';
+    const md = [];
+
+    md.push('佰优运营中心经营分析报告');
+    md.push('');
+    md.push('> ' + dateStr + ' | ' + cities.length + '城市');
+    md.push('---');
+    md.push('');
+
+    // 一、整体概况
+    md.push('## 一、整体概况');
+    if (totalCity) {
+      const tm = totalCity.modules[costModule];
+      if (tm) {
+        const totalOrders = cities.reduce((s,c) => s + ((c.modules[costModule]||{}).orders||0), 0);
+        const totalProfit = cities.reduce((s,c) => s + ((c.modules[costModule]||{}).profit||0), 0);
+        const lossCount = cities.filter(c => (c.modules[costModule]||{}).ue < 0).length;
+        md.push('总商本期覆盖' + cities.length + '个城市，总订单量' + totalOrders.toLocaleString() + '单，总毛利' + fmtWan(totalProfit) + '。其中' + lossCount + '个城市UE为负，处于亏损状态。整体UE ' + fmtUE(tm.ue || 0) + '，' + (tm.ue < 0.5 ? '低于安全线，需重点关注成本结构。' : '处于可控区间。'));
+        md.push('');
+        md.push('| 指标 | 数值 |');
+        md.push('|------|------|');
+        md.push('| 总订单量 | ' + (tm.orders||0).toLocaleString() + '单 |');
+        md.push('| 总收入（实收） | ' + fmtWan(tm.onlineRevenue||0) + ' |');
+        md.push('| 总毛利 | ' + fmtWan(tm.profit||0) + ' |');
+        md.push('| 整体UE | ' + fmtUE(tm.ue||0) + '/单 |');
+        md.push('| 整体补贴率 | ' + (tm.subsidyRatio ? (tm.subsidyRatio*100).toFixed(2) : '0') + '% |');
+        md.push('| 整体配送成本率 | ' + (tm.deliveryCostRate ? (tm.deliveryCostRate*100).toFixed(2) : '0') + '% |');
+        md.push('| 整体罚款 | ' + (tm.penalty ? fmtWan(tm.penalty) : '0') + ' |');
+      }
+    }
+    md.push('');
+
+    // 二、各城市UE排名
+    md.push('## 二、各城市UE排名');
+    const cityUE = cities.map(c => {
+      const m = c.modules[costModule] || {};
+      return { name: c.displayName, ue: m.ue||0, orders: m.orders||0, subsidy: m.subsidyRatio||0, delCost: m.deliveryCostRate||0 };
+    }).sort((a, b) => a.ue - b.ue);
+    md.push('下表按UE从低到高排列，红色标记亏损城市，黄色为低利润预警。');
+    md.push('');
+    md.push('| 排名 | 城市 | UE(元/单) | 订单量 | 补贴率 | 配送成本率 |');
+    md.push('|------|------|-----------|--------|--------|------------|');
+    cityUE.forEach((c, i) => {
+      const tag = c.ue < 0 ? '亏损' : (c.ue < 0.5 ? '预警' : '健康');
+      md.push('| ' + (i+1) + ' | ' + c.name + ' | ' + c.ue.toFixed(2) + ' | ' + c.orders.toLocaleString() + ' | ' + (c.subsidy*100).toFixed(2) + '% | ' + (c.delCost*100).toFixed(2) + '% |');
+    });
+    md.push('');
+
+    // 三、异常诊断
+    const anomalies = [];
+    for (const city of cities) {
+      for (const block of blocks) {
+        const m = city.modules[block.key];
+        if (!m) continue;
+        const level = getAnomalyLevel(m.ue, m.subsidyRatio);
+        if (level === 'danger' || level === 'warning') {
+          anomalies.push({ city: city.displayName, module: block.name, level, ue: m.ue, subsidy: m.subsidyRatio, orders: m.orders, deliveryCostRate: m.deliveryCostRate, penalty: m.penalty||0 });
+        }
+      }
+    }
+
+    md.push('## 三、异常城市诊断');
+    if (anomalies.length === 0) {
+      md.push('各城市各模块指标均在正常范围内，无异常项。');
+    } else {
+      const dangerList = anomalies.filter(a => a.level === 'danger');
+      const warnList = anomalies.filter(a => a.level === 'warning');
+      md.push('本期共检出' + anomalies.length + '项异常，其中严重异常' + dangerList.length + '项、预警' + warnList.length + '项。');
+      md.push('');
+      md.push('### 严重异常');
+      md.push('UE为负或补贴率超过45%的模块，需立即介入排查。');
+      md.push('');
+      md.push('| 城市 | 模块 | UE | 补贴率 | 配送成本率 | 罚款 |');
+      md.push('|------|------|-----|--------|------------|------|');
+      dangerList.forEach(a => {
+        md.push('| ' + a.city + ' | ' + a.module + ' | ' + a.ue.toFixed(2) + ' | ' + (a.subsidy*100).toFixed(2) + '% | ' + (a.deliveryCostRate*100).toFixed(2) + '% | ' + fmtWan(a.penalty) + ' |');
+      });
+      md.push('');
+      if (warnList.length > 0) {
+        md.push('### 预警项');
+        md.push('UE低于0.5元或补贴率35%~45%的模块，需持续关注趋势。');
+        md.push('');
+        md.push('| 城市 | 模块 | UE | 补贴率 | 配送成本率 |');
+        md.push('|------|------|-----|--------|------------|');
+        warnList.forEach(a => {
+          md.push('| ' + a.city + ' | ' + a.module + ' | ' + a.ue.toFixed(2) + ' | ' + (a.subsidy*100).toFixed(2) + '% | ' + (a.deliveryCostRate*100).toFixed(2) + '% |');
+        });
+        md.push('');
+      }
+    }
+
+    // 四、成本结构分析
+    md.push('## 四、成本结构分析');
+    md.push('各城市核心成本项明细如下，按实收从高到低排列。重点关注配送成本占比和补贴占比两项。');
+    md.push('');
+    const totalCosts = cities.map(c => {
+      const m = c.modules[costModule] || {};
+      return { name: c.displayName, revenue: m.onlineRevenue||0, deliveryCost: m.deliveryCost||0, subsidyTotal: m.subsidyTotal||0, platformCost: m.platformCost||0, fixedCost: m.fixedCost||0, penalty: m.penalty||0, profit: m.profit||0 };
+    }).sort((a, b) => b.revenue - a.revenue);
+
+    md.push('| 城市 | 实收 | 配送成本 | 补贴总额 | 平台成本 | 固定成本 | 罚款 | 毛利 |');
+    md.push('|------|------|----------|----------|----------|----------|------|------|');
+    totalCosts.forEach(c => {
+      md.push('| ' + c.name + ' | ' + fmtWan(c.revenue) + ' | ' + fmtWan(c.deliveryCost) + ' | ' + fmtWan(c.subsidyTotal) + ' | ' + fmtWan(c.platformCost) + ' | ' + fmtWan(c.fixedCost) + ' | ' + fmtWan(c.penalty) + ' | ' + fmtWan(c.profit) + ' |');
+    });
+    md.push('');
+
+    // 五、各模块分析
+    md.push('## 五、各模块分析');
+    for (const block of blocks) {
+      const blockCities = cities.map(c => {
+        const m = c.modules[block.key] || {};
+        return { name: c.displayName, ue: m.ue||0, orders: m.orders||0, profit: m.profit||0, subsidy: m.subsidyRatio||0 };
+      }).filter(c => c.orders > 0).sort((a,b) => a.ue - b.ue);
+
+      if (blockCities.length === 0) continue;
+
+      const totalOrders = blockCities.reduce((s,c) => s + c.orders, 0);
+      const totalProfit = blockCities.reduce((s,c) => s + c.profit, 0);
+      const avgUE = totalOrders > 0 ? totalProfit / totalOrders : 0;
+      const lossCities = blockCities.filter(c => c.ue < 0);
+
+      md.push('### ' + block.name);
+      md.push('覆盖' + blockCities.length + '个城市，总订单' + totalOrders.toLocaleString() + '单，总毛利' + fmtWan(totalProfit) + '，平均UE ' + avgUE.toFixed(2) + '。' + (lossCities.length > 0 ? lossCities.map(c => c.name).join('、') + '处于亏损状态。' : '所有城市均盈利。'));
+      md.push('');
+      md.push('| 城市 | UE | 订单量 | 毛利 | 补贴率 |');
+      md.push('|------|-----|--------|------|--------|');
+      blockCities.forEach(c => {
+        md.push('| ' + c.name + ' | ' + c.ue.toFixed(2) + ' | ' + c.orders.toLocaleString() + ' | ' + fmtWan(c.profit) + ' | ' + (c.subsidy*100).toFixed(2) + '% |');
+      });
+      md.push('');
+    }
+
+    // 六、重点问题与建议
+    md.push('## 六、重点问题与建议');
+    const suggestions = [];
+    const lossCities = cityUE.filter(c => c.ue < 0);
+    if (lossCities.length > 0) {
+      suggestions.push('**亏损城市（' + lossCities.length + '个）：** ' + lossCities.map(c => c.name + '(' + c.ue.toFixed(2) + '元)').join('、') + '，建议重点排查补贴率和配送成本率，评估是否需要收缩或调整策略。');
+    }
+    const highSub = [...new Set(anomalies.filter(a => a.subsidy > 0.40).map(a => a.city))];
+    if (highSub.length > 0) {
+      suggestions.push('**高补贴城市：** ' + highSub.join('、') + '补贴率超过40%，建议核查B端/C端代补合理性及活动花费，建立补贴上限硬约束。');
+    }
+    const highDel = cityUE.filter(c => c.delCost > 0.37);
+    if (highDel.length > 0) {
+      suggestions.push('**高配送成本城市：** ' + highDel.map(c => c.name + '(' + (c.delCost*100).toFixed(2) + '%)').join('、') + '，建议关注运力结构、人效及配送罚款。');
+    }
+    const highPen = cities.filter(c => { const m = c.modules[costModule]; return m && m.penalty && m.penalty > 5000; });
+    if (highPen.length > 0) {
+      suggestions.push('**高罚款城市：** ' + highPen.map(c => c.displayName + '(' + fmtWan(c.modules[costModule].penalty) + ')').join('、') + '，建议核查配送罚款明细并推动申诉。');
+    }
+    const bestCities = cityUE.filter(c => c.ue >= 1.5).slice(0, 3);
+    if (bestCities.length > 0) {
+      suggestions.push('**表现最优：** ' + bestCities.map(c => c.name + '(' + c.ue.toFixed(2) + '元)').join('、') + '，可总结运营经验向其他城市推广。');
+    }
+    if (suggestions.length === 0) {
+      suggestions.push('本期整体经营指标健康，无突出风险点。');
+    }
+    suggestions.forEach(s => md.push(s));
+    md.push('');
+    md.push('---');
+    md.push('*报告由代理商财务分析工具自动生成*');
+
+    const mdText = md.join('\n');
+    state.reportText = mdText;
+    renderMarkdown(mdText);
+    $('#btnCopyReport').style.display = 'inline-block';
+    $('#btnDownloadReport').style.display = 'inline-block';
+  }
+
+
+
 function generateReport() {
   if (!state.currentData || !state.currentData.cities || state.currentData.cities.length === 0) {
     $('#reportContent').innerHTML = '<p style="color:#ef4444;text-align:center;padding:60px 0;">请先上传数据</p>';
@@ -2691,16 +2869,15 @@ function generateReport() {
 }
 
 function renderMarkdown(md) {
-  // 简单Markdown渲染
   var html = md
+    .replace(/&/g, '&amp;')
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
     .replace(/^---$/gm, '<hr>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    .replace(/^- (.+)$/gm, '<li>$1</li>');
   // 重新处理表格
   var lines = html.split('\n');
   var inTable = false;
@@ -2741,21 +2918,80 @@ function renderCostStructure() {
     const mod = city.modules[costModule];
     if (!mod) return;
 
+    // 收入结构（拆分抽佣和配送费）
     const incomeItems = [
-      { label: '抽佣', value: mod.commission },
-      { label: '配送费', value: mod.deliveryFee },
-      { label: '其他收入', value: mod.otherRevenue }
+      { label: '加盟抽佣', value: mod.franchiseCommission || 0 },
+      { label: '自配抽佣', value: mod.selfCommission || 0 },
+      { label: '企客抽佣', value: mod.enterpriseCommission || 0 },
+      { label: '加盟配送费', value: mod.franchiseDeliveryFee || 0 },
+      { label: '二次配送费', value: mod.secondDeliveryFee || 0 },
+      { label: '企客配送费', value: mod.enterpriseDeliveryFee || 0 },
+      { label: '急送配送费', value: mod.urgentDeliveryFee || 0 },
+      { label: '其他收入', value: mod.otherRevenue || 0 }
     ];
     renderCostBars('costIncome', incomeItems, mod.onlineRevenue, 'income');
 
+    // 支出结构（总览）
     const expenseItems = [
       { label: '配送成本', value: mod.deliveryCost },
       { label: '代补', value: mod.subsidyTotal },
       { label: '平台成本', value: mod.platformCost },
       { label: '固定成本', value: mod.fixedCost },
-      { label: '附加成本', value: mod.additionalCost }
+      { label: '附加成本', value: mod.additionalCost },
+      { label: '其他成本', value: mod.otherCost || 0 }
     ];
-    renderCostBars('costExpense', expenseItems, mod.onlineExpense, 'expense');
+    renderCostBars('costExpense', expenseItems, (mod.onlineExpense || 0) + (mod.offlineExpense || 0), 'expense');
+
+    // 补贴拆分
+    const subsidyItems = [
+      { label: 'B端代补', value: mod.subsidyB || 0 },
+      { label: 'C端代补', value: mod.subsidyC || 0 },
+      { label: '账单差额', value: mod.subsidyDiff || 0 }
+    ];
+    if (costModule === 'group') {
+      subsidyItems.push(
+        { label: '拼单补贴', value: mod.pinDanSubsidy || 0 },
+        { label: '拼好饭补贴', value: mod.pinHaoFanSubsidy || 0 }
+      );
+    } else {
+      subsidyItems.push(
+        { label: '专项补贴', value: mod.specialSubsidy || 0 }
+      );
+    }
+    renderCostBars('costSubsidy', subsidyItems, mod.subsidyTotal, 'subsidy');
+
+    // 配送成本拆分（活动花费已含在邮资中，不重复计算）
+    const deliveryItems = [
+      { label: '加盟邮资', value: mod.franchiseDelivery || 0 },
+      { label: '普众众包邮资', value: mod.crowdDelivery || 0 },
+      { label: '悦跑邮资', value: mod.yuepaoDelivery || 0 },
+      { label: '天气补贴', value: mod.weatherSubsidy || 0 }
+    ];
+    renderCostBars('costDelivery', deliveryItems, mod.deliveryCost, 'delivery');
+
+    // 平台成本拆分
+    const platformItems = [
+      { label: '平台抽佣', value: mod.platformCommissionCost || 0 },
+      { label: '售后赔付', value: mod.afterSaleCost || 0 },
+      { label: '关爱基金', value: mod.careFund || 0 },
+      { label: '保险费用', value: mod.insuranceCost || 0 },
+      { label: '竞价', value: mod.biddingCost || 0 },
+      { label: '罚款', value: mod.penalty || 0 }
+    ];
+    renderCostBars('costPlatform', platformItems, mod.platformCost, 'platform');
+
+    // 固定/附加成本拆分
+    const fixedItems = [
+      { label: '办公室房租', value: mod.officeRent || 0 },
+      { label: '业务团队', value: mod.teamCost || 0 },
+      { label: '三方服务费', value: mod.thirdPartyServiceCost || 0 },
+      { label: '社保', value: mod.socialInsurance || 0 },
+      { label: '税', value: mod.taxCost || 0 },
+      { label: '水电物料', value: mod.utilityCost || 0 },
+      { label: '差旅招待', value: mod.travelCost || 0 }
+    ];
+    const fixedTotal = (mod.fixedCost || 0) + (mod.additionalCost || 0);
+    renderCostBars('costFixedAdditional', fixedItems, fixedTotal, 'fixed');
 
     renderEfficiencyCards(mod);
     renderCostCompare();
@@ -2766,17 +3002,28 @@ function renderCostStructure() {
     if (!el) return;
     let html = '';
     const nonZero = items.filter(it => it.value > 0);
+    const itemsSum = nonZero.reduce((s, it) => s + it.value, 0);
     const maxVal = Math.max(...nonZero.map(it => it.value), 1);
+    // 占比分母：用各项加总和汇总值中较大的那个，避免超100%
+    const pctBase = Math.max(itemsSum, total || 0, 1);
     nonZero.forEach(it => {
-      const pct = total > 0 ? (it.value / total * 100) : 0;
+      const pct = (it.value / pctBase * 100);
       const barW = (it.value / maxVal * 100);
       html += '<div class="cost-bar-row">' +
         '<div class="cost-bar-label">' + it.label + '</div>' +
         '<div class="cost-bar-wrap"><div class="cost-bar-fill ' + type + '" style="width:' + barW + '%"></div></div>' +
         '<div class="cost-bar-value">' + fmtWan(it.value) + '</div>' +
-        '<div class="cost-bar-pct">' + pct.toFixed(1) + '%</div></div>';
+        '<div class="cost-bar-pct">' + pct.toFixed(2) + '%</div></div>';
     });
-    html += '<div class="cost-total"><span>合计</span><span class="amount">' + fmtWan(total) + '</span></div>';
+    // 合计行：显示各项加总，若与汇总值有差异则额外标注
+    if (Math.abs(itemsSum - total) > 1) {
+      const diff = itemsSum - total;
+      const diffLabel = diff > 0 ? '（汇总差 +' + fmtWan(diff) + '）' : '（汇总差 ' + fmtWan(diff) + '）';
+      html += '<div class="cost-total"><span>拆分加总</span><span class="amount">' + fmtWan(itemsSum) + '</span></div>';
+      html += '<div class="cost-total" style="opacity:0.7"><span>账单汇总' + diffLabel + '</span><span class="amount">' + fmtWan(total) + '</span></div>';
+    } else {
+      html += '<div class="cost-total"><span>合计</span><span class="amount">' + fmtWan(total) + '</span></div>';
+    }
     el.innerHTML = html;
   }
 
@@ -2787,16 +3034,25 @@ function renderCostStructure() {
     const totalMod = totalCity ? totalCity.modules[costModule] : null;
     const metrics = [
       { label: '单均收入', value: mod.avgRevenuePerOrder, unit: '元', key: 'avgRevenuePerOrder', base: totalMod ? totalMod.avgRevenuePerOrder : 0 },
+      { label: '单均成本', value: mod.avgCostPerOrder, unit: '元', key: 'avgCostPerOrder', base: totalMod ? totalMod.avgCostPerOrder : 0 },
       { label: '单均UE', value: mod.ue, unit: '元', key: 'ue', base: totalMod ? totalMod.ue : 0 },
       { label: '配送成本率', value: mod.deliveryCostRate * 100, unit: '%', key: 'deliveryCostRate', base: totalMod ? totalMod.deliveryCostRate * 100 : 0 },
-      { label: '补贴率', value: mod.subsidyRatio * 100, unit: '%', key: 'subsidyRatio', base: totalMod ? totalMod.subsidyRatio * 100 : 0 },
+      { label: '补贴率', value: (mod.subsidyRateTotal !== undefined ? mod.subsidyRateTotal : mod.subsidyRatio) * 100, unit: '%', key: 'subsidyRatio', base: totalMod ? (totalMod.subsidyRateTotal !== undefined ? totalMod.subsidyRateTotal : totalMod.subsidyRatio) * 100 : 0 },
+      { label: 'B端代补率', value: mod.subsidyRateB * 100, unit: '%', key: 'subsidyRateB', base: totalMod ? totalMod.subsidyRateB * 100 : 0 },
+      { label: 'C端代补率', value: mod.subsidyRateC * 100, unit: '%', key: 'subsidyRateC', base: totalMod ? totalMod.subsidyRateC * 100 : 0 },
+      { label: '罚款金额', value: mod.penalty || 0, unit: '元', key: 'penalty', base: totalMod ? (totalMod.penalty || 0) : 0, isAmount: true },
       { label: '企客占比', value: mod.enterpriseRatio * 100, unit: '%', key: 'enterpriseRatio', base: totalMod ? totalMod.enterpriseRatio * 100 : 0 }
     ];
     let html = '';
     metrics.forEach(m => {
-      const displayVal = m.key === 'ue' ? m.value.toFixed(2) : m.value.toFixed(1);
+      let displayVal;
+      if (m.isAmount) {
+        displayVal = fmtWan(m.value);
+      } else {
+        displayVal = m.key === 'ue' ? m.value.toFixed(2) : m.value.toFixed(2);
+      }
       const isAnomaly = isCostAnomaly(m.key, m.value, m.base);
-      const colorClass = m.value < 0 ? 'negative' : m.value > 0 ? 'positive' : '';
+      const colorClass = m.isAmount ? '' : (m.value < 0 ? 'negative' : m.value > 0 ? 'positive' : '');
       html += '<div class="eff-card' + (isAnomaly ? ' anomaly' : '') + '">' +
         '<div class="eff-label">' + m.label + (isAnomaly ? ' ⚠' : '') + '</div>' +
         '<div class="eff-value ' + colorClass + '">' + displayVal + '<span class="eff-unit"> ' + m.unit + '</span></div></div>';
@@ -2816,20 +3072,60 @@ function renderCostStructure() {
     const el = document.getElementById('costCompare');
     if (!el) return;
     const cities = state.currentData.cities.filter(c => c.name !== '总商');
-    const rates = cities.map(c => {
-      const m = c.modules[costModule];
-      return { name: c.displayName, rate: m ? m.deliveryCostRate * 100 : 0 };
-    }).sort((a, b) => b.rate - a.rate);
-    const maxRate = Math.max(...rates.map(r => r.rate), 1);
-    let html = '';
-    rates.forEach(r => {
-      const barW = (r.rate / maxRate * 100);
-      const isHigh = r.rate > 40;
-      html += '<div class="cost-compare-row">' +
-        '<div class="cost-compare-city">' + r.name + '</div>' +
-        '<div class="cost-compare-bar"><div class="cost-compare-fill" style="width:' + barW + '%;background:' + (isHigh ? 'var(--danger)' : 'var(--primary)') + '"></div></div>' +
-        '<div class="cost-compare-val" style="color:' + (isHigh ? 'var(--danger)' : 'var(--text)') + '">' + r.rate.toFixed(1) + '%</div></div>';
+
+    const compareMetrics = [
+      { key: 'ue', label: '单均UE', unit: '元', format: v => v.toFixed(2), negativeColor: true },
+      { key: 'deliveryCostRate', label: '配送成本率', unit: '%', format: v => (v*100).toFixed(2), threshold: 0.4, inverse: false },
+      { key: 'subsidyRateTotal', label: '补贴率', unit: '%', format: v => (v*100).toFixed(2), threshold: 0.15, inverse: false },
+      { key: 'subsidyRateB', label: 'B端代补率', unit: '%', format: v => (v*100).toFixed(2), threshold: 0.05, inverse: false },
+      { key: 'subsidyRateC', label: 'C端代补率', unit: '%', format: v => (v*100).toFixed(2), threshold: 0.10, inverse: false },
+      { key: 'penalty', label: '罚款', unit: '元', format: v => fmtWan(v), threshold: 0, inverse: false, isAmount: true }
+    ];
+
+    let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    compareMetrics.forEach(cm => {
+      html += '<div style="background:#fafafa;border:1px solid #eee;border-radius:6px;padding:8px;">';
+      html += '<div style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">' + cm.label + '</div>';
+      const items = cities.map(c => {
+        const m = c.modules[costModule];
+        let val = 0;
+        if (m) {
+          if (cm.key === 'subsidyRateTotal') {
+            val = m.subsidyRateTotal !== undefined ? m.subsidyRateTotal : m.subsidyRatio;
+          } else {
+            val = m[cm.key] || 0;
+          }
+        }
+        return { name: c.displayName, value: val };
+      });
+
+      if (cm.isAmount) {
+        items.sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+        html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+        items.forEach(it => {
+          if (it.value === 0) return;
+          const isHigh = Math.abs(it.value) > 10000;
+          html += '<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:' +
+            (isHigh ? 'rgba(231,76,60,0.12)' : 'rgba(0,0,0,0.04)') + ';color:' +
+            (isHigh ? 'var(--danger)' : 'var(--text)') + ';">' + it.name + ': ' + cm.format(it.value) + '</span>';
+        });
+        html += '</div>';
+      } else {
+        const absMax = Math.max(...items.map(it => Math.abs(it.value)), 0.001);
+        items.sort((a, b) => a.value - b.value);
+        items.forEach(it => {
+          const barW = (Math.abs(it.value) / absMax * 100);
+          const isAnomaly = cm.negativeColor ? it.value < 0 : (cm.inverse ? it.value < cm.threshold : it.value > cm.threshold);
+          const barColor = isAnomaly ? 'var(--danger)' : 'var(--primary)';
+          html += '<div class="cost-compare-row">' +
+            '<div class="cost-compare-city">' + it.name + '</div>' +
+            '<div class="cost-compare-bar"><div class="cost-compare-fill" style="width:' + barW + '%;background:' + barColor + '"></div></div>' +
+            '<div class="cost-compare-val" style="color:' + (isAnomaly ? 'var(--danger)' : 'var(--text)') + '">' + cm.format(it.value) + cm.unit + '</div></div>';
+        });
+      }
+      html += '</div>';
     });
+    html += '</div>';
     el.innerHTML = html;
   }
 
@@ -2842,9 +3138,6 @@ function switchTab(tabName) {
     if (tabName === 'overview') {
       console.log('[switchTab] refreshing overview, merchant:', state.currentMerchant);
       refreshDashboard();
-    }
-    if (tabName === 'anomaly') {
-      renderAnomalyTab();
     }
     if (tabName === 'detail') {
       updateDetailSelectors();
