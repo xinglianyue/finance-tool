@@ -3,628 +3,258 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>财务账单分析 - 2026年04月</title>
+<title>财务账单分析工具 - 技术团队版</title>
 <style>
-:root {
-  --primary: #667eea;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --bg: #f0f2f5;
-  --card: #ffffff;
-  --text: #1e293b;
-  --text-secondary: #64748b;
-  --border: #e2e8f0;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 16px; padding-bottom: 80px; }
+:root {--primary:#4F46E5;--success:#10B981;--warning:#F59E0B;--danger:#EF4444;--bg:#F3F4F6;--card:#fff;--text:#1F2937;--text-sub:#6B7280}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,sans-serif;background:var(--bg);color:var(--text);padding:16px;padding-bottom:80px}
+.header{text-align:center;padding:16px;background:var(--card);border-radius:12px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.header h1{font-size:18px;color:var(--primary);margin-bottom:4px}
+.subtitle{font-size:12px;color:var(--text-sub)}
+.upload-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-label{font-size:12px;color:var(--text-sub);margin-bottom:4px}
+.card-value{font-size:20px;font-weight:700}
+.card-value.success{color:var(--success)}.card-value.danger{color:var(--danger)}
+.card-unit{font-size:11px;color:var(--text-sub);margin-top:2px}
+.alerts{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.alert-card{flex:1;min-width:100px;background:var(--card);border-radius:12px;padding:14px;text-align:center;border-left:3px solid var(--success)}
+.alert-card.loss{border-color:var(--danger)}.alert-card.warn{border-color:var(--warning)}
+.alert-num{font-size:24px;font-weight:700}.loss .alert-num{color:var(--danger)}.warn .alert-num{color:var(--warning)}.good .alert-num{color:var(--success)}
+.alert-label{font-size:12px;color:var(--text-sub);margin-top:4px}
+.section-title{font-size:14px;font-weight:600;color:var(--text-sub);margin:16px 0 10px}
+.table-container{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8f9fc;color:var(--text-sub);font-weight:600;font-size:11px;padding:10px 12px;text-align:left}
+td{padding:10px 12px;border-top:1px solid #e5e7eb}
+.footer{text-align:center;padding:20px;color:var(--text-sub);font-size:12px}
 
-/* 头部 */
-.header { background: var(--card); padding: 14px 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-radius: 12px; margin-bottom: 16px; }
-.header h1 { font-size: 18px; color: var(--primary); font-weight: 700; }
-.header .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-.header-actions { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
-.header-wrap { position: relative; }
-
-/* 上传按钮 */
-.upload-btn {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.upload-btn:hover { background: #5a6fd6; transform: scale(1.02); }
-.upload-btn:active { transform: scale(0.98); }
-
-/* 数据源标签 */
-.data-source {
-  display: inline-block;
-  background: rgba(16,185,129,0.1);
-  color: var(--success);
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-top: 6px;
-}
-.data-source.demo { background: rgba(102,126,234,0.1); color: var(--primary); }
-
-/* 卡片 */
-.cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
-.card { background: var(--card); border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-.card-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
-.card-value { font-size: 20px; font-weight: 700; }
-.card-value.success { color: var(--success); }
-.card-value.warning { color: var(--warning); }
-.card-value.danger { color: var(--danger); }
-.card-unit { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-
-/* 预警卡片 */
-.alert-cards { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.alert-card { flex: 1; min-width: 100px; background: var(--card); border-radius: 12px; padding: 14px; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s; }
-.alert-card:active { transform: scale(0.98); }
-.alert-card.red { border-left: 3px solid var(--danger); }
-.alert-card.orange { border-left: 3px solid var(--warning); }
-.alert-card.green { border-left: 3px solid var(--success); }
-.alert-num { font-size: 24px; font-weight: 700; }
-.alert-card.red .alert-num { color: var(--danger); }
-.alert-card.orange .alert-num { color: var(--warning); }
-.alert-card.green .alert-num { color: var(--success); }
-.alert-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-
-/* 表格 */
-.section-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin: 16px 0 10px; }
-.city-table { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-.city-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.city-table th { background: #f8f9fc; color: var(--text-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; padding: 10px 14px; text-align: left; }
-.city-table td { padding: 11px 14px; border-top: 1px solid var(--border); }
-.city-table tr:first-child td { border-top: none; }
-.name-cell { font-weight: 600; }
-.tier-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-right: 6px; }
-.tier-e { background: rgba(102,126,234,0.15); color: #597ef7; }
-.tier-f { background: rgba(245,158,11,0.15); color: #d97706; }
-.tier-g { background: rgba(16,185,129,0.15); color: #059669; }
-.ue-ok { color: var(--success); }
-.ue-warn { color: var(--warning); }
-.ue-bad { color: var(--danger); }
-
-/* 底部 */
-.footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 12px; }
-
-/* 弹窗样式 */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-}
-.modal.show { display: flex; }
-.modal-content {
-  background: white;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-}
-.modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.modal-header h3 { font-size: 16px; color: #1e293b; }
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-.modal-close:hover { color: #64748b; }
-.modal-body { padding: 20px; }
-.form-group { margin-bottom: 16px; }
-.form-group:last-child { margin-bottom: 0; }
-.form-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 6px;
-}
-.form-group input[type="date"] {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-}
-.upload-zone {
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 30px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.upload-zone:hover, .upload-zone.dragover {
-  border-color: #667eea;
-  background: rgba(102,126,234,0.05);
-}
-.upload-icon { font-size: 36px; margin-bottom: 8px; }
-.upload-text { font-size: 14px; color: #475569; }
-.upload-hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-.file-info {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #f0fdf4;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #166534;
-  display: none;
-}
-.file-info.show { display: block; }
-.format-hint {
-  background: #f8fafc;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-}
-.format-hint code { color: #667eea; font-family: monospace; }
-.modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-.btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5a6fd6; }
-.btn-secondary { background: #f1f5f9; color: #475569; }
-.btn-secondary:hover { background: #e2e8f0; }
-
-/* 历史记录 */
-.history-section { background: var(--card); border-radius: 12px; padding: 16px; margin-top: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-.history-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
-.history-list { display: flex; flex-direction: column; gap: 8px; }
-.history-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  font-size: 13px;
-}
-.history-date { font-weight: 600; color: var(--text); }
-.history-count { color: var(--text-secondary); }
-.history-empty { text-align: center; color: var(--text-secondary); font-size: 13px; padding: 20px; }
+/* Modal */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal.show{display:flex}
+.modal-content{background:#fff;border-radius:16px;width:90%;max-width:440px}
+.modal-header{padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:16px}
+.modal-close{background:none;border:none;font-size:24px;color:#9ca3af;cursor:pointer}
+.modal-body{padding:20px}
+.form-group{margin-bottom:16px}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+input[type="date"],input[type="file"]{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px}
+.upload-zone{border:2px dashed #d1d5db;border-radius:12px;padding:30px;text-align:center;cursor:pointer;transition:.2s}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--primary);background:rgba(79,70,229,.05)}
+.upload-icon{font-size:36px;margin-bottom:8px}
+.upload-text{font-size:14px}.upload-hint{font-size:12px;color:var(--text-sub);margin-top:4px}
+.file-info{margin-top:8px;padding:8px;background:#d1fae5;border-radius:6px;font-size:13px;color:#065f46;display:none}
+.file-info.show{display:block}
+.format-hint{background:#f9fafb;padding:10px;border-radius:8px;font-size:12px;line-height:1.6}
+.format-hint code{color:var(--primary);font-family:monospace}
+.btn-primary{background:var(--primary);color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:600;cursor:pointer}
+.btn-secondary{background:#f3f4f6;color:#374151;padding:10px 20px;border:none;border-radius:8px;font-weight:600;cursor:pointer}
+.modal-footer{padding:16px 20px;border-top:1px solid #e5e7eb;display:flex;gap:10px;justify-content:flex-end}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 </style>
 </head>
 <body>
 
-<div class="header-wrap">
+<div style="position:relative">
   <div class="header">
     <h1>📊 财务账单分析</h1>
-    <div class="subtitle" id="dataSubtitle">数据更新: 2026-04-10 09:58</div>
-    <span class="data-source demo" id="dataSource">示例数据</span>
+    <div class="subtitle" id="dataSubtitle">数据日期：示例数据</div>
   </div>
-  <div class="header-actions">
-    <button class="upload-btn" onclick="showUploadModal()">
-      <span>📤</span>
-      <span>上传数据</span>
-    </button>
-  </div>
+  <button class="upload-btn" onclick="UploadModal.open()">📤 上传数据</button>
 </div>
 
 <div class="cards">
-  <div class="card">
-    <div class="card-label">总收入</div>
-    <div class="card-value" id="totalRevenue">16,392,723</div>
-    <div class="card-unit">元</div>
-  </div>
-  <div class="card">
-    <div class="card-label">总成本</div>
-    <div class="card-value" id="totalCost">-15,745,730</div>
-    <div class="card-unit">元</div>
-  </div>
-  <div class="card">
-    <div class="card-label">总毛利</div>
-    <div class="card-value success" id="totalProfit">646,993</div>
-    <div class="card-unit">元</div>
-  </div>
-  <div class="card">
-    <div class="card-label">订单量</div>
-    <div class="card-value" id="totalOrders">2,115,318</div>
-    <div class="card-unit">单</div>
-  </div>
+  <div class="card"><div class="card-label">总收入</div><div class="card-value" id="totalRevenue">-</div><div class="card-unit">元</div></div>
+  <div class="card"><div class="card-label">总成本</div><div class="card-value" id="totalCost">-</div><div class="card-unit">元</div></div>
+  <div class="card"><div class="card-label">总毛利</div><div class="card-value success" id="totalProfit">-</div><div class="card-unit">元</div></div>
+  <div class="card"><div class="card-label">订单量</div><div class="card-value" id="totalOrders">-</div><div class="card-unit">单</div></div>
 </div>
 
-<div class="alert-cards">
-  <div class="alert-card red" id="alertLoss">
-    <div class="alert-num">1</div>
-    <div class="alert-label">亏损城市</div>
-  </div>
-  <div class="alert-card orange" id="alertWarn">
-    <div class="alert-num">0</div>
-    <div class="alert-label">UE警告</div>
-  </div>
-  <div class="alert-card green" id="alertGood">
-    <div class="alert-num">9</div>
-    <div class="alert-label">健康城市</div>
-  </div>
+<div class="alerts">
+  <div class="alert-card loss"><div class="alert-num" id="lossCount">-</div><div class="alert-label">亏损城市</div></div>
+  <div class="alert-card warn"><div class="alert-num" id="warnCount">-</div><div class="alert-label">UE 警告</div></div>
+  <div class="alert-card good"><div class="alert-num" id="goodCount">-</div><div class="alert-label">健康城市</div></div>
 </div>
 
 <div class="section-title">城市明细</div>
-<div class="city-table">
+<div class="table-container">
   <table>
-    <thead>
-      <tr>
-        <th>城市</th>
-        <th>订单量</th>
-        <th>收入</th>
-        <th>毛利</th>
-        <th>UE</th>
-      </tr>
-    </thead>
-    <tbody id="cityTableBody">
-    </tbody>
+    <thead><tr><th>城市</th><th>订单量</th><th>收入</th><th>毛利</th><th>UE</th></tr></thead>
+    <tbody id="cityTableBody"></tbody>
   </table>
 </div>
 
-<div class="history-section">
-  <div class="history-title">📁 上传历史</div>
-  <div class="history-list" id="historyList">
-    <div class="history-empty">暂无上传记录</div>
-  </div>
-</div>
+<div class="footer">财务账单分析工具 v8 · 技术团队专用</div>
 
-<div class="footer">
-  财务账单分析工具 v6 · 支持CSV数据导入
-</div>
-
-<!-- 上传弹窗 -->
-<div id="uploadModal" class="modal">
+<!-- Upload Modal -->
+<div class="modal" id="uploadModal">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>📤 上传数据</h3>
+      <h3>📤 上传 CSV 数据</h3>
       <button class="modal-close" onclick="UploadModal.close()">&times;</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label>截止日期</label>
+        <label>截止日期 *</label>
         <input type="date" id="uploadDate" required>
       </div>
       <div class="form-group">
-        <label>选择CSV文件</label>
+        <label>选择 CSV 文件 *</label>
         <div class="upload-zone" id="uploadZone">
           <div class="upload-icon">📄</div>
-          <div class="upload-text">点击选择或拖拽CSV文件</div>
-          <div class="upload-hint">支持技术人员导出的CSV</div>
+          <div class="upload-text">点击或拖拽选择 CSV 文件</div>
+          <div class="upload-hint">支持技术团队导出的 CSV 格式</div>
           <input type="file" id="fileInput" accept=".csv" hidden>
         </div>
         <div class="file-info" id="fileInfo"></div>
       </div>
       <div class="form-group">
-        <label>CSV格式要求</label>
+        <label>CSV 格式说明</label>
         <div class="format-hint">
-          <code>city,orders,revenue,cost,profit</code>
+          <strong>通用格式：</strong><code>city,orders,revenue,cost,profit</code><br/>
+          <strong>技术团队：</strong><code>cityName,orderCnt,incomeSum,outcomeSum,takeoutGross</code>
         </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="UploadModal.close()">取消</button>
-      <button class="btn btn-primary" id="uploadBtn" onclick="UploadModal.doUpload()" disabled>上传</button>
+      <button class="btn-secondary" onclick="UploadModal.close()">取消</button>
+      <button class="btn-primary" id="uploadBtn" onclick="UploadModal.upload()" disabled>上传</button>
     </div>
   </div>
 </div>
 
 <script>
-// ============ 示例数据 ============
-const DEMO_DATA = {
-  date: '2026-03',
-  cities: [
-    { name: '承德市', orders: 321456, revenue: 2456789, cost: -2345678, profit: 111111, ue: 7.64 },
-    { name: '围场县', orders: 123456, revenue: 987654, cost: -876543, profit: 111111, ue: 8.00 },
-    { name: '玉田县', orders: 98765, revenue: 876543, cost: -765432, profit: 111111, ue: 8.87 },
-    { name: '康保县', orders: 76543, revenue: 654321, cost: -765432, profit: -111111, ue: 8.55 },
-    { name: '安国市', orders: 234567, revenue: 1987654, cost: -1876543, profit: 111111, ue: 8.47 },
-    { name: '安平县', orders: 198765, revenue: 1678901, cost: -1567789, profit: 111112, ue: 8.45 },
-    { name: '献县', orders: 187654, revenue: 1567890, cost: -1456789, profit: 111101, ue: 8.36 },
-    { name: '深泽县', orders: 165432, revenue: 1345678, cost: -1234567, profit: 111111, ue: 8.13 },
-    { name: '威县', orders: 198765, revenue: 1789012, cost: -1678900, profit: 110112, ue: 9.00 },
-    { name: '晋州市', orders: 178901, revenue: 1567890, cost: -1456789, profit: 111101, ue: 8.76 },
-  ]
-};
-
-// ============ 错误处理 ============
-const ErrorHandler = {
-  errors: {
-    'FILE_EMPTY': { msg: '请选择文件', fix: '点击上传按钮选择CSV文件' },
-    'FILE_TYPE': { msg: '只支持CSV文件', fix: '请导出为CSV格式' },
-    'PARSE_ERROR': { msg: 'CSV解析失败', fix: '检查文件格式是否正确' },
-    'DATA_MISSING': { msg: '数据缺失', fix: '确保包含city/orders/revenue字段' },
-    'DATE_INVALID': { msg: '日期格式错误', fix: '请选择正确的截止日期' },
-  },
-  handle: function(errorCode, detail = '') {
-    const err = this.errors[errorCode] || { msg: '未知错误', fix: '请重试' };
-    return { code: errorCode, message: err.msg + (detail ? ' (' + detail + ')' : ''), fix: err.fix };
-  },
-  showError: function(errorCode, detail = '') {
-    const err = this.handle(errorCode, detail);
-    alert('⚠️ ' + err.message + '\n\n修复方法：' + err.fix);
-  }
-};
-
-// ============ CSV解析器 ============
-const CSVParser = {
-  parse: function(text) {
-    if (!text || typeof text !== 'string') throw new Error('无效的CSV内容');
-    const lines = text.trim().split(/\r?\n/);
-    if (lines.length < 2) throw new Error('CSV至少需要表头和一行数据');
-    
-    const headers = this.parseLine(lines[0]).map(h => h.toLowerCase().trim());
-    const fieldIndex = {
-      city: headers.findIndex(h => h === 'city' || h === '城市' || h === '城市名'),
-      orders: headers.findIndex(h => h === 'orders' || h === '订单量' || h === '订单'),
-      revenue: headers.findIndex(h => h === 'revenue' || h === '收入' || h === '营收'),
-      cost: headers.findIndex(h => h === 'cost' || h === '成本'),
-      profit: headers.findIndex(h => h === 'profit' || h === '毛利' || h === '利润'),
+// ============ CSV 解析器（双格式兼容） ============
+const CSVParser={
+  parse:function(text){
+    if(!text||typeof text!=="string")throw new Error("无效的 CSV 内容");
+    const lines=text.trim().split(/\r?\n/);
+    if(lines.length<2)throw new Error("CSV 至少需要表头和一行数据");
+    const headers=this._parseLine(lines[0]).map(h=>h.toLowerCase().trim());
+    const idx={
+      city:headers.findIndex(h=>["cityname","city","城市名","城市"].includes(h)),
+      orders:headers.findIndex(h=>["ordercnt","orders","订单量","订单"].includes(h)),
+      revenue:headers.findIndex(h=>["incomesum","revenue","收入"].includes(h)),
+      cost:headers.findIndex(h=>["outcomesum","cost","支出","成本"].includes(h)),
+      profit:headers.findIndex(h=>["takeoutgross","profit","毛利","利润"].includes(h))
     };
-    
-    if (fieldIndex.city === -1) throw new Error('未找到城市名称列（需要city或城市）');
-    if (fieldIndex.revenue === -1) throw new Error('未找到收入列（需要revenue或收入）');
-    
-    const cities = [];
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      try {
-        const values = this.parseLine(line);
-        const city = {
-          name: this.getValue(values, fieldIndex.city),
-          orders: this.parseNumber(this.getValue(values, fieldIndex.orders)),
-          revenue: this.parseNumber(this.getValue(values, fieldIndex.revenue)),
-          cost: this.parseNumber(this.getValue(values, fieldIndex.cost)),
-          profit: this.parseNumber(this.getValue(values, fieldIndex.profit)),
+    if(idx.city===-1)throw new Error("未找到城市列（需要 cityName/city/城市名）");
+    if(idx.revenue===-1)throw new Error("未找到收入列（需要 incomeSum/revenue/收入）");
+    const map=new Map();
+    for(let i=1;i<lines.length;i++){
+      const line=lines[i].trim();
+      if(!line)continue;
+      try{
+        const vals=this._parseLine(line);
+        const data={
+          name:this._get(vals,idx.city)||"",
+          orders:this._num(this._get(vals,idx.orders)),
+          revenue:this._num(this._get(vals,idx.revenue)),
+          cost:this._num(this._get(vals,idx.cost)),
+          profit:this._num(this._get(vals,idx.profit))
         };
-        if (!city.name) continue;
-        city.ue = city.orders > 0 ? (city.revenue / city.orders) : 0;
-        cities.push(city);
-      } catch (e) { continue; }
+        if(!data.name)continue;
+        if(idx.profit===-1||data.profit===0)data.profit=data.revenue+data.cost;
+        if(!map.has(data.name))map.set(data.name,{...data});
+        else{
+          const p=map.get(data.name);
+          p.orders+=data.orders;p.revenue+=data.revenue;p.cost+=data.cost;p.profit+=data.profit;
+        }
+      }catch(e){console.warn("[CSV] 跳过行",i);continue}
     }
-    return cities;
+    return Array.from(map.values()).map(c=>({...c,ue:c.orders>0?c.revenue/c.orders:0,marginRate:c.revenue>0?(c.profit/c.revenue)*100:0}));
   },
-  parseLine: function(line) {
-    const values = [], chars = line.split('');
-    let current = '', inQuotes = false;
-    for (const char of chars) {
-      if (char === '"') inQuotes = !inQuotes;
-      else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
-      else current += char;
-    }
-    values.push(current.trim());
-    return values;
-  },
-  getValue: function(values, index) { return (index < 0 || index >= values.length) ? '' : (values[index] || ''); },
-  parseNumber: function(value) {
-    if (!value) return 0;
-    const num = parseFloat(value.replace(/[¥,，元\s]/g, ''));
-    return isNaN(num) ? 0 : num;
-  }
+  _parseLine:function(l){if(!l)return[];const r=[],chars=l.split("");let cur="",q=false;for(const c of chars){if(c==='"')q=!q;else if(c===","&&!q){r.push(cur.trim());cur=""}else cur+=c}r.push(cur.trim());return r},
+  _get:function(v,i){return Array.isArray(v)&&Number.isFinite(i)&&i>=0&&i<v.length?v[i]||"":""},
+  _num:function(v){if(v===null||v===undefined||v==="")return 0;try{return isNaN(parseFloat(String(v).replace(/[¥,,元￥\s]/g,"")))?0:parseFloat(String(v).replace(/[¥,,元￥\s]/g,""))}catch{return 0}}
 };
+
+// ============ 示例数据 ============
+const DEMO_DATA=[
+  {name:"承德市",orders:321456,revenue:2456789,cost:-2345678,profit:111111,ue:7.64},
+  {name:"围场县",orders:123456,revenue:987654,cost:-876543,profit:111111,ue:8.00},
+  {name:"玉田县",orders:98765,revenue:876543,cost:-765432,profit:111111,ue:8.87},
+  {name:"康保县",orders:76543,revenue:654321,cost:-765432,profit:-111111,ue:8.55},
+  {name:"安国市",orders:234567,revenue:1987654,cost:-1876543,profit:111111,ue:8.47}
+];
+
+// ============ 初始化 ============
+window.onload=function(){
+  document.getElementById("uploadDate").valueAsDate=new Date();
+  render(DEMO_DATA,"示例数据");
+};
+
+// ============ 渲染函数 ============
+function render(cities,dateLabel){
+  let rev=0,cost=0,prof=0,ord=0,loss=0,warn=0,good=0;
+  cities.forEach(c=>{rev+=c.revenue;cost+=c.cost;prof+=c.profit;ord+=c.orders;if(c.profit<0)loss++;else if(c.ue<8)warn++;else good++});
+  document.getElementById("totalRevenue").textContent=rev.toLocaleString();
+  document.getElementById("totalCost").textContent=cost.toLocaleString();
+  const profEl=document.getElementById("totalProfit");
+  profEl.textContent=prof.toLocaleString();
+  profEl.className="card-value "+(prof>=0?"success":"danger");
+  document.getElementById("totalOrders").textContent=ord.toLocaleString();
+  document.getElementById("lossCount").textContent=loss;
+  document.getElementById("warnCount").textContent=warn;
+  document.getElementById("goodCount").textContent=good;
+  document.getElementById("dataSubtitle").textContent="数据日期："+dateLabel;
+  const tbody=document.getElementById("cityTableBody");
+  tbody.innerHTML="";
+  [...cities].sort((a,b)=>b.ue-a.ue).forEach(c=>{
+    const tr=document.createElement("tr");
+    const cls=c.profit<0?"danger":(c.ue<8?"warn":"success");
+    tr.innerHTML=`<td><strong>${c.name}</strong></td><td>${Math.round(c.orders).toLocaleString()}</td><td>${Math.round(c.revenue).toLocaleString()}</td><td class="${cls}">${Math.round(c.profit).toLocaleString()}</td><td class="${cls}">${c.ue.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
 
 // ============ 上传弹窗 ============
-const UploadModal = {
-  file: null,
-  init: function() {
-    const zone = document.getElementById('uploadZone');
-    const fileInput = document.getElementById('fileInput');
-    const dateInput = document.getElementById('uploadDate');
-    
-    zone.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) this.handleFile(e.target.files[0]); });
-    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-    zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('dragover'); if (e.dataTransfer.files.length > 0) this.handleFile(e.dataTransfer.files[0]); });
-    dateInput.addEventListener('change', () => this.checkUploadBtn());
-    
-    // 默认填今天
-    dateInput.value = new Date().toISOString().split('T')[0];
+const UploadModal={
+  file:null,
+  open:function(){document.getElementById("uploadModal").classList.add("show");this.file=null;document.getElementById("fileInfo").classList.remove("show");document.getElementById("uploadBtn").disabled=true},
+  close:function(){document.getElementById("uploadModal").classList.remove("show")},
+  init:function(){
+    const zone=document.getElementById("uploadZone"),input=document.getElementById("fileInput"),date=document.getElementById("uploadDate"),btn=document.getElementById("uploadBtn");
+    zone.onclick=()=>input.click();
+    input.onchange=e=>{if(e.target.files.length>0)this.handleFile(e.target.files[0])};
+    zone.ondragover=e=>{e.preventDefault();zone.classList.add("dragover")};
+    zone.ondragleave=()=>zone.classList.remove("dragover");
+    zone.ondrop=e=>{e.preventDefault();zone.classList.remove("dragover");if(e.dataTransfer.files.length>0)this.handleFile(e.dataTransfer.files[0])};
+    date.onchange=()=>this.checkBtn();
+    btn.disabled=true;
   },
-  handleFile: function(file) {
-    if (!file) { ErrorHandler.showError('FILE_EMPTY'); return; }
-    if (!file.name.toLowerCase().endsWith('.csv')) { ErrorHandler.showError('FILE_TYPE'); return; }
-    this.file = file;
-    document.getElementById('fileInfo').textContent = '✅ ' + file.name + ' (' + this.formatSize(file.size) + ')';
-    document.getElementById('fileInfo').classList.add('show');
-    this.checkUploadBtn();
+  handleFile:function(f){
+    if(!f)return alert("请选择文件");
+    if(!f.name.toLowerCase().endsWith(".csv"))return alert("只支持 CSV 文件");
+    this.file=f;
+    const info=document.getElementById("fileInfo");
+    info.textContent="✅ "+f.name+" ("+(f.size/1024).toFixed(1)+" KB)";
+    info.classList.add("show");
+    this.checkBtn();
   },
-  formatSize: function(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  },
-  checkUploadBtn: function() {
-    document.getElementById('uploadBtn').disabled = !(document.getElementById('uploadDate').value && this.file);
-  },
-  open: function() {
-    this.file = null;
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileInfo').classList.remove('show');
-    document.getElementById('uploadDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('uploadBtn').disabled = true;
-    document.getElementById('uploadModal').classList.add('show');
-  },
-  close: function() { document.getElementById('uploadModal').classList.remove('show'); },
-  doUpload: function() {
-    const date = document.getElementById('uploadDate').value;
-    if (!date) { ErrorHandler.showError('DATE_INVALID'); return; }
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = CSVParser.parse(e.target.result);
-        if (data.length === 0) { ErrorHandler.showError('DATA_MISSING', '文件中没有找到有效数据'); return; }
-        
-        const storageData = { date: date, uploadedAt: new Date().toISOString(), cities: data };
-        localStorage.setItem('finance_data_' + date, JSON.stringify(storageData));
-        localStorage.setItem('finance_latest_date', date);
-        
-        this.close();
-        alert('✅ 上传成功！\n\n日期：' + date + '\n城市数：' + data.length + '个\n\n页面将自动刷新显示新数据。');
-        refreshData();
-      } catch (e) { ErrorHandler.showError('PARSE_ERROR', e.message); }
+  checkBtn:function(){document.getElementById("uploadBtn").disabled=!(document.getElementById("uploadDate").value&&this.file)},
+  upload:function(){
+    const date=document.getElementById("uploadDate").value;
+    if(!date)return alert("请选择日期");
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const cities=CSVParser.parse(e.target.result);
+        if(cities.length===0)return alert("文件中没有找到有效数据");
+        localStorage.setItem("finance_tool_data_"+date,JSON.stringify({date,cities,uploadedAt:new Date().toISOString()}));
+        localStorage.setItem("finance_tool_latest_date",date);
+        alert("✅ 上传成功！\n\n日期："+date+"\n城市数："+cities.length+"\n\n页面将自动刷新显示新数据。");
+        location.reload();
+      }catch(err){alert("❌ 解析失败\n\n"+err.message)}
     };
-    reader.onerror = () => ErrorHandler.showError('PARSE_ERROR', '文件读取失败');
+    reader.onerror=()=>alert("❌ 文件读取失败");
     reader.readAsText(this.file);
   }
 };
 
-// ============ 数据加载 ============
-const DataLoader = {
-  load: function() {
-    const latestDate = localStorage.getItem('finance_latest_date');
-    if (!latestDate) return null;
-    const data = localStorage.getItem('finance_data_' + latestDate);
-    if (!data) return null;
-    try { return JSON.parse(data); } catch (e) { return null; }
-  },
-  getAllRecords: function() {
-    const records = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('finance_data_')) {
-        try {
-          const data = JSON.parse(localStorage.getItem(key));
-          if (data && data.date) records.push({ date: data.date, cityCount: data.cities ? data.cities.length : 0, uploadedAt: data.uploadedAt });
-        } catch (e) { continue; }
-      }
-    }
-    return records.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }
-};
-
-// ============ 渲染 ============
-function refreshData() {
-  // 优先加载上传的数据，没有则用示例
-  const uploadData = DataLoader.load();
-  const data = uploadData || DEMO_DATA;
-  const cities = data.cities;
-  
-  // 更新数据源标签
-  const sourceEl = document.getElementById('dataSource');
-  const subtitleEl = document.getElementById('dataSubtitle');
-  if (uploadData) {
-    sourceEl.textContent = '已上传数据';
-    sourceEl.classList.remove('demo');
-    subtitleEl.textContent = '数据日期: ' + uploadData.date;
-  } else {
-    sourceEl.textContent = '示例数据';
-    sourceEl.classList.add('demo');
-    subtitleEl.textContent = '数据更新: 2026-04-10 09:58';
-  }
-  
-  // 计算汇总
-  let totalOrders = 0, totalRevenue = 0, totalCost = 0, totalProfit = 0;
-  let lossCount = 0, warnCount = 0, goodCount = 0;
-  
-  for (const c of cities) {
-    totalOrders += c.orders || 0;
-    totalRevenue += c.revenue || 0;
-    totalCost += c.cost || 0;
-    totalProfit += c.profit || 0;
-    
-    if (c.profit < 0) lossCount++;
-    else if (c.ue < 8) warnCount++;
-    else goodCount++;
-  }
-  
-  // 更新卡片
-  document.getElementById('totalOrders').textContent = totalOrders.toLocaleString();
-  document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString();
-  document.getElementById('totalCost').textContent = (totalCost < 0 ? '-' : '') + Math.abs(totalCost).toLocaleString();
-  
-  const profitEl = document.getElementById('totalProfit');
-  profitEl.textContent = (totalProfit >= 0 ? '' : '-') + Math.abs(totalProfit).toLocaleString();
-  profitEl.className = 'card-value ' + (totalProfit >= 0 ? 'success' : 'danger');
-  
-  // 更新预警
-  document.querySelector('#alertLoss .alert-num').textContent = lossCount;
-  document.querySelector('#alertWarn .alert-num').textContent = warnCount;
-  document.querySelector('#alertGood .alert-num').textContent = goodCount;
-  
-  // 更新表格
-  const tbody = document.getElementById('cityTableBody');
-  tbody.innerHTML = '';
-  
-  // 按毛利排序
-  const sorted = [...cities].sort((a, b) => (b.profit || 0) - (a.profit || 0));
-  
-  for (const c of sorted) {
-    const tier = getTier(c.ue);
-    const ueClass = c.ue >= 8.5 ? 'ue-ok' : (c.ue >= 8 ? 'ue-warn' : 'ue-bad');
-    
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td><span class="name-cell">' + c.name + '</span></td>' +
-      '<td>' + (c.orders || 0).toLocaleString() + '</td>' +
-      '<td>' + (c.revenue || 0).toLocaleString() + '</td>' +
-      '<td class="' + (c.profit >= 0 ? 'ue-ok' : 'ue-bad') + '">' + (c.profit >= 0 ? '' : '-') + Math.abs(c.profit || 0).toLocaleString() + '</td>' +
-      '<td class="' + ueClass + '">' + (c.ue || 0).toFixed(2) + '</td>';
-    tbody.appendChild(tr);
-  }
-  
-  // 更新历史记录
-  const history = DataLoader.getAllRecords();
-  const historyEl = document.getElementById('historyList');
-  if (history.length === 0) {
-    historyEl.innerHTML = '<div class="history-empty">暂无上传记录</div>';
-  } else {
-    historyEl.innerHTML = history.slice(0, 5).map(r => 
-      '<div class="history-item"><span class="history-date">' + r.date + '</span><span class="history-count">' + r.cityCount + '个城市</span></div>'
-    ).join('');
-  }
-}
-
-function getTier(ue) {
-  if (ue >= 8.5) return 'e';
-  if (ue >= 8) return 'f';
-  return 'g';
-}
-
-function showUploadModal() { UploadModal.open(); }
-
-// 页面加载
-document.addEventListener('DOMContentLoaded', function() {
-  UploadModal.init();
-  refreshData();
-});
+UploadModal.init();
 </script>
 </body>
 </html>

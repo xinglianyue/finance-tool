@@ -1168,10 +1168,11 @@ body {
           <div class="merchant-selector-buttons" id="merchantButtons" style="display:inline-flex;gap:8px;"></div>
         </div>
         <button class="tab-btn active" data-tab="overview" id="tabOverview">概况</button>
+        <button class="tab-btn" data-tab="anomaly" id="tabAnomaly">城市异常 <span class="tab-badge hidden" id="anomalyBadge">0</span></button>
         <button class="tab-btn" data-tab="detail" id="tabDetail">详细分析</button>
+        <button class="tab-btn" data-tab="rawdata" id="tabRawdata">原始数据</button>
         <button class="tab-btn" data-tab="cost" id="tabCost">成本结构</button>
         <button class="tab-btn" data-tab="report" id="tabReport">分析报告</button>
-        <button class="tab-btn" data-tab="rawdata" id="tabRawdata">原始数据</button>
       </div>
       <!-- Tab1: Overview -->
       <div class="tab-pane" id="paneOverview">
@@ -1207,7 +1208,17 @@ body {
           </div>
         </div>
 
-          </div><div class="tab-pane hidden" id="paneDetail">
+          </div>
+
+      <!-- Tab2: Anomaly -->
+      <div class="tab-pane hidden" id="paneAnomaly">
+        <div class="anomaly-list" id="anomalyList">
+          <!-- Dynamic -->
+        </div>
+      </div>
+
+      <!-- Tab3: Detail -->
+      <div class="tab-pane hidden" id="paneDetail">
         <div class="detail-selector">
           <select id="detailCity"></select>
           <select id="detailModule">
@@ -1221,7 +1232,10 @@ body {
         <div id="detailContent">
           <!-- Dynamic -->
         </div>
-      </div><div class="tab-pane hidden" id="paneCost">
+      </div>
+
+      <!-- Tab5: Cost Structure -->
+      <div class="tab-pane hidden" id="paneCost">
         <div class="cost-selector">
           <label style="font-size:13px;font-weight:600;color:#666;">城市:</label>
           <select id="costCity"></select>
@@ -1269,7 +1283,18 @@ body {
           <h3>关键指标对比（各城市）</h3>
           <div id="costCompare"></div>
         </div>
-      </div><div class="tab-pane hidden" id="paneReport">
+      </div>
+
+      <!-- Tab4: Raw Data -->
+      <div class="tab-pane hidden" id="paneRawdata">
+        <div style="padding: 16px;">
+          <h3>原始数据校验</h3>
+          <p>此页面展示所有解析后的原始数据，用于校验数据准确性。</p>
+          <div id="rawdataContent"></div>
+        </div>
+      </div>
+      <!-- Tab6: Report -->
+      <div class="tab-pane hidden" id="paneReport">
         <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
           <h3 style="margin:0;">UE分析报告</h3>
           <div>
@@ -1280,12 +1305,6 @@ body {
         </div>
         <div id="reportContent" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:24px;font-size:14px;line-height:1.8;white-space:pre-wrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-height:70vh;overflow-y:auto;">
           <p style="color:#94a3b8;text-align:center;padding:60px 0;">点击"生成报告"一键输出UE分析报告</p>
-        </div>
-      </div><div class="tab-pane hidden" id="paneRawdata">
-        <div style="padding: 16px;">
-          <h3>原始数据校验</h3>
-          <p>此页面展示所有解析后的原始数据，用于校验数据准确性。</p>
-          <div id="rawdataContent"></div>
         </div>
       </div>
 
@@ -1591,7 +1610,7 @@ const CONFIG = {
       result.subsidyRatio = result.gmvAmount > 0 ? result.subsidyTotal / result.gmvAmount : 0;
       result.profitRate = result.onlineRevenue > 0 ? result.profit / result.onlineRevenue : 0;
       result.avgRevenuePerOrder = o > 0 ? result.onlineRevenue / o : 0;
-      result.avgCostPerOrder = o > 0 ? result.totalExpense / o : 0;
+      result.avgCostPerOrder = o > 0 ? (result.onlineExpense + result.offlineExpense) / o : 0;
       result.deliveryCostRate = result.onlineRevenue > 0 ? result.deliveryCost / result.onlineRevenue : 0;
       result.fixedCostRate = result.onlineRevenue > 0 ? result.fixedCost / result.onlineRevenue : 0;
       result.subsidyRateB = result.gmvAmount > 0 ? result.subsidyB / result.gmvAmount : 0;
@@ -1851,6 +1870,8 @@ const CONFIG = {
     renderStatCards();
     renderMatrix();
     renderAnomalyAlert();
+    renderAnomalyTab();
+    updateAnomalyBadge();
     // Init detail tab
     if (state.currentData.cities.length > 0 && !state.detailCity) {
       state.detailCity = state.currentData.cities[0].name;
@@ -1861,8 +1882,6 @@ const CONFIG = {
     renderCostStructure();
     // Update date display
     $('#dateDisplay').textContent = state.currentData.date;
-    // Push to cloud for team sharing
-    CloudData.push(state.currentData.date, state.currentData, state.merchantData, state.currentMerchant);
   }
   function updateDateSelector() {
     const allData = DataStore.loadAll();
@@ -1946,6 +1965,8 @@ function refreshDashboard() {
     renderStatCards();
     renderMatrix();
     renderAnomalyAlert();
+    renderAnomalyTab();
+    updateAnomalyBadge();
     renderDetailTab();
   }
   // ===== TAB1: OVERVIEW =====
@@ -2016,13 +2037,9 @@ function refreshDashboard() {
         if (!m) continue;
         const level = getAnomalyLevel(m.ue, m.subsidyRatio);
         if (level === 'danger' || level === 'warning') {
-          const ueStr = m.ue < 0 ? fmtUE(m.ue) + '元' : fmtUE(m.ue) + '元';
-          const subStr = m.subsidyRatio ? m.subsidyRatio.toFixed(2) + '%' : '-';
-          const delStr = m.deliveryCostRate ? (m.deliveryCostRate * 100).toFixed(2) + '%' : '-';
-          const penStr = m.penalty ? fmtWan(m.penalty) : '0';
+          const ueStr = m.ue < 0 ? fmtUE(m.ue) + '元(亏损)' : fmtUE(m.ue) + '元';
           items.push({
-            level, city: city.displayName, module: block.name,
-            ueStr, subStr, delStr, penStr,
+            level, city: city.displayName, module: block.name, ueStr,
             cityName: city.name, moduleKey: block.key
           });
         }
@@ -2037,7 +2054,7 @@ function refreshDashboard() {
     bar.style.display = 'block';
     container.innerHTML = items.map(item => `
       <div class="anomaly-alert-item" data-city="${item.cityName}" data-module="${item.moduleKey}">
-        ${icon(item.level)} <b>${item.city}</b> ${item.module} &nbsp;|&nbsp; UE=${item.ueStr} &nbsp; 补贴=${item.subStr} &nbsp; 配送=${item.delStr} &nbsp; 罚款=${item.penStr}
+        ${icon(item.level)} ${item.city} ${item.module} UE=${item.ueStr}
       </div>
     `).join('');
     container.querySelectorAll('.anomaly-alert-item').forEach(el => {
@@ -2105,6 +2122,104 @@ function renderMatrix() {
       });
       cell.addEventListener('mouseleave', () => {
         $('#ueTooltip').style.display = 'none';
+      });
+    });
+  }
+  // ===== TAB2: ANOMALY =====
+  function updateAnomalyBadge() {
+    const items = collectAnomalies();
+    const badge = $('#anomalyBadge');
+    if (items.length > 0) {
+      badge.classList.remove('hidden');
+      badge.textContent = items.length;
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+  function collectAnomalies() {
+    const cities = getFilteredCities();
+    const items = [];
+    for (const city of cities) {
+      for (const block of CONFIG.BLOCKS) {
+        const m = city.modules[block.key];
+        if (!m) continue;
+        const level = getAnomalyLevel(m.ue, m.subsidyRatio);
+        if (level === 'danger' || level === 'warning') {
+          items.push({
+            level,
+            cityName: city.name,
+            cityDisplay: city.displayName,
+            moduleName: (city.modules[block.key] && city.modules[block.key].moduleName) || block.name,
+            moduleKey: block.key,
+            ...m
+          });
+        }
+      }
+    }
+    // Sort: danger first, then by UE ascending (worst first)
+    items.sort((a, b) => {
+      if (a.level === 'danger' && b.level !== 'danger') return -1;
+      if (a.level !== 'danger' && b.level === 'danger') return 1;
+      return a.ue - b.ue;
+    });
+    return items;
+  }
+  function renderAnomalyTab() {
+    const items = collectAnomalies();
+    const container = $('#anomalyList');
+    if (items.length === 0) {
+      container.innerHTML = `
+        <div class="no-anomaly">
+          <div class="check-icon">&#10004;</div>
+          <h3>所有城市运行正常</h3>
+          <p class="text-secondary">当前筛选范围内未发现异常数据点</p>
+        </div>
+      `;
+      return;
+    }
+    container.innerHTML = items.map((item, idx) => {
+      const dotClass = item.level === 'danger' ? 'red' : 'yellow';
+      const label = item.level === 'danger' ? '严重' : '预警';
+      const diag = getDiagnosis(item.level, item.ue, item.subsidyRatio, item.moduleName);
+      return `
+        <div class="anomaly-card">
+          <div class="anomaly-card-header" onclick="document.querySelector('#anomalyList .anomaly-card:nth-child(${idx+1}) .anomaly-card-body').classList.toggle('show')">
+            <div class="anomaly-card-title">
+              <div class="severity-dot ${dotClass}"></div>
+              <span>${item.cityDisplay} / ${item.moduleName}</span>
+              <span style="font-size:12px;color:var(--text-secondary);font-weight:400">[${label}]</span>
+            </div>
+            <button class="view-btn" data-city="${item.cityName}" data-module="${item.moduleKey}">查看详细</button>
+          </div>
+          <div class="anomaly-card-body show">
+            <div class="anomaly-metrics">
+              <div class="anomaly-metric">
+                <div class="m-label">单均UE</div>
+                <div class="m-value ${item.ue < 0 ? 'danger' : ''}">${fmtUE(item.ue)}元</div>
+              </div>
+              <div class="anomaly-metric">
+                <div class="m-label">补贴率</div>
+                <div class="m-value ${item.subsidyRatio > 0.35 ? 'danger' : ''}">${fmtPct(item.subsidyRatio)}</div>
+              </div>
+              <div class="anomaly-metric">
+                <div class="m-label">订单量</div>
+                <div class="m-value">${fmtInt(item.orders)}</div>
+              </div>
+              <div class="anomaly-metric">
+                <div class="m-label">毛利</div>
+                <div class="m-value ${item.profit < 0 ? 'danger' : 'success'}">${fmtWan(item.profit)}</div>
+              </div>
+            </div>
+            ${diag ? `<div class="anomaly-diagnosis"><strong>诊断:</strong> ${diag}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+    // View detail buttons
+    container.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        switchToDetail(btn.dataset.city, btn.dataset.module);
       });
     });
   }
@@ -2319,7 +2434,8 @@ function renderMatrix() {
   }
 
 
-// ===== v10: Export Functions =====
+  // =
+  // ===== v10: Export Functions =====
   function exportExcel() {
     if (!state.currentData) { showToast('请先上传数据', 'warning'); return; }
     const cities = getFilteredCities();
@@ -2350,19 +2466,9 @@ function renderMatrix() {
     XLSX.utils.book_append_sheet(wb, ws1, 'UE矩阵');
 
     // Sheet 2: Anomaly Summary
-    const anomalyItems = [];
-    for (const city of state.currentData.cities.filter(c => c.name !== '总商')) {
-      for (const block of CONFIG.BLOCKS) {
-        const m = city.modules[block.key];
-        if (!m) continue;
-        const level = getAnomalyLevel(m.ue, m.subsidyRatio);
-        if (level === 'danger' || level === 'warning') {
-          anomalyItems.push({ cityDisplay: city.displayName, moduleName: block.name, level, ue: m.ue, subsidyRatio: m.subsidyRatio, orders: m.orders, profit: m.profit });
-        }
-      }
-    }
+    const anomalies = collectAnomalies();
     const anomalyData = [['城市', '模块', '严重级别', 'UE', '补贴率', '订单量', '毛利', '诊断']];
-    for (const a of anomalyItems) {
+    for (const a of anomalies) {
       const diag = getDiagnosis(a.level, a.ue, a.subsidyRatio, a.moduleName) || '';
       anomalyData.push([
         a.cityDisplay, a.moduleName,
@@ -2584,318 +2690,6 @@ function renderMatrix() {
   }
 
   
-
-
-  // ===== CLOUD DATA MODULE (Team Sharing via GitHub Repo) =====
-  var CloudData = (function() {
-    var SHARED_URL = './shared-data.json';
-    var GITHUB_API = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
-    var GITHUB_TOKEN = localStorage.getItem('github_token') || '';  // 需要配置 token 才能写入
-    var cache = null;
-    var cacheTime = 0;
-    var CACHE_TTL = 30000;
-
-    function buildPayload(date, currentData, merchantData, currentMerchant) {
-      return JSON.stringify({
-        date: date,
-        updatedAt: new Date().toISOString(),
-        uploadedBy: 'team',
-        currentData: {
-          date: currentData.date,
-          cities: currentData.cities.map(function(c) { return { name: c.name, displayName: c.displayName, modules: c.modules }; }),
-          fileName: currentData.fileName
-        },
-        merchantData: Object.keys(merchantData || {}).reduce(function(acc, key) {
-          acc[key] = {
-            label: merchantData[key].label,
-            cities: merchantData[key].cities.map(function(c) { return { name: c.name, displayName: c.displayName, modules: c.modules }; })
-          };
-          return acc;
-        }, {}),
-        currentMerchant: currentMerchant
-      }, null, 2);
-    }
-
-    function push(date, currentData, merchantData, currentMerchant) {
-      try {
-        if (!GITHUB_TOKEN) {
-          var token = prompt('首次同步需要配置 GitHub Token，请粘贴你的 token（获取方式：GitHub→Settings→Developer settings→Personal access tokens）：');
-          if (token && token.trim()) {
-            GITHUB_TOKEN = token.trim();
-            localStorage.setItem('github_token', GITHUB_TOKEN);
-          } else {
-            showToast('未配置 Token，无法同步到云端', 'warning');
-            return;
-          }
-        }
-        var payload = buildPayload(date, currentData, merchantData, currentMerchant);
-        var base64 = btoa(unescape(encodeURIComponent(payload)));
-
-        // 获取当前文件的 SHA（GitHub API 更新需要）
-        fetch(GITHUB_API + '?t=' + Date.now())
-          .then(function(res) { return res.json(); })
-          .then(function(fileInfo) {
-            var sha = fileInfo.sha;
-            return fetch(GITHUB_API, {
-              method: 'PUT',
-              headers: {
-                'Authorization': 'token ' + GITHUB_TOKEN,
-                'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
-              },
-              body: JSON.stringify({
-                message: 'CloudData sync: ' + date,
-                content: base64,
-                sha: sha
-              })
-            });
-          })
-          .then(function(res) {
-            if (res.ok) {
-              console.log('[CloudData] Pushed to GitHub successfully');
-              showToast('数据已同步到云端，约1分钟后其他成员可查看', 'success');
-              cache = JSON.parse(payload);
-              cacheTime = Date.now();
-            } else {
-              throw new Error('HTTP ' + res.status);
-            }
-          })
-          .catch(function(err) {
-            console.warn('[CloudData] Push failed:', err.message);
-            showToast('云端同步失败: ' + err.message, 'warning');
-          });
-      } catch(e) {
-        console.warn('[CloudData] Push error:', e);
-      }
-    }
-
-    function pull(callback) {
-      var now = Date.now();
-      if (cache && (now - cacheTime) < CACHE_TTL) {
-        console.log('[CloudData] Using cache, age:', (now - cacheTime) / 1000, 's');
-        if (callback) callback(cache);
-        return;
-      }
-      console.log('[CloudData] Pulling from GitHub...');
-      fetch(SHARED_URL + '?t=' + now)
-        .then(function(res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
-        .then(function(data) {
-          if (data && data.currentData) {
-            cache = data;
-            cacheTime = Date.now();
-            console.log('[CloudData] Pulled from GitHub, date:', data.date, 'updated:', data.updatedAt);
-            if (callback) callback(data);
-          } else {
-            console.log('[CloudData] No valid data yet');
-          }
-        })
-        .catch(function(err) {
-          console.log('[CloudData] Pull failed:', err.message);
-        });
-    }
-
-    function load() {
-      pull(function(data) {
-        if (data && data.currentData && data.currentData.cities && data.currentData.cities.length > 0) {
-          state.currentData = data.currentData;
-          state.merchantData = data.merchantData || { all: { label: '全量商家', cities: data.currentData.cities } };
-          state.currentMerchant = data.currentMerchant || 'all';
-          onDataLoaded();
-          renderRawData();
-          renderMerchantSelector();
-          $('#uploadArea').style.display = 'none';
-          $('#uploadSuccess').style.display = 'block';
-          $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || data.date);
-          $('#uploadFileInfo').textContent = data.date + ' / ' + (state.currentData.cities.length) + '城市';
-        }
-      });
-    }
-
-    return { push: push, pull: pull, load: load };
-  })();
-
-
-function generateReportLocal() {
-    if (!state.currentData || !state.currentData.cities || state.currentData.cities.length === 0) return;
-    const cities = state.currentData.cities.filter(c => c.name !== '总商');
-    const totalCity = state.currentData.cities.find(c => c.name === '总商');
-    const blocks = CONFIG.BLOCKS;
-    const dateStr = state.currentData.fileName || '未知日期';
-    const md = [];
-
-    md.push('佰优运营中心经营分析报告');
-    md.push('');
-    md.push('> ' + dateStr + ' | ' + cities.length + '城市');
-    md.push('---');
-    md.push('');
-
-    // 一、整体概况
-    md.push('## 一、整体概况');
-    if (totalCity) {
-      const tm = totalCity.modules[costModule];
-      if (tm) {
-        const totalOrders = cities.reduce((s,c) => s + ((c.modules[costModule]||{}).orders||0), 0);
-        const totalProfit = cities.reduce((s,c) => s + ((c.modules[costModule]||{}).profit||0), 0);
-        const lossCount = cities.filter(c => (c.modules[costModule]||{}).ue < 0).length;
-        md.push('总商本期覆盖' + cities.length + '个城市，总订单量' + totalOrders.toLocaleString() + '单，总毛利' + fmtWan(totalProfit) + '。其中' + lossCount + '个城市UE为负，处于亏损状态。整体UE ' + fmtUE(tm.ue || 0) + '，' + (tm.ue < 0.5 ? '低于安全线，需重点关注成本结构。' : '处于可控区间。'));
-        md.push('');
-        md.push('| 指标 | 数值 |');
-        md.push('|------|------|');
-        md.push('| 总订单量 | ' + (tm.orders||0).toLocaleString() + '单 |');
-        md.push('| 总收入（实收） | ' + fmtWan(tm.onlineRevenue||0) + ' |');
-        md.push('| 总毛利 | ' + fmtWan(tm.profit||0) + ' |');
-        md.push('| 整体UE | ' + fmtUE(tm.ue||0) + '/单 |');
-        md.push('| 整体补贴率 | ' + (tm.subsidyRatio ? (tm.subsidyRatio*100).toFixed(2) : '0') + '% |');
-        md.push('| 整体配送成本率 | ' + (tm.deliveryCostRate ? (tm.deliveryCostRate*100).toFixed(2) : '0') + '% |');
-        md.push('| 整体罚款 | ' + (tm.penalty ? fmtWan(tm.penalty) : '0') + ' |');
-      }
-    }
-    md.push('');
-
-    // 二、各城市UE排名
-    md.push('## 二、各城市UE排名');
-    const cityUE = cities.map(c => {
-      const m = c.modules[costModule] || {};
-      return { name: c.displayName, ue: m.ue||0, orders: m.orders||0, subsidy: m.subsidyRatio||0, delCost: m.deliveryCostRate||0 };
-    }).sort((a, b) => a.ue - b.ue);
-    md.push('下表按UE从低到高排列，红色标记亏损城市，黄色为低利润预警。');
-    md.push('');
-    md.push('| 排名 | 城市 | UE(元/单) | 订单量 | 补贴率 | 配送成本率 |');
-    md.push('|------|------|-----------|--------|--------|------------|');
-    cityUE.forEach((c, i) => {
-      const tag = c.ue < 0 ? '亏损' : (c.ue < 0.5 ? '预警' : '健康');
-      md.push('| ' + (i+1) + ' | ' + c.name + ' | ' + c.ue.toFixed(2) + ' | ' + c.orders.toLocaleString() + ' | ' + (c.subsidy*100).toFixed(2) + '% | ' + (c.delCost*100).toFixed(2) + '% |');
-    });
-    md.push('');
-
-    // 三、异常诊断
-    const anomalies = [];
-    for (const city of cities) {
-      for (const block of blocks) {
-        const m = city.modules[block.key];
-        if (!m) continue;
-        const level = getAnomalyLevel(m.ue, m.subsidyRatio);
-        if (level === 'danger' || level === 'warning') {
-          anomalies.push({ city: city.displayName, module: block.name, level, ue: m.ue, subsidy: m.subsidyRatio, orders: m.orders, deliveryCostRate: m.deliveryCostRate, penalty: m.penalty||0 });
-        }
-      }
-    }
-
-    md.push('## 三、异常城市诊断');
-    if (anomalies.length === 0) {
-      md.push('各城市各模块指标均在正常范围内，无异常项。');
-    } else {
-      const dangerList = anomalies.filter(a => a.level === 'danger');
-      const warnList = anomalies.filter(a => a.level === 'warning');
-      md.push('本期共检出' + anomalies.length + '项异常，其中严重异常' + dangerList.length + '项、预警' + warnList.length + '项。');
-      md.push('');
-      md.push('### 严重异常');
-      md.push('UE为负或补贴率超过45%的模块，需立即介入排查。');
-      md.push('');
-      md.push('| 城市 | 模块 | UE | 补贴率 | 配送成本率 | 罚款 |');
-      md.push('|------|------|-----|--------|------------|------|');
-      dangerList.forEach(a => {
-        md.push('| ' + a.city + ' | ' + a.module + ' | ' + a.ue.toFixed(2) + ' | ' + (a.subsidy*100).toFixed(2) + '% | ' + (a.deliveryCostRate*100).toFixed(2) + '% | ' + fmtWan(a.penalty) + ' |');
-      });
-      md.push('');
-      if (warnList.length > 0) {
-        md.push('### 预警项');
-        md.push('UE低于0.5元或补贴率35%~45%的模块，需持续关注趋势。');
-        md.push('');
-        md.push('| 城市 | 模块 | UE | 补贴率 | 配送成本率 |');
-        md.push('|------|------|-----|--------|------------|');
-        warnList.forEach(a => {
-          md.push('| ' + a.city + ' | ' + a.module + ' | ' + a.ue.toFixed(2) + ' | ' + (a.subsidy*100).toFixed(2) + '% | ' + (a.deliveryCostRate*100).toFixed(2) + '% |');
-        });
-        md.push('');
-      }
-    }
-
-    // 四、成本结构分析
-    md.push('## 四、成本结构分析');
-    md.push('各城市核心成本项明细如下，按实收从高到低排列。重点关注配送成本占比和补贴占比两项。');
-    md.push('');
-    const totalCosts = cities.map(c => {
-      const m = c.modules[costModule] || {};
-      return { name: c.displayName, revenue: m.onlineRevenue||0, deliveryCost: m.deliveryCost||0, subsidyTotal: m.subsidyTotal||0, platformCost: m.platformCost||0, fixedCost: m.fixedCost||0, penalty: m.penalty||0, profit: m.profit||0 };
-    }).sort((a, b) => b.revenue - a.revenue);
-
-    md.push('| 城市 | 实收 | 配送成本 | 补贴总额 | 平台成本 | 固定成本 | 罚款 | 毛利 |');
-    md.push('|------|------|----------|----------|----------|----------|------|------|');
-    totalCosts.forEach(c => {
-      md.push('| ' + c.name + ' | ' + fmtWan(c.revenue) + ' | ' + fmtWan(c.deliveryCost) + ' | ' + fmtWan(c.subsidyTotal) + ' | ' + fmtWan(c.platformCost) + ' | ' + fmtWan(c.fixedCost) + ' | ' + fmtWan(c.penalty) + ' | ' + fmtWan(c.profit) + ' |');
-    });
-    md.push('');
-
-    // 五、各模块分析
-    md.push('## 五、各模块分析');
-    for (const block of blocks) {
-      const blockCities = cities.map(c => {
-        const m = c.modules[block.key] || {};
-        return { name: c.displayName, ue: m.ue||0, orders: m.orders||0, profit: m.profit||0, subsidy: m.subsidyRatio||0 };
-      }).filter(c => c.orders > 0).sort((a,b) => a.ue - b.ue);
-
-      if (blockCities.length === 0) continue;
-
-      const totalOrders = blockCities.reduce((s,c) => s + c.orders, 0);
-      const totalProfit = blockCities.reduce((s,c) => s + c.profit, 0);
-      const avgUE = totalOrders > 0 ? totalProfit / totalOrders : 0;
-      const lossCities = blockCities.filter(c => c.ue < 0);
-
-      md.push('### ' + block.name);
-      md.push('覆盖' + blockCities.length + '个城市，总订单' + totalOrders.toLocaleString() + '单，总毛利' + fmtWan(totalProfit) + '，平均UE ' + avgUE.toFixed(2) + '。' + (lossCities.length > 0 ? lossCities.map(c => c.name).join('、') + '处于亏损状态。' : '所有城市均盈利。'));
-      md.push('');
-      md.push('| 城市 | UE | 订单量 | 毛利 | 补贴率 |');
-      md.push('|------|-----|--------|------|--------|');
-      blockCities.forEach(c => {
-        md.push('| ' + c.name + ' | ' + c.ue.toFixed(2) + ' | ' + c.orders.toLocaleString() + ' | ' + fmtWan(c.profit) + ' | ' + (c.subsidy*100).toFixed(2) + '% |');
-      });
-      md.push('');
-    }
-
-    // 六、重点问题与建议
-    md.push('## 六、重点问题与建议');
-    const suggestions = [];
-    const lossCities = cityUE.filter(c => c.ue < 0);
-    if (lossCities.length > 0) {
-      suggestions.push('**亏损城市（' + lossCities.length + '个）：** ' + lossCities.map(c => c.name + '(' + c.ue.toFixed(2) + '元)').join('、') + '，建议重点排查补贴率和配送成本率，评估是否需要收缩或调整策略。');
-    }
-    const highSub = [...new Set(anomalies.filter(a => a.subsidy > 0.40).map(a => a.city))];
-    if (highSub.length > 0) {
-      suggestions.push('**高补贴城市：** ' + highSub.join('、') + '补贴率超过40%，建议核查B端/C端代补合理性及活动花费，建立补贴上限硬约束。');
-    }
-    const highDel = cityUE.filter(c => c.delCost > 0.37);
-    if (highDel.length > 0) {
-      suggestions.push('**高配送成本城市：** ' + highDel.map(c => c.name + '(' + (c.delCost*100).toFixed(2) + '%)').join('、') + '，建议关注运力结构、人效及配送罚款。');
-    }
-    const highPen = cities.filter(c => { const m = c.modules[costModule]; return m && m.penalty && m.penalty > 5000; });
-    if (highPen.length > 0) {
-      suggestions.push('**高罚款城市：** ' + highPen.map(c => c.displayName + '(' + fmtWan(c.modules[costModule].penalty) + ')').join('、') + '，建议核查配送罚款明细并推动申诉。');
-    }
-    const bestCities = cityUE.filter(c => c.ue >= 1.5).slice(0, 3);
-    if (bestCities.length > 0) {
-      suggestions.push('**表现最优：** ' + bestCities.map(c => c.name + '(' + c.ue.toFixed(2) + '元)').join('、') + '，可总结运营经验向其他城市推广。');
-    }
-    if (suggestions.length === 0) {
-      suggestions.push('本期整体经营指标健康，无突出风险点。');
-    }
-    suggestions.forEach(s => md.push(s));
-    md.push('');
-    md.push('---');
-    md.push('*报告由代理商财务分析工具自动生成*');
-
-    const mdText = md.join('\n');
-    state.reportText = mdText;
-    renderMarkdown(mdText);
-    $('#btnCopyReport').style.display = 'inline-block';
-    $('#btnDownloadReport').style.display = 'inline-block';
-  }
-
-
-
 function generateReport() {
   if (!state.currentData || !state.currentData.cities || state.currentData.cities.length === 0) {
     $('#reportContent').innerHTML = '<p style="color:#ef4444;text-align:center;padding:60px 0;">请先上传数据</p>';
@@ -3003,15 +2797,16 @@ function generateReport() {
 }
 
 function renderMarkdown(md) {
+  // 简单Markdown渲染
   var html = md
-    .replace(/&/g, '&amp;')
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^---$/gm, '<hr>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^---$/gm, '<hr>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // 重新处理表格
   var lines = html.split('\n');
   var inTable = false;
@@ -3208,7 +3003,7 @@ function renderCostStructure() {
     const cities = state.currentData.cities.filter(c => c.name !== '总商');
 
     const compareMetrics = [
-      { key: 'ue', label: '单均UE', unit: '元', format: v => v.toFixed(2), negativeColor: true },
+      { key: 'ue', label: '单均UE', unit: '元', format: v => v.toFixed(2), threshold: -0.5, inverse: true },
       { key: 'deliveryCostRate', label: '配送成本率', unit: '%', format: v => (v*100).toFixed(2), threshold: 0.4, inverse: false },
       { key: 'subsidyRateTotal', label: '补贴率', unit: '%', format: v => (v*100).toFixed(2), threshold: 0.15, inverse: false },
       { key: 'subsidyRateB', label: 'B端代补率', unit: '%', format: v => (v*100).toFixed(2), threshold: 0.05, inverse: false },
@@ -3249,7 +3044,7 @@ function renderCostStructure() {
         items.sort((a, b) => a.value - b.value);
         items.forEach(it => {
           const barW = (Math.abs(it.value) / absMax * 100);
-          const isAnomaly = cm.negativeColor ? it.value < 0 : (cm.inverse ? it.value < cm.threshold : it.value > cm.threshold);
+          const isAnomaly = cm.inverse ? it.value < cm.threshold : it.value > cm.threshold;
           const barColor = isAnomaly ? 'var(--danger)' : 'var(--primary)';
           html += '<div class="cost-compare-row">' +
             '<div class="cost-compare-city">' + it.name + '</div>' +
@@ -3272,6 +3067,9 @@ function switchTab(tabName) {
     if (tabName === 'overview') {
       console.log('[switchTab] refreshing overview, merchant:', state.currentMerchant);
       refreshDashboard();
+    }
+    if (tabName === 'anomaly') {
+      renderAnomalyTab();
     }
     if (tabName === 'detail') {
       updateDetailSelectors();
@@ -3481,32 +3279,14 @@ function renderRawData() {
       }
     } catch(e) { console.warn('[init] 缓存清理失败:', e); }
 
+
     initEvents();
-
-    // 优先尝试云端共享数据
-    CloudData.pull(function(data) {
-      if (data && data.currentData && data.currentData.cities && data.currentData.cities.length > 0) {
-        state.currentData = data.currentData;
-        state.merchantData = data.merchantData || { all: { label: '全量商家', cities: data.currentData.cities } };
-        state.currentMerchant = data.currentMerchant || 'all';
-        onDataLoaded();
-        renderRawData();
-        renderMerchantSelector();
-        $('#uploadArea').style.display = 'none';
-        $('#uploadSuccess').style.display = 'block';
-        $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || data.date);
-        $('#uploadFileInfo').textContent = data.date + ' / ' + (state.currentData.cities.length) + '城市';
-      } else {
-        loadFromLocalStorage();
-      }
-    });
-  }
-
-  function loadFromLocalStorage() {
+    // Try to load last data
     const allData = DataStore.loadAll();
     const dates = Object.keys(allData).sort().reverse();
     if (dates.length > 0) {
       const entry = allData[dates[0]];
+      // 兼容新旧格式
       if (entry.merchantData) {
         state.merchantData = entry.merchantData;
         state.currentMerchant = entry.currentMerchant || Object.keys(entry.merchantData)[0];
@@ -3524,7 +3304,7 @@ function renderRawData() {
       renderMerchantSelector();
       $('#uploadArea').style.display = 'none';
       $('#uploadSuccess').style.display = 'block';
-      $('#uploadFileName').textContent = '已加载本地缓存: ' + (state.currentData.fileName || dates[0]);
+      $('#uploadFileName').textContent = '已加载: ' + (state.currentData.fileName || dates[0]);
       $('#uploadFileInfo').textContent = dates[0] + ' / ' + (state.currentData.cities ? state.currentData.cities.length : 0) + '城市';
     }
   }
