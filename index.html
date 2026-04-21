@@ -1119,6 +1119,7 @@ body {
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px;">
           <span onclick="document.getElementById('fileInput').click();" style="padding:3px 8px;background:var(--primary);color:#fff;border-radius:4px;cursor:pointer;font-size:11px;">换文件</span>
+          <span id="syncBtn" onclick="syncToCloud()" style="padding:3px 8px;background:#27ae60;color:#fff;border-radius:4px;cursor:pointer;font-size:11px;">同步到云端</span>
           <span onclick="clearCurrentData()" style="padding:3px 8px;background:none;color:#e74c3c;border:1px solid #e74c3c;border-radius:4px;cursor:pointer;font-size:11px;">清除</span>
         </div>
       </div>
@@ -2320,7 +2321,43 @@ function renderMatrix() {
 
 
   // =
-  // ===== v10: Export Functions =====
+  
+  // ===== 同步到云端 (GitHub API) =====
+  function syncToCloud() {
+    var pending = localStorage.getItem('clouddata_pending');
+    if (!pending) {
+      showToast('没有待同步的数据，请先上传文件', 'warning');
+      return;
+    }
+    var btn = document.getElementById('syncBtn');
+    btn.textContent = '同步中...';
+    btn.style.background = '#f39c12';
+
+    // 使用 GitHub Personal Access Token
+    // 注意: token 仅用于 deploy.py 本地推送，浏览器中此功能受限
+    // 实际使用: 上传文件后运行 deploy.py push 即可自动同步
+    var token = localStorage.getItem('github_token') || '';
+    if (!token) {
+      // 无 token 时，引导用户使用 deploy.py
+      btn.textContent = '同步到云端';
+      btn.style.background = '#27ae60';
+      showToast('浏览器端同步需要 GitHub Token。请运行 deploy.py push 命令同步数据。', 'info');
+      // 同时尝试无认证的 raw 写入（会失败，但给出提示）
+      console.log('[Sync] 请在本地运行: cd finance-tool-deploy && python deploy.py push');
+      return;
+    }
+    CloudData.pushToGitHub(token, function(success, msg) {
+      btn.textContent = success ? '已同步 ✓' : '同步失败';
+      btn.style.background = success ? '#27ae60' : '#e74c3c';
+      setTimeout(function() {
+        btn.textContent = '同步到云端';
+        btn.style.background = '#27ae60';
+      }, 3000);
+    });
+  }
+
+
+// ===== v10: Export Functions =====
   function exportExcel() {
     if (!state.currentData) { showToast('请先上传数据', 'warning'); return; }
     const cities = getFilteredCities();
@@ -2587,12 +2624,15 @@ function renderMatrix() {
   
 
 
-  // ===== CLOUD DATA MODULE (Team Sharing via jsonblob) =====
+  // ===== CLOUD DATA MODULE (Team Sharing via GitHub Contents API) =====
   var CloudData = (function() {
-    var API_URL = 'https://jsonblob.com/api/jsonBlob/019dae9e-1c9c-7831-964e-cc7ab64f3646';
+    // 读取: GitHub raw (no CORS issue)
+    // 写入: GitHub API PUT (需要 token，通过 deploy.py 在本地执行)
+    var API_BASE = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared_data.json';
+    var RAW_URL = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared_data.json';
     var cache = null;
     var cacheTime = 0;
-    var CACHE_TTL = 60000;
+    var CACHE_TTL = 60000; // 1 minute
 
     function buildPayload(date, currentData, merchantData, currentMerchant) {
       return JSON.stringify({
@@ -2615,35 +2655,70 @@ function renderMatrix() {
       });
     }
 
+    // 写入云端 (仅在 deploy.py 环境中使用，浏览器中保存到 localStorage 供后续 push)
     function push(date, currentData, merchantData, currentMerchant) {
       try {
+        // 在浏览器环境中，保存到 localStorage 标记待推送
+        // 实际推送由 deploy.py 或 git 操作完成
         var payload = buildPayload(date, currentData, merchantData, currentMerchant);
-        fetch(API_URL, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: payload
-        }).then(function(res) {
-          if (res.ok) {
-            console.log('[CloudData] Pushed successfully, date:', date);
-            showToast('数据已同步到云端，团队成员可查看', 'success');
-          } else {
-            console.warn('[CloudData] Push failed:', res.status);
-          }
-        }).catch(function(err) {
-          console.warn('[CloudData] Push error:', err);
-        });
+        localStorage.setItem('clouddata_pending', payload);
+        localStorage.setItem('clouddata_pending_time', new Date().toISOString());
+        console.log('[CloudData] Data queued for cloud push, date:', date);
+        console.log('[CloudData] Run deploy.py push to sync to GitHub');
+        showToast('数据已保存，请点击"同步到云端"按钮分享给团队', 'info');
       } catch(e) {
-        console.warn('[CloudData] Push exception:', e);
+        console.warn('[CloudData] Push queue error:', e);
       }
     }
 
+    // 直接推送到 GitHub API (需要 token，仅在有 token 时使用)
+    function pushToGitHub(token, callback) {
+      var pending = localStorage.getItem('clouddata_pending');
+      if (!pending) {
+        if (callback) callback(false, 'no pending data');
+        return;
+      }
+      fetch(API_BASE, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json',
+          'Authorization': 'token ' + token
+        },
+        body: JSON.stringify({
+          message: 'Update shared_data.json - ' + new Date().toISOString(),
+          content: btoa(unescape(encodeURIComponent(pending))),
+          sha: window._cloudDataSha || ''
+        })
+      }).then(function(res) {
+        return res.json();
+      }).then(function(data) {
+        if (data.content && data.content.sha) {
+          window._cloudDataSha = data.content.sha;
+          localStorage.removeItem('clouddata_pending');
+          localStorage.removeItem('clouddata_pending_time');
+          console.log('[CloudData] Pushed to GitHub successfully');
+          showToast('数据已同步到云端，团队成员可查看', 'success');
+          if (callback) callback(true, data);
+        } else {
+          console.warn('[CloudData] GitHub push response:', data);
+          if (callback) callback(false, data.message || 'unknown error');
+        }
+      }).catch(function(err) {
+        console.warn('[CloudData] GitHub push error:', err);
+        if (callback) callback(false, err.message);
+      });
+    }
+
+    // 读取云端数据
     function pull(callback) {
       var now = Date.now();
       if (cache && (now - cacheTime) < CACHE_TTL) {
         if (callback) callback(cache);
         return;
       }
-      fetch(API_URL + '?t=' + now)
+      // 先尝试 raw.githubusercontent.com (CDN 缓存，速度快)
+      fetch(RAW_URL + '?t=' + now)
         .then(function(res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);
           return res.json();
@@ -2651,11 +2726,34 @@ function renderMatrix() {
         .then(function(data) {
           cache = data;
           cacheTime = Date.now();
-          console.log('[CloudData] Pulled data, date:', data.date, 'updated:', data.updatedAt);
+          console.log('[CloudData] Pulled data from raw, date:', data.date, 'updated:', data.updatedAt);
           if (callback) callback(data);
         })
         .catch(function(err) {
-          console.log('[CloudData] Pull failed (no shared data yet):', err.message);
+          console.log('[CloudData] Raw fetch failed, trying API:', err.message);
+          // 回退到 GitHub API
+          fetch(API_BASE + '?t=' + now, {
+            headers: { 'Accept': 'application/vnd.github.v3+json' }
+          })
+          .then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+          })
+          .then(function(data) {
+            if (data.content) {
+              var decoded = JSON.parse(decodeURIComponent(escape(atob(data.content.content))));
+              cache = decoded;
+              cacheTime = Date.now();
+              window._cloudDataSha = data.sha;
+              console.log('[CloudData] Pulled data from API, date:', decoded.date);
+              if (callback) callback(decoded);
+            } else {
+              throw new Error('No content in API response');
+            }
+          })
+          .catch(function(err2) {
+            console.log('[CloudData] All pull methods failed:', err2.message);
+          });
         });
     }
 
@@ -2674,7 +2772,7 @@ function renderMatrix() {
       });
     }
 
-    return { push: push, pull: pull, load: load };
+    return { push: push, pull: pull, load: load, pushToGitHub: pushToGitHub };
   })();
 
 
