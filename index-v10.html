@@ -1861,6 +1861,8 @@ const CONFIG = {
     renderCostStructure();
     // Update date display
     $('#dateDisplay').textContent = state.currentData.date;
+    // Push to cloud for team sharing
+    CloudData.push(state.currentData.date, state.currentData, state.merchantData, state.currentMerchant);
   }
   function updateDateSelector() {
     const allData = DataStore.loadAll();
@@ -2583,6 +2585,98 @@ function renderMatrix() {
   }
 
   
+
+
+  // ===== CLOUD DATA MODULE (Team Sharing via jsonblob) =====
+  var CloudData = (function() {
+    var API_URL = 'https://jsonblob.com/api/jsonBlob/019dae9e-1c9c-7831-964e-cc7ab64f3646';
+    var cache = null;
+    var cacheTime = 0;
+    var CACHE_TTL = 60000;
+
+    function buildPayload(date, currentData, merchantData, currentMerchant) {
+      return JSON.stringify({
+        date: date,
+        updatedAt: new Date().toISOString(),
+        uploadedBy: 'team',
+        currentData: {
+          date: currentData.date,
+          cities: currentData.cities.map(function(c) { return { name: c.name, displayName: c.displayName, modules: c.modules }; }),
+          fileName: currentData.fileName
+        },
+        merchantData: Object.keys(merchantData || {}).reduce(function(acc, key) {
+          acc[key] = {
+            label: merchantData[key].label,
+            cities: merchantData[key].cities.map(function(c) { return { name: c.name, displayName: c.displayName, modules: c.modules }; })
+          };
+          return acc;
+        }, {}),
+        currentMerchant: currentMerchant
+      });
+    }
+
+    function push(date, currentData, merchantData, currentMerchant) {
+      try {
+        var payload = buildPayload(date, currentData, merchantData, currentMerchant);
+        fetch(API_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: payload
+        }).then(function(res) {
+          if (res.ok) {
+            console.log('[CloudData] Pushed successfully, date:', date);
+            showToast('数据已同步到云端，团队成员可查看', 'success');
+          } else {
+            console.warn('[CloudData] Push failed:', res.status);
+          }
+        }).catch(function(err) {
+          console.warn('[CloudData] Push error:', err);
+        });
+      } catch(e) {
+        console.warn('[CloudData] Push exception:', e);
+      }
+    }
+
+    function pull(callback) {
+      var now = Date.now();
+      if (cache && (now - cacheTime) < CACHE_TTL) {
+        if (callback) callback(cache);
+        return;
+      }
+      fetch(API_URL + '?t=' + now)
+        .then(function(res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function(data) {
+          cache = data;
+          cacheTime = Date.now();
+          console.log('[CloudData] Pulled data, date:', data.date, 'updated:', data.updatedAt);
+          if (callback) callback(data);
+        })
+        .catch(function(err) {
+          console.log('[CloudData] Pull failed (no shared data yet):', err.message);
+        });
+    }
+
+    function load(callback) {
+      pull(function(data) {
+        try {
+          if (!data || !data.currentData || !data.currentData.cities || data.currentData.cities.length === 0) return;
+          state.currentData = data.currentData;
+          state.merchantData = data.merchantData || { all: { label: '全量商家', cities: data.currentData.cities } };
+          state.currentMerchant = data.currentMerchant || 'all';
+          onDataLoaded();
+          showToast('已加载云端共享数据 (' + data.date + ')', 'info');
+        } catch(e) {
+          console.warn('[CloudData] Load parse error:', e);
+        }
+      });
+    }
+
+    return { push: push, pull: pull, load: load };
+  })();
+
 
 function generateReportLocal() {
     if (!state.currentData || !state.currentData.cities || state.currentData.cities.length === 0) return;
@@ -3347,14 +3441,32 @@ function renderRawData() {
       }
     } catch(e) { console.warn('[init] 缓存清理失败:', e); }
 
-
     initEvents();
-    // Try to load last data
+
+    // 优先尝试云端共享数据
+    CloudData.pull(function(data) {
+      if (data && data.currentData && data.currentData.cities && data.currentData.cities.length > 0) {
+        state.currentData = data.currentData;
+        state.merchantData = data.merchantData || { all: { label: '全量商家', cities: data.currentData.cities } };
+        state.currentMerchant = data.currentMerchant || 'all';
+        onDataLoaded();
+        renderRawData();
+        renderMerchantSelector();
+        $('#uploadArea').style.display = 'none';
+        $('#uploadSuccess').style.display = 'block';
+        $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || data.date);
+        $('#uploadFileInfo').textContent = data.date + ' / ' + (state.currentData.cities.length) + '城市';
+      } else {
+        loadFromLocalStorage();
+      }
+    });
+  }
+
+  function loadFromLocalStorage() {
     const allData = DataStore.loadAll();
     const dates = Object.keys(allData).sort().reverse();
     if (dates.length > 0) {
       const entry = allData[dates[0]];
-      // 兼容新旧格式
       if (entry.merchantData) {
         state.merchantData = entry.merchantData;
         state.currentMerchant = entry.currentMerchant || Object.keys(entry.merchantData)[0];
@@ -3372,7 +3484,7 @@ function renderRawData() {
       renderMerchantSelector();
       $('#uploadArea').style.display = 'none';
       $('#uploadSuccess').style.display = 'block';
-      $('#uploadFileName').textContent = '已加载: ' + (state.currentData.fileName || dates[0]);
+      $('#uploadFileName').textContent = '已加载本地缓存: ' + (state.currentData.fileName || dates[0]);
       $('#uploadFileInfo').textContent = dates[0] + ' / ' + (state.currentData.cities ? state.currentData.cities.length : 0) + '城市';
     }
   }
