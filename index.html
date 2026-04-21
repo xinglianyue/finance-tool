@@ -2590,7 +2590,7 @@ function renderMatrix() {
   var CloudData = (function() {
     var SHARED_URL = './shared-data.json';
     var GITHUB_API = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
-    var GITHUB_TOKEN = '';  // 需要配置 token 才能写入
+    var GITHUB_TOKEN = localStorage.getItem('github_token') || '';  // 需要配置 token 才能写入
     var cache = null;
     var cacheTime = 0;
     var CACHE_TTL = 30000;
@@ -2618,6 +2618,16 @@ function renderMatrix() {
 
     function push(date, currentData, merchantData, currentMerchant) {
       try {
+        if (!GITHUB_TOKEN) {
+          var token = prompt('首次同步需要配置 GitHub Token，请粘贴你的 token（获取方式：GitHub→Settings→Developer settings→Personal access tokens）：');
+          if (token && token.trim()) {
+            GITHUB_TOKEN = token.trim();
+            localStorage.setItem('github_token', GITHUB_TOKEN);
+          } else {
+            showToast('未配置 Token，无法同步到云端', 'warning');
+            return;
+          }
+        }
         var payload = buildPayload(date, currentData, merchantData, currentMerchant);
         var base64 = btoa(unescape(encodeURIComponent(payload)));
 
