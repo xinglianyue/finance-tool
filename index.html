@@ -2586,16 +2586,14 @@ function renderMatrix() {
   
 
 
-  // ===== CLOUD DATA MODULE (Team Sharing via jsonblob) =====
+  // ===== CLOUD DATA MODULE (Team Sharing via GitHub Repo) =====
   var CloudData = (function() {
-    // jsonblob API - 国内可访问，支持任何人读写
-    var JSONBLOB_API = 'https://jsonblob.com/api/jsonBlob';
-    // 固定 Blob ID，所有人共享同一个
-    var BLOB_ID = '019daf72-83d0-7efa-8895-7282eea1acf1';
-    var BLOB_URL = JSONBLOB_API + '/' + BLOB_ID;
+    var SHARED_URL = './shared-data.json';
+    var GITHUB_API = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
+    var GITHUB_TOKEN = '';  // 需要配置 token 才能写入
     var cache = null;
     var cacheTime = 0;
-    var CACHE_TTL = 30000; // 30秒缓存（多人协作快速刷新）
+    var CACHE_TTL = 30000;
 
     function buildPayload(date, currentData, merchantData, currentMerchant) {
       return JSON.stringify({
@@ -2615,31 +2613,47 @@ function renderMatrix() {
           return acc;
         }, {}),
         currentMerchant: currentMerchant
-      });
+      }, null, 2);
     }
 
     function push(date, currentData, merchantData, currentMerchant) {
       try {
         var payload = buildPayload(date, currentData, merchantData, currentMerchant);
-        fetch(BLOB_URL, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: payload
-        })
-        .then(function(res) {
-          if (res.ok) {
-            console.log('[CloudData] Pushed to jsonblob successfully');
-            showToast('数据已同步到云端，团队成员刷新后可查看', 'success');
-            cache = JSON.parse(payload);
-            cacheTime = Date.now();
-          } else {
-            throw new Error('HTTP ' + res.status);
-          }
-        })
-        .catch(function(err) {
-          console.warn('[CloudData] Push failed:', err.message);
-          showToast('云端同步失败，请稍后重试', 'warning');
-        });
+        var base64 = btoa(unescape(encodeURIComponent(payload)));
+
+        // 获取当前文件的 SHA（GitHub API 更新需要）
+        fetch(GITHUB_API + '?t=' + Date.now())
+          .then(function(res) { return res.json(); })
+          .then(function(fileInfo) {
+            var sha = fileInfo.sha;
+            return fetch(GITHUB_API, {
+              method: 'PUT',
+              headers: {
+                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+              },
+              body: JSON.stringify({
+                message: 'CloudData sync: ' + date,
+                content: base64,
+                sha: sha
+              })
+            });
+          })
+          .then(function(res) {
+            if (res.ok) {
+              console.log('[CloudData] Pushed to GitHub successfully');
+              showToast('数据已同步到云端，约1分钟后其他成员可查看', 'success');
+              cache = JSON.parse(payload);
+              cacheTime = Date.now();
+            } else {
+              throw new Error('HTTP ' + res.status);
+            }
+          })
+          .catch(function(err) {
+            console.warn('[CloudData] Push failed:', err.message);
+            showToast('云端同步失败: ' + err.message, 'warning');
+          });
       } catch(e) {
         console.warn('[CloudData] Push error:', e);
       }
@@ -2652,28 +2666,25 @@ function renderMatrix() {
         if (callback) callback(cache);
         return;
       }
-      console.log('[CloudData] Pulling from jsonblob...');
-      fetch(BLOB_URL + '?t=' + now, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      })
-      .then(function(res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then(function(data) {
-        if (data && data.currentData) {
-          cache = data;
-          cacheTime = Date.now();
-          console.log('[CloudData] Pulled from jsonblob, date:', data.date, 'updated:', data.updatedAt);
-          if (callback) callback(data);
-        } else {
-          console.log('[CloudData] Blob exists but no valid data');
-        }
-      })
-      .catch(function(err) {
-        console.log('[CloudData] Pull failed:', err.message);
-      });
+      console.log('[CloudData] Pulling from GitHub...');
+      fetch(SHARED_URL + '?t=' + now)
+        .then(function(res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function(data) {
+          if (data && data.currentData) {
+            cache = data;
+            cacheTime = Date.now();
+            console.log('[CloudData] Pulled from GitHub, date:', data.date, 'updated:', data.updatedAt);
+            if (callback) callback(data);
+          } else {
+            console.log('[CloudData] No valid data yet');
+          }
+        })
+        .catch(function(err) {
+          console.log('[CloudData] Pull failed:', err.message);
+        });
     }
 
     function load() {
