@@ -2621,15 +2621,16 @@ function renderMatrix() {
   
 
 
-  // ===== CLOUD DATA MODULE (Team Sharing) =====
+  // ===== CLOUD DATA MODULE (Team Sharing via jsonblob) =====
   var CloudData = (function() {
-    // 优先使用同域路径 (shared_data.json 部署在同一 GitHub Pages 站点下，无 CORS 问题)
-    // 回退到 GitHub API
-    var LOCAL_URL = 'shared_data.json';
-    var API_URL = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared_data.json';
+    // jsonblob API - 国内可访问，支持任何人读写
+    var JSONBLOB_API = 'https://jsonblob.com/api/jsonBlob';
+    // 固定 Blob ID，所有人共享同一个
+    var BLOB_ID = '019daf72-83d0-7efa-8895-7282eea1acf1';
+    var BLOB_URL = JSONBLOB_API + '/' + BLOB_ID;
     var cache = null;
     var cacheTime = 0;
-    var CACHE_TTL = 60000;
+    var CACHE_TTL = 30000; // 30秒缓存（多人协作快速刷新）
 
     function buildPayload(date, currentData, merchantData, currentMerchant) {
       return JSON.stringify({
@@ -2652,77 +2653,78 @@ function renderMatrix() {
       });
     }
 
-    // 标记数据待推送
     function push(date, currentData, merchantData, currentMerchant) {
       try {
         var payload = buildPayload(date, currentData, merchantData, currentMerchant);
-        localStorage.setItem('clouddata_pending', payload);
-        localStorage.setItem('clouddata_pending_time', new Date().toISOString());
-        console.log('[CloudData] Data queued for cloud push, date:', date);
-        showToast('数据已保存，请运行 deploy.py push 同步到云端', 'info');
+        fetch(BLOB_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: payload
+        })
+        .then(function(res) {
+          if (res.ok) {
+            console.log('[CloudData] Pushed to jsonblob successfully');
+            showToast('数据已同步到云端，团队成员刷新后可查看', 'success');
+            cache = JSON.parse(payload);
+            cacheTime = Date.now();
+          } else {
+            throw new Error('HTTP ' + res.status);
+          }
+        })
+        .catch(function(err) {
+          console.warn('[CloudData] Push failed:', err.message);
+          localStorage.setItem('clouddata_pending', payload);
+          showToast('云端同步失败，数据已保存到本地', 'warning');
+        });
       } catch(e) {
-        console.warn('[CloudData] Push queue error:', e);
+        console.warn('[CloudData] Push error:', e);
       }
     }
 
-    // 读取云端数据
     function pull(callback) {
       var now = Date.now();
       if (cache && (now - cacheTime) < CACHE_TTL) {
+        console.log('[CloudData] Using cache, age:', (now - cacheTime) / 1000, 's');
         if (callback) callback(cache);
         return;
       }
-      // 方式1: 同域相对路径 (最优方案，无 CORS)
-      fetch(LOCAL_URL + '?t=' + now)
-        .then(function(res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
-        .then(function(data) {
+      console.log('[CloudData] Pulling from jsonblob...');
+      fetch(BLOB_URL + '?t=' + now, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(data) {
+        if (data && data.currentData) {
           cache = data;
           cacheTime = Date.now();
-          console.log('[CloudData] Pulled from local path, date:', data.date, 'updated:', data.updatedAt);
+          console.log('[CloudData] Pulled from jsonblob, date:', data.date, 'updated:', data.updatedAt);
           if (callback) callback(data);
-        })
-        .catch(function(err) {
-          console.log('[CloudData] Local path failed (' + err.message + '), trying GitHub API...');
-          // 方式2: GitHub API (有 CORS 支持)
-          fetch(API_URL + '?t=' + now, {
-            headers: { 'Accept': 'application/vnd.github.v3+json' }
-          })
-          .then(function(res) {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.json();
-          })
-          .then(function(data) {
-            if (data.content) {
-              var decoded = JSON.parse(decodeURIComponent(escape(atob(data.content.content))));
-              cache = decoded;
-              cacheTime = Date.now();
-              window._cloudDataSha = data.sha;
-              console.log('[CloudData] Pulled from GitHub API, date:', decoded.date);
-              if (callback) callback(decoded);
-            } else {
-              throw new Error('No content');
-            }
-          })
-          .catch(function(err2) {
-            console.log('[CloudData] All pull methods failed:', err2.message);
-          });
-        });
+        } else {
+          console.log('[CloudData] Blob exists but no valid data');
+        }
+      })
+      .catch(function(err) {
+        console.log('[CloudData] Pull failed:', err.message);
+      });
     }
 
-    function load(callback) {
+    function load() {
       pull(function(data) {
-        try {
-          if (!data || !data.currentData || !data.currentData.cities || data.currentData.cities.length === 0) return;
+        if (data && data.currentData && data.currentData.cities && data.currentData.cities.length > 0) {
           state.currentData = data.currentData;
           state.merchantData = data.merchantData || { all: { label: '全量商家', cities: data.currentData.cities } };
           state.currentMerchant = data.currentMerchant || 'all';
           onDataLoaded();
-          showToast('已加载云端共享数据 (' + data.date + ')', 'info');
-        } catch(e) {
-          console.warn('[CloudData] Load parse error:', e);
+          renderRawData();
+          renderMerchantSelector();
+          $('#uploadArea').style.display = 'none';
+          $('#uploadSuccess').style.display = 'block';
+          $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || data.date);
+          $('#uploadFileInfo').textContent = data.date + ' / ' + (state.currentData.cities.length) + '城市';
         }
       });
     }
