@@ -1681,23 +1681,21 @@ const CONFIG = {
     return merchantData;
   }
   function parseDateFromFilename(filename) {
-    const patterns = [
-      /(\d{4})[-_]?(\d{2})[-_]?(\d{2})/,
-      /(\d{4})年(\d{1,2})月(\d{1,2})/,
-    ];
-    for (const p of patterns) {
-      const m = filename.match(p);
-      if (m) {
-        const y = parseInt(m[1]), mo = parseInt(m[2]), d = parseInt(m[3]);
-        const dt = new Date(y, mo - 1, d);
-        if (!isNaN(dt.getTime())) {
-          return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        }
-      }
+    // 优先级1: YYYY-MM-DD 或 YYYYMMDD (8位连续数字)
+    var p1 = filename.match(/(\d{4})[-_]?(0[1-9]|1[0-2])[-_]?(0[1-9]|[12]\d|3[01])/);
+    if (p1) { return p1[1] + '-' + p1[2] + '-' + p1[3]; }
+    // 优先级2: YYYY年MM月DD日
+    var p2 = filename.match(/(\d{4})年(\d{1,2})月(\d{1,2})/);
+    if (p2) { return p2[1] + '-' + String(parseInt(p2[2])).padStart(2,'0') + '-' + String(parseInt(p2[3])).padStart(2,'0'); }
+    // 优先级3: MMDD (4位: 月+日, 如0418=4月18日)
+    var p3 = filename.match(/(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?![\d年])/);
+    if (p3) {
+      var yr = new Date().getFullYear();
+      return yr + '-' + p3[1] + '-' + p3[2];
     }
-    // Try to get from file date or use today
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    // 兜底: 用当天日期
+    var today = new Date();
+    return today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
   }
   // ===== ANOMALY DETECTION =====
   function getAnomalyLevel(ue, subsidyRatio) {
@@ -1874,7 +1872,16 @@ const CONFIG = {
     for (const d of dates) {
       const opt = document.createElement('option');
       opt.value = d;
-      opt.textContent = d + ' (' + (allData[d].fileName || '历史数据') + ')';
+      // 从文件名提取账单日期用于显示
+      var fn = allData[d].fileName || '';
+      var billDate = '';
+      var m = fn.match(/(\d{4})[年-](\d{1,2})[月-](\d{1,2})/);
+      if (m) { billDate = m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0'); }
+      if (billDate && billDate !== d) {
+        opt.textContent = d + ' (账单周期 ' + billDate + ')';
+      } else {
+        opt.textContent = d + ' (账单周期 ' + d + ')';
+      }
       if (state.currentData && state.currentData.date === d) opt.selected = true;
       sel.appendChild(opt);
     }
