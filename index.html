@@ -3540,6 +3540,8 @@ function renderRawData() {
   }
 
   function loadFromLocalStorage() {
+    var skipPush = window.__cloudLoading || false;
+    window.__cloudLoading = false;
     const allData = DataStore.loadAll();
     const dates = Object.keys(allData).sort().reverse();
     if (dates.length > 0) {
@@ -3556,7 +3558,7 @@ function renderRawData() {
         console.warn('[init] 缓存数据格式异常，请重新上传');
         return;
       }
-      onDataLoaded();
+      onDataLoaded(skipPush);
       renderRawData();
       renderMerchantSelector();
       $('#uploadArea').style.display = 'none';
