@@ -2649,24 +2649,20 @@ function renderMatrix() {
             if (existing && existing.content) {
               try {
                 var decoded = JSON.parse(decodeURIComponent(escape(atob(existing.content))));
-                var raw = Array.isArray(decoded) ? decoded : [decoded];
-                // 兼容新旧格式: 旧格式有currentData包裹, 新格式直接是date+fileName
-                existingRecords = raw.map(function(r) {
-                  return r.currentData ? { date: r.currentData.date, fileName: r.currentData.fileName } : r;
-                });
+                existingRecords = Array.isArray(decoded) ? decoded : [decoded];
               } catch(e) { console.warn('[CloudData] Failed to decode existing data'); }
             }
             // 检查是否已存在该日期，存在则更新
             var found = false;
             for (var i = 0; i < existingRecords.length; i++) {
-              if (existingRecords[i].date === date) {
-                existingRecords[i] = JSON.parse(buildPayload(date, currentData));
+              if (existingRecords[i].currentData && existingRecords[i].currentData.date === date) {
+                existingRecords[i] = JSON.parse(buildPayload(date, currentData, merchantData, currentMerchant));
                 found = true;
                 break;
               }
             }
             if (!found) {
-              existingRecords.push(JSON.parse(buildPayload(date, currentData)));
+              existingRecords.push(JSON.parse(buildPayload(date, currentData, merchantData, currentMerchant)));
             }
             var payload = JSON.stringify(existingRecords, null, 2);
             var base64 = btoa(unescape(encodeURIComponent(payload)));
@@ -3521,38 +3517,24 @@ function renderRawData() {
     // 优先尝试云端共享数据
     CloudData.pull(function(data) {
       var records = Array.isArray(data) ? data : [data];
-      // 策略: 云端数据只作为索引, 补充本地DataStore的日期列表
-      // 不覆盖本地已有的数据, 只添加本地没有的日期占位
-      var allData = DataStore.loadAll();
-      var hasLocalData = Object.keys(allData).length > 0;
-      var addedCount = 0;
-      for (var i = 0; i < records.length; i++) {
-        var rec = records[i];
-        if (!rec) continue;
-        // 兼容新旧两种格式
-        var cd = rec.currentData || rec;
-        if (!cd || !cd.date) continue;
-        var dateKey = cd.date;
-        if (!allData[dateKey]) {
-          // 本地没有这个日期, 创建索引占位(提示用户需要上传对应文件)
-          allData[dateKey] = {
-            fileName: cd.fileName || ('待上传 ' + dateKey),
-            cloudOnly: true  // 标记为仅云端索引
-          };
-          addedCount++;
-        } else if (allData[dateKey].cloudOnly) {
-          // 更新已有云端索引的文件名
-          allData[dateKey].fileName = cd.fileName || allData[dateKey].fileName;
+      if (records.length > 0 && records[0].currentData) {
+        var allData = DataStore.loadAll();
+        for (var i = 0; i < records.length; i++) {
+          var rec = records[i];
+          if (rec && rec.currentData && rec.currentData.cities && rec.currentData.cities.length > 0) {
+            var dateKey = rec.currentData.date;
+            allData[dateKey] = {
+              currentData: rec.currentData,
+              merchantData: rec.merchantData || { all: { label: '全量商家', cities: rec.currentData.cities } },
+              currentMerchant: rec.currentMerchant || 'all',
+              fileName: rec.currentData.fileName || ('云端 ' + dateKey)
+            };
+          }
         }
-      }
-      localStorage.setItem(DataStore.KEY, JSON.stringify(allData));
-      // 如果本地已有数据, 使用本地最新期; 否则只更新日期选择器
-      if (hasLocalData) {
+        localStorage.setItem(DataStore.KEY, JSON.stringify(allData));
         loadFromLocalStorage();
       } else {
-        updateDateSelector();
-        // 如果只有云端索引没有实际数据, 显示欢迎页
-        showWelcome();
+        loadFromLocalStorage();
       }
     });
   }
