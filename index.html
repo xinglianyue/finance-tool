@@ -2628,14 +2628,36 @@ function renderMatrix() {
             return;
           }
         }
-        var payload = buildPayload(date, currentData, merchantData, currentMerchant);
-        var base64 = btoa(unescape(encodeURIComponent(payload)));
-
-        // 获取当前文件的 SHA（GitHub API 更新需要）
+        // 先拉取现有数据，合并后推送
         fetch(GITHUB_API + '?t=' + Date.now())
-          .then(function(res) { return res.json(); })
-          .then(function(fileInfo) {
-            var sha = fileInfo.sha;
+          .then(function(res) {
+            if (res.ok) return res.json();
+            if (res.status === 404) return null; // 文件不存在
+            throw new Error('HTTP ' + res.status);
+          })
+          .then(function(existing) {
+            var existingRecords = [];
+            if (existing && existing.content) {
+              try {
+                var decoded = JSON.parse(decodeURIComponent(escape(atob(existing.content))));
+                existingRecords = Array.isArray(decoded) ? decoded : [decoded];
+              } catch(e) { console.warn('[CloudData] Failed to decode existing data'); }
+            }
+            // 检查是否已存在该日期，存在则更新
+            var found = false;
+            for (var i = 0; i < existingRecords.length; i++) {
+              if (existingRecords[i].currentData && existingRecords[i].currentData.date === date) {
+                existingRecords[i] = JSON.parse(buildPayload(date, currentData, merchantData, currentMerchant));
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              existingRecords.push(JSON.parse(buildPayload(date, currentData, merchantData, currentMerchant)));
+            }
+            var payload = JSON.stringify(existingRecords, null, 2);
+            var base64 = btoa(unescape(encodeURIComponent(payload)));
+            var sha = existing ? existing.sha : undefined;
             return fetch(GITHUB_API, {
               method: 'PUT',
               headers: {
@@ -2654,8 +2676,7 @@ function renderMatrix() {
             if (res.ok) {
               console.log('[CloudData] Pushed to GitHub successfully');
               showToast('数据已同步到云端，约1分钟后其他成员可查看', 'success');
-              cache = JSON.parse(payload);
-              cacheTime = Date.now();
+              cacheTime = 0; // 清除缓存，下次拉取最新
             } else {
               throw new Error('HTTP ' + res.status);
             }
@@ -2683,10 +2704,11 @@ function renderMatrix() {
           return res.json();
         })
         .then(function(data) {
-          if (data && data.currentData) {
+          if (data) {
             cache = data;
             cacheTime = Date.now();
-            console.log('[CloudData] Pulled from GitHub, date:', data.date, 'updated:', data.updatedAt);
+            var count = Array.isArray(data) ? data.length : 1;
+            console.log('[CloudData] Pulled from GitHub, records:', count);
             if (callback) callback(data);
           } else {
             console.log('[CloudData] No valid data yet');
