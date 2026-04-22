@@ -1837,7 +1837,7 @@ const CONFIG = {
     function showLoading(show) {
     $('#loadingOverlay').classList.toggle('show', show);
   }
-  function onDataLoaded() {
+  function onDataLoaded(skipPush) {
     renderMerchantSelector();
     // Init selected cities
     state.selectedCities = new Set(state.currentData.cities.map(c => c.name));
@@ -1861,8 +1861,10 @@ const CONFIG = {
     renderCostStructure();
     // Update date display
     $('#dateDisplay').textContent = state.currentData.date;
-    // Push to cloud for team sharing
-    CloudData.push(state.currentData.date, state.currentData, state.merchantData, state.currentMerchant);
+    // Push to cloud for team sharing (skip when loading from cloud to avoid overwrite)
+    if (!skipPush) {
+      CloudData.push(state.currentData.date, state.currentData, state.merchantData, state.currentMerchant);
+    }
   }
   function updateDateSelector() {
     const allData = DataStore.loadAll();
@@ -3507,17 +3509,34 @@ function renderRawData() {
 
     // 优先尝试云端共享数据
     CloudData.pull(function(data) {
-      if (data && data.currentData && data.currentData.cities && data.currentData.cities.length > 0) {
-        state.currentData = data.currentData;
-        state.merchantData = data.merchantData || { all: { label: '全量商家', cities: data.currentData.cities } };
-        state.currentMerchant = data.currentMerchant || 'all';
-        onDataLoaded();
+      var records = Array.isArray(data) ? data : [data];
+      if (records.length > 0 && records[0].currentData) {
+        var allData = DataStore.loadAll();
+        for (var i = 0; i < records.length; i++) {
+          var rec = records[i];
+          if (rec && rec.currentData && rec.currentData.cities && rec.currentData.cities.length > 0) {
+            var dateKey = rec.currentData.date;
+            allData[dateKey] = {
+              currentData: rec.currentData,
+              merchantData: rec.merchantData || { all: { label: '全量商家', cities: rec.currentData.cities } },
+              currentMerchant: rec.currentMerchant || 'all',
+              fileName: rec.currentData.fileName || ('云端 ' + dateKey)
+            };
+          }
+        }
+        localStorage.setItem(DataStore.KEY, JSON.stringify(allData));
+        var sorted = Object.keys(allData).sort().reverse();
+        var latest = allData[sorted[0]];
+        state.currentData = latest.currentData;
+        state.merchantData = latest.merchantData;
+        state.currentMerchant = latest.currentMerchant || 'all';
+        onDataLoaded(true);
         renderRawData();
         renderMerchantSelector();
         $('#uploadArea').style.display = 'none';
         $('#uploadSuccess').style.display = 'block';
-        $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || data.date);
-        $('#uploadFileInfo').textContent = data.date + ' / ' + (state.currentData.cities.length) + '城市';
+        $('#uploadFileName').textContent = '云端数据(共' + sorted.length + '期)';
+        $('#uploadFileInfo').textContent = sorted[0] + ' / ' + (state.currentData.cities.length) + '城市';
       } else {
         loadFromLocalStorage();
       }
