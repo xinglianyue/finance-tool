@@ -1,0 +1,4 @@
+{
+  "github_token": "在这里填入GitHub Token",
+  "db_password": "在这里填入数据库密码"
+}

@@ -1122,14 +1122,27 @@ body {
     <span class="version">v9</span>
   </div>
   <div class="sidebar-section">
-    <div class="sidebar-section-title">数据文件</div>
-    <div class="upload-area" id="uploadArea">
-      <div class="upload-icon">+</div>
-      <div class="upload-text">上传账单文件</div>
-      <div class="upload-hint">.xlsx / .csv</div>
+    <div class="sidebar-section-title">数据同步</div>
+    <div id="syncPanel">
+      <div style="margin-bottom:8px;">
+        <input type="text" id="syncDateInput" placeholder="日期 (如 20260421)" 
+          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;">
+        <div style="font-size:10px;color:#999;margin-top:2px;">留空则自动检测当天数据</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button id="syncBtn" onclick="startSync()" 
+          style="flex:1;padding:8px;background:var(--primary,#3b82f6);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;">
+          同步数据
+        </button>
+        <button id="checkStatusBtn" onclick="checkApiStatus()" 
+          style="padding:8px 12px;background:#f1f5f9;color:#334155;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:12px;">
+          状态
+        </button>
+      </div>
+      <div id="syncResult" style="font-size:11px;padding:6px;display:none;border-radius:4px;"></div>
+      <div id="syncLog" style="font-size:10px;color:#666;margin-top:4px;max-height:120px;overflow-y:auto;display:none;"></div>
     </div>
-    <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none">
-    <div class="upload-success" id="uploadSuccess">
+    <div id="uploadSuccess" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="flex:1;overflow:hidden;">
           <span id="uploadFileName" style="font-size:12px;"></span>
@@ -1141,8 +1154,8 @@ body {
         </div>
       </div>
     </div>
-  </div>
-  <div class="sidebar-section">
+    <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none">
+  </div><div class="sidebar-section">
     <div class="sidebar-section-title">日期/文件选择</div>
     <select class="date-select" id="dateSelect">
       <option value="">请上传文件</option>
@@ -1797,7 +1810,7 @@ const CONFIG = {
         renderHistory();
         renderMerchantSelector();
 
-        $('#uploadArea').style.display = 'none';
+        $('#syncPanel').style.display = 'none';
         $('#uploadSuccess').style.display = 'block';
         $('#uploadFileName').textContent = '已加载: ' + file.name;
         const cityCount = state.currentData.cities.length;
@@ -2826,7 +2839,7 @@ function renderMatrix() {
           onDataLoaded();
           renderRawData();
           renderMerchantSelector();
-          $('#uploadArea').style.display = 'none';
+          $('#syncPanel').style.display = 'none';
           $('#uploadSuccess').style.display = 'block';
           $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || record.date);
           $('#uploadFileInfo').textContent = record.date + ' / ' + (state.currentData.cities.length) + '城市';
@@ -2835,7 +2848,171 @@ function renderMatrix() {
     }
 
     return { push: push, pull: pull, load: load };
-  })();
+  })()
+
+  // ===== API服务同步 =====
+  var API_SERVER = window.__API_SERVER || '';  // 默认空=同源，可配置为 http://192.168.0.12:8899
+
+  function startSync() {
+    var btn = document.getElementById('syncBtn');
+    var result = document.getElementById('syncResult');
+    var logEl = document.getElementById('syncLog');
+
+    var dateInput = document.getElementById('syncDateInput').value.trim();
+    result.style.display = 'block';
+    result.style.background = '#f1f5f9';
+    result.style.color = '#334155';
+    result.textContent = '正在连接API服务...';
+    btn.disabled = true;
+    btn.textContent = '同步中...';
+
+    var apiUrl = API_SERVER + '/api/sync';
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: dateInput }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        result.style.background = '#dcfce7';
+        result.style.color = '#166534';
+        result.textContent = data.message || '同步任务已启动';
+        logEl.style.display = 'block';
+        pollSyncStatus(logEl);
+      } else {
+        result.style.background = '#fef2f2';
+        result.style.color = '#991b1b';
+        result.textContent = '错误: ' + (data.error || '未知错误');
+        btn.disabled = false;
+        btn.textContent = '同步数据';
+      }
+    })
+    .catch(function(err) {
+      result.style.background = '#fef2f2';
+      result.style.color = '#991b1b';
+      result.textContent = '无法连接API服务。请确认api_server.py已启动。';
+      logEl.style.display = 'block';
+      logEl.innerHTML = '<div style="color:#e74c3c;">连接失败: ' + err.message + '</div>' +
+        '<div style="margin-top:4px;">请在技术人员电脑上运行: python api_server.py</div>';
+      btn.disabled = false;
+      btn.textContent = '同步数据';
+    });
+  }
+
+  function pollSyncStatus(logEl) {
+    var checkCount = 0;
+    var maxChecks = 120;  // 最多等2分钟
+
+    function check() {
+      checkCount++;
+      if (checkCount > maxChecks) {
+        logEl.innerHTML += '<div style="color:#e67e22;">等待超时，请稍后刷新页面查看结果</div>';
+        var btn = document.getElementById('syncBtn');
+        btn.disabled = false;
+        btn.textContent = '同步数据';
+        return;
+      }
+
+      fetch(API_SERVER + '/api/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.running && data.last_result) {
+            // 同步完成
+            var r = data.last_result;
+            if (r.ok) {
+              logEl.innerHTML += '<div style="color:#27ae60;">同步完成! 日期: ' + r.date + 
+                ', ' + r.cities + '个城市, 共' + r.records + '期数据</div>';
+              logEl.innerHTML += '<div style="margin-top:4px;color:#666;">正在刷新页面数据...</div>';
+              // 刷新前端数据
+              setTimeout(function() {
+                CloudData.load();
+              }, 2000);
+            } else {
+              logEl.innerHTML += '<div style="color:#e74c3c;">同步失败: ' + (r.error || '未知错误') + '</div>';
+            }
+            var btn = document.getElementById('syncBtn');
+            btn.disabled = false;
+            btn.textContent = '同步数据';
+          } else if (data.running) {
+            logEl.innerHTML = '<div>同步进行中，请稍候... (' + checkCount + 's)</div>';
+            setTimeout(check, 1000);
+          } else if (data.last_error) {
+            logEl.innerHTML += '<div style="color:#e74c3c;">同步异常: ' + data.last_error + '</div>';
+            var btn = document.getElementById('syncBtn');
+            btn.disabled = false;
+            btn.textContent = '同步数据';
+          } else {
+            setTimeout(check, 1000);
+          }
+        })
+        .catch(function() {
+          setTimeout(check, 2000);
+        });
+    }
+
+    setTimeout(check, 3000);  // 等3秒后开始检查
+  }
+
+  function checkApiStatus() {
+    var result = document.getElementById('syncResult');
+    var logEl = document.getElementById('syncLog');
+
+    result.style.display = 'block';
+    result.style.background = '#f1f5f9';
+    result.style.color = '#334155';
+
+    fetch(API_SERVER + '/api/status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          result.style.background = '#fef2f2';
+          result.style.color = '#991b1b';
+          result.textContent = 'API服务未连接';
+          logEl.style.display = 'block';
+          logEl.innerHTML = '<div style="color:#e74c3c;">无法连接API服务</div>' +
+            '<div>请在技术人员电脑上运行: python api_server.py</div>';
+        } else {
+          result.style.background = '#dcfce7';
+          result.style.color = '#166534';
+          var statusText = 'API服务正常 | 版本: ' + (data.version || '1.0');
+          if (data.last_time) statusText += ' | 上次同步: ' + data.last_time;
+          if (data.last_result && data.last_result.ok) {
+            statusText += ' | 最近: ' + (data.last_result.date || '') + ' 成功';
+          } else if (data.last_result) {
+            statusText += ' | 最近同步失败: ' + (data.last_result.error || '');
+          }
+          result.textContent = statusText;
+
+          // 检查自动检测日期
+          fetch(API_SERVER + '/api/auto-date')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (d.ok) {
+                var dateInput = document.getElementById('syncDateInput');
+                if (!dateInput.value) {
+                  dateInput.placeholder = '自动检测到: ' + d.date + ' (' + d.count + '条)';
+                }
+                logEl.style.display = 'block';
+                logEl.innerHTML = '<div>数据库可用日期: ' + d.date + ' (' + d.count + '条记录)</div>';
+              }
+            })
+            .catch(function() {});
+        }
+      })
+      .catch(function(err) {
+        result.style.background = '#fef2f2';
+        result.style.color = '#991b1b';
+        result.textContent = '无法连接API服务';
+        logEl.style.display = 'block';
+        logEl.innerHTML = '<div style="color:#e74c3c;">连接失败: ' + err.message + '</div>' +
+          '<div style="margin-top:4px;">请在技术人员电脑上运行: python api_server.py</div>';
+      });
+  }
+
+  // 页面加载时自动检查API状态
+  setTimeout(checkApiStatus, 2000);
+;
 
 
 function generateReportLocal() {
@@ -3559,7 +3736,10 @@ function switchTab(tabName) {
     // Upload
     const uploadArea = $('#uploadArea');
     const fileInput = $('#fileInput');
-uploadArea.addEventListener('click', () => fileInput.click());
+// uploadArea已替换为同步面板，保留fileInput的change事件用于手动上传后备
+    if ($('#uploadArea')) {
+      $('#uploadArea').style.display = 'none';
+    }
   document.getElementById('welcomeUploadBtn').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', (e) => {
   if (e.target.files[0]) handleFile(e.target.files[0]);
@@ -3586,10 +3766,8 @@ fileInput.addEventListener('change', (e) => {
     });
 
 });
-    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove('drag-over');
+    // drag events disabled - using sync panel
+    // drop disabled - using sync panel
       if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
     });
     // Also allow drop on sidebar

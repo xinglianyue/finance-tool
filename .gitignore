@@ -1,2 +1,5 @@
 deploy.py
 preloaded_data.json
+
+# API服务敏感配置
+config.json
