@@ -3767,9 +3767,6 @@ fileInput.addEventListener('change', (e) => {
 
 });
     // drag events disabled - using sync panel
-    // drop disabled - using sync panel
-      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-    });
     // Also allow drop on sidebar
     const sidebar = $('#sidebar');
     sidebar.addEventListener('dragover', (e) => e.preventDefault());
