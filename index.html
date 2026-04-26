@@ -1489,12 +1489,14 @@ const CONFIG = {
     return isNaN(n) ? 0 : n;
   }
   function fmtWan(n) {
+    if (n == null || isNaN(n)) return 'N/A';
     const abs = Math.abs(n);
     if (abs >= 100000000) return (n / 100000000).toFixed(2) + '亿';
     if (abs >= 10000) return (n / 10000).toFixed(2) + '万';
     return n.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
   }
   function fmtUE(n) {
+    if (n == null || isNaN(n)) return 'N/A';
     if (n === 0 && arguments.length === 1) return '-';
     return n.toFixed(2);
   }
@@ -1502,6 +1504,7 @@ const CONFIG = {
     return (n * 100).toFixed(2) + '%';
   }
   function fmtInt(n) {
+    if (n == null || isNaN(n)) return 'N/A';
     return Math.round(n).toLocaleString('zh-CN');
   }
   function displayName(excelName) {
