@@ -2770,67 +2770,6 @@ function renderMatrix() {
 
     function push(date, currentData, merchantData, currentMerchant) {
       // 已禁用：数据同步统一由db-sync.py自动完成，无需前端手动推送
-      return;
-        // 先拉取现有数据，合并后推送
-        fetch(GITHUB_API + '?t=' + Date.now())
-          .then(function(res) {
-            if (res.ok) return res.json();
-            if (res.status === 404) return null; // 文件不存在
-            throw new Error('HTTP ' + res.status);
-          })
-          .then(function(existing) {
-            var existingRecords = [];
-            if (existing && existing.content) {
-              try {
-                var decoded = JSON.parse(decodeURIComponent(escape(atob(existing.content))));
-                existingRecords = Array.isArray(decoded) ? decoded : [decoded];
-              } catch(e) { console.warn('[CloudData] Failed to decode existing data'); }
-            }
-            // 检查是否已存在该日期，存在则更新
-            var found = false;
-            for (var i = 0; i < existingRecords.length; i++) {
-              if (existingRecords[i].currentData && existingRecords[i].currentData.date === date) {
-                existingRecords[i] = JSON.parse(buildPayload(date, currentData, merchantData, currentMerchant));
-                found = true;
-                break;
-              }
-            }
-            if (!found) {
-              existingRecords.push(JSON.parse(buildPayload(date, currentData, merchantData, currentMerchant)));
-            }
-            var payload = JSON.stringify(existingRecords, null, 2);
-            var base64 = btoa(unescape(encodeURIComponent(payload)));
-            var sha = existing ? existing.sha : undefined;
-            return fetch(GITHUB_API, {
-              method: 'PUT',
-              headers: {
-                'Authorization': 'token ' + GITHUB_TOKEN,
-                'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
-              },
-              body: JSON.stringify({
-                message: 'CloudData sync: ' + date,
-                content: base64,
-                sha: sha
-              })
-            });
-          })
-          .then(function(res) {
-            if (res.ok) {
-              console.log('[CloudData] Pushed to GitHub successfully');
-              showToast('数据已同步到云端，约1分钟后其他成员可查看', 'success');
-              cacheTime = 0; // 清除缓存，下次拉取最新
-            } else {
-              throw new Error('HTTP ' + res.status);
-            }
-          })
-          .catch(function(err) {
-            console.warn('[CloudData] Push failed:', err.message);
-            showToast('云端同步失败: ' + err.message, 'warning');
-          });
-      } catch(e) {
-        console.warn('[CloudData] Push error:', e);
-      }
     }
 
     function pull(callback) {
