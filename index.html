@@ -2806,17 +2806,29 @@ function renderMatrix() {
 
     function load() {
       pull(function(data) {
-        if (data && data.currentData && data.currentData.cities && data.currentData.cities.length > 0) {
-          state.currentData = data.currentData;
-          state.merchantData = data.merchantData || { all: { label: '全量商家', cities: data.currentData.cities } };
-          state.currentMerchant = data.currentMerchant || 'all';
+        // 兼容数组和单对象两种格式（db-sync推送的是数组）
+        var record = Array.isArray(data) ? data[data.length - 1] : data;
+        if (record && record.currentData && record.currentData.cities && record.currentData.cities.length > 0) {
+          state.currentData = record.currentData;
+          state.merchantData = record.merchantData || { all: { label: '全量商家', cities: record.currentData.cities } };
+          state.currentMerchant = record.currentMerchant || 'all';
+          // 将所有记录存入DataStore
+          if (Array.isArray(data)) {
+            var allData = DataStore.loadAll();
+            data.forEach(function(r) {
+              if (r && r.currentData && r.currentData.date) {
+                allData[r.currentData.date] = r;
+              }
+            });
+            localStorage.setItem(DataStore.KEY, JSON.stringify(allData));
+          }
           onDataLoaded();
           renderRawData();
           renderMerchantSelector();
           $('#uploadArea').style.display = 'none';
           $('#uploadSuccess').style.display = 'block';
-          $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || data.date);
-          $('#uploadFileInfo').textContent = data.date + ' / ' + (state.currentData.cities.length) + '城市';
+          $('#uploadFileName').textContent = '已加载云端数据: ' + (state.currentData.fileName || record.date);
+          $('#uploadFileInfo').textContent = record.date + ' / ' + (state.currentData.cities.length) + '城市';
         }
       });
     }
