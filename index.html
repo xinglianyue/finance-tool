@@ -1501,6 +1501,7 @@ const CONFIG = {
     return n.toFixed(2);
   }
   function fmtPct(n) {
+    if (n == null || isNaN(n)) return 'N/A';
     return (n * 100).toFixed(2) + '%';
   }
   function fmtInt(n) {
