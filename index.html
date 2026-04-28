@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 </head>
@@ -108,7 +109,7 @@
       <div class="welcome-icon">&#128202;</div>
       <h2>欢迎使用日报分析工具</h2>
       <p>上传美团代理商财务账单Excel文件，即可一键生成10城经营健康度分析报告</p>
-      <button class="welcome-btn" id="welcomeUploadBtn">上传账单文件</button>
+      <button class="welcome-btn" id="welcomeUploadBtn" aria-label="上传Excel账单文件">上传账单文件</button>
     </div>
     <!-- Dashboard State -->
     <div id="dashboardState" class="hidden">
@@ -118,14 +119,20 @@
           <span class="merchant-selector-label">商家类型：</span>
           <div class="merchant-selector-buttons" id="merchantButtons" style="display:inline-flex;gap:8px;"></div>
         </div>
-        <button class="tab-btn active" data-tab="overview" id="tabOverview">概况</button>
-        <button class="tab-btn" data-tab="detail" id="tabDetail">详细分析</button>
-        <button class="tab-btn" data-tab="cost" id="tabCost">成本结构</button>
-        <button class="tab-btn" data-tab="report" id="tabReport">分析报告</button>
-        <button class="tab-btn" data-tab="rawdata" id="tabRawdata">原始数据</button>
+        <div role="tablist" aria-label="主导航">
+          <div class="global-search" style="margin-left:auto;">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="globalSearch" placeholder="搜索城市/模块..." aria-label="全局搜索">
+        </div>
+      <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true" id="tabOverview">概况</button>
+        <button class="tab-btn" data-tab="detail" role="tab" aria-selected="false" id="tabDetail">详细分析</button>
+        <button class="tab-btn" data-tab="cost" role="tab" aria-selected="false" id="tabCost">成本结构</button>
+        <button class="tab-btn" data-tab="report" role="tab" aria-selected="false" id="tabReport">分析报告</button>
+        <button class="tab-btn" data-tab="rawdata" role="tab" aria-selected="false" id="tabRawdata">原始数据</button>
       </div>
+    </div>
       <!-- Tab1: Overview -->
-      <div class="tab-pane" id="paneOverview">
+      <div class="tab-pane" id="paneOverview" role="tabpanel">
         <!-- Merchant Type Switcher -->
         
 
@@ -142,11 +149,11 @@
         <div class="chart-row" id="overviewCharts" style="display:none;">
           <div class="chart-card">
             <h4><i class="fas fa-chart-bar" style="margin-right:6px;color:var(--primary);"></i>各城市UE对比</h4>
-            <div class="chart-container"><canvas id="chartUE" height="280"></canvas></div>
+            <div class="chart-container"><canvas id="chartUE" role="img" aria-label="chartUE图表" role="img" aria-label="chartUE图表" height="280"></canvas></div>
           </div>
           <div class="chart-card">
             <h4><i class="fas fa-layer-group" style="margin-right:6px;color:var(--warning-dark);"></i>成本构成对比</h4>
-            <div class="chart-container"><canvas id="chartCost" height="280"></canvas></div>
+            <div class="chart-container"><canvas id="chartCost" role="img" aria-label="chartCost图表" role="img" aria-label="chartCost图表" height="280"></canvas></div>
           </div>
         </div>
         <div class="matrix-card">
@@ -200,11 +207,11 @@
         <div class="chart-row" id="trendCharts" style="display:none;">
           <div class="chart-card">
             <h4><i class="fas fa-chart-line" style="margin-right:6px;color:var(--primary);"></i>UE趋势</h4>
-            <div class="chart-container"><canvas id="chartTrendUE" height="260"></canvas></div>
+            <div class="chart-container"><canvas id="chartTrendUE" role="img" aria-label="chartTrendUE图表" role="img" aria-label="chartTrendUE图表" height="260"></canvas></div>
           </div>
           <div class="chart-card">
             <h4><i class="fas fa-chart-bar" style="margin-right:6px;color:var(--success);"></i>收入 vs 成本</h4>
-            <div class="chart-container"><canvas id="chartTrendRevenue" height="260"></canvas></div>
+            <div class="chart-container"><canvas id="chartTrendRevenue" role="img" aria-label="chartTrendRevenue图表" role="img" aria-label="chartTrendRevenue图表" height="260"></canvas></div>
           </div>
         </div>
 </div>
@@ -268,7 +275,7 @@
             <div id="cityRatio"></div>
         <!-- V12: 城商占比图表 -->
         <div class="chart-card" style="margin-top:12px;">
-          <div class="chart-container"><canvas id="chartCityRatio" height="200"></canvas></div>
+          <div class="chart-container"><canvas id="chartCityRatio" role="img" aria-label="chartCityRatio图表" role="img" aria-label="chartCityRatio图表" height="200"></canvas></div>
         </div>
 
           </div>
@@ -277,7 +284,7 @@
             <div id="capacityData"></div>
         <!-- V12: 运力数据图表 -->
         <div class="chart-card" style="margin-top:12px;">
-          <div class="chart-container"><canvas id="chartCapacity" height="200"></canvas></div>
+          <div class="chart-container"><canvas id="chartCapacity" role="img" aria-label="chartCapacity图表" role="img" aria-label="chartCapacity图表" height="200"></canvas></div>
         </div>
 
           </div>
@@ -287,7 +294,7 @@
         <!-- V12: 配送成本图表 -->
         <div class="chart-card" style="margin-top:16px;">
           <h4><i class="fas fa-truck" style="margin-right:6px;color:var(--primary);"></i>配送成本三渠道对比</h4>
-          <div class="chart-container"><canvas id="chartDeliveryCost" height="260"></canvas></div>
+          <div class="chart-container"><canvas id="chartDeliveryCost" role="img" aria-label="chartDeliveryCost图表" role="img" aria-label="chartDeliveryCost图表" height="260"></canvas></div>
         </div>
 
         <div class="cost-compare-section">
@@ -1510,10 +1517,154 @@ body {
   .tabs-container { flex-wrap: wrap; }
 }
 
-    </style>
+    
+/* ===== V13: 暗色模式 ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #8ab4f8; --primary-light: #1a3352;
+    --danger: #f28b82; --danger-light: #3c1515;
+    --warning: #fdd663; --warning-light: #3c3015;
+    --success: #81c995; --success-light: #15301e;
+    --gray: #9aa0a6; --gray-light: #2d2e30;
+    --bg: #1e1e1e; --bg-card: #2d2d2d; --bg-hover: #3c3c3c;
+    --text: #e8eaed; --text-secondary: #9aa0a6;
+    --border: #5f6368;
+    --shadow: rgba(0,0,0,0.3);
+  }
+  .stat-card, .card, .anomaly-alert-item, .cost-item, .efficiency-card,
+  .ka-compare-table th, .capacity-table th, .merchant-btn, .module-card,
+  .cost-total, .empty-state {
+    background: var(--bg-card) !important;
+    border-color: var(--border) !important;
+  }
+  .stat-card .value, .stat-card .label, .cost-total span,
+  .anomaly-alert-item, .ka-compare-table td, .capacity-table td {
+    color: var(--text) !important;
+  }
+  table { background: transparent; }
+  table th { background: var(--bg-card) !important; color: var(--text-secondary) !important; }
+  table td { border-color: var(--border) !important; color: var(--text) !important; }
+  body { background: var(--bg); color: var(--text); }
+  input, select, textarea { background: var(--bg-card) !important; color: var(--text) !important; border-color: var(--border) !important; }
+  .toast { background: var(--bg-card) !important; color: var(--text) !important; }
+  .nav-link.active { color: var(--primary) !important; border-color: var(--primary) !important; }
+  .nav-link { color: var(--text-secondary) !important; }
+  .nav-link:hover { color: var(--text) !important; }
+  .merchant-btn { color: var(--text-secondary); }
+  .merchant-btn.active { background: var(--primary-light) !important; color: var(--primary) !important; }
+  .btn-primary { background: var(--primary) !important; color: #000 !important; }
+  .report-content li { color: var(--text) !important; }
+  .report-content h3, .report-content h4 { color: var(--primary) !important; }
+}
+
+/* ===== V13: 暗色模式手动切换 ===== */
+[data-theme="dark"] {
+  --primary: #8ab4f8; --primary-light: #1a3352;
+  --danger: #f28b82; --danger-light: #3c1515;
+  --warning: #fdd663; --warning-light: #3c3015;
+  --success: #81c995; --success-light: #15301e;
+  --gray: #9aa0a6; --gray-light: #2d2e30;
+  --bg: #1e1e1e; --bg-card: #2d2d2d; --bg-hover: #3c3c3c;
+  --text: #e8eaed; --text-secondary: #9aa0a6;
+  --border: #5f6368; --shadow: rgba(0,0,0,0.3);
+}
+[data-theme="dark"] .stat-card, [data-theme="dark"] .card,
+[data-theme="dark"] .anomaly-alert-item, [data-theme="dark"] .cost-item,
+[data-theme="dark"] .efficiency-card, [data-theme="dark"] .ka-compare-table th,
+[data-theme="dark"] .capacity-table th, [data-theme="dark"] .merchant-btn,
+[data-theme="dark"] .module-card, [data-theme="dark"] .cost-total,
+[data-theme="dark"] .empty-state {
+  background: var(--bg-card) !important; border-color: var(--border) !important;
+}
+[data-theme="dark"] .stat-card .value, [data-theme="dark"] .stat-card .label,
+[data-theme="dark"] .cost-total span, [data-theme="dark"] .anomaly-alert-item,
+[data-theme="dark"] .ka-compare-table td, [data-theme="dark"] .capacity-table td {
+  color: var(--text) !important;
+}
+[data-theme="dark"] table { background: transparent; }
+[data-theme="dark"] table th { background: var(--bg-card) !important; color: var(--text-secondary) !important; }
+[data-theme="dark"] table td { border-color: var(--border) !important; color: var(--text) !important; }
+[data-theme="dark"] body { background: var(--bg); color: var(--text); }
+[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
+  background: var(--bg-card) !important; color: var(--text) !important; border-color: var(--border) !important;
+}
+[data-theme="dark"] .toast { background: var(--bg-card) !important; color: var(--text) !important; }
+[data-theme="dark"] .nav-link.active { color: var(--primary) !important; border-color: var(--primary) !important; }
+[data-theme="dark"] .nav-link { color: var(--text-secondary) !important; }
+[data-theme="dark"] .nav-link:hover { color: var(--text) !important; }
+[data-theme="dark"] .merchant-btn { color: var(--text-secondary); }
+[data-theme="dark"] .merchant-btn.active { background: var(--primary-light) !important; color: var(--primary) !important; }
+[data-theme="dark"] .btn-primary { background: var(--primary) !important; color: #000 !important; }
+[data-theme="dark"] .report-content li, [data-theme="dark"] .report-content p { color: var(--text) !important; }
+[data-theme="dark"] .report-content h3, [data-theme="dark"] .report-content h4 { color: var(--primary) !important; }
+
+/* V13: 暗色模式切换按钮 */
+.theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 10000; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 50%; width: 36px; height: 36px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; transition: all 0.3s ease; box-shadow: 0 2px 8px var(--shadow); }
+.theme-toggle:hover { transform: scale(1.1); }
+
+/* V13: 数据表格增强 */
+.data-table th { cursor: pointer; user-select: none; position: relative; }
+.data-table th:hover { background: var(--bg-hover, #e8eaed); }
+.data-table th .sort-icon { font-size: 10px; margin-left: 4px; opacity: 0.4; }
+.data-table th.sort-asc .sort-icon, .data-table th.sort-desc .sort-icon { opacity: 1; color: var(--primary); }
+.data-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.02); }
+[data-theme="dark"] .data-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+.table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* V13: KPI数字动画 */
+@keyframes countUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.stat-card .value { animation: countUp 0.4s ease-out; }
+
+/* V13: Tab切换动画 */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.tab-content { animation: fadeIn 0.25s ease-out; }
+
+/* V13: 图表容器增强 */
+.chart-container { position: relative; }
+.chart-export-btn { position: absolute; top: 4px; right: 4px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 11px;
+  cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 10; }
+.chart-container:hover .chart-export-btn { opacity: 1; }
+
+/* V13: 全局搜索 */
+.global-search { position: relative; }
+.global-search input { width: 200px; padding: 4px 8px 4px 28px; border: 1px solid var(--border);
+  border-radius: 20px; font-size: 13px; transition: width 0.3s; background: var(--bg-card); color: var(--text); }
+.global-search input:focus { width: 280px; outline: none; border-color: var(--primary); }
+.global-search .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; color: var(--text-secondary); pointer-events: none; }
+
+/* V13: 空状态组件 */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.3; }
+.empty-state .empty-text { font-size: 14px; margin-bottom: 8px; }
+.empty-state .empty-action { font-size: 13px; color: var(--primary); cursor: pointer; }
+
+/* V13: 快捷键提示条 */
+.shortcut-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card);
+  border-top: 1px solid var(--border); padding: 4px 16px; font-size: 11px;
+  color: var(--text-secondary); display: flex; gap: 16px; z-index: 9999;
+  transform: translateY(100%); transition: transform 0.3s ease; }
+.shortcut-bar.visible { transform: translateY(0); }
+.shortcut-bar kbd { background: var(--bg); border: 1px solid var(--border);
+  border-radius: 3px; padding: 0 4px; font-family: monospace; font-size: 10px; }
+
+/* V13: Print样式 */
+@media print {
+  .theme-toggle, .shortcut-bar, .global-search, .chart-export-btn, .btn { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .stat-card, .card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
+  .tab-content { display: block !important; }
+  .nav-tabs { display: none !important; }
+}
+
+</style>
     <script>
 
-// ===== V12: Chart.js 图表系统 =====
+// ===== V13: Chart.js 图表系统 =====
 var _chartInstances = {};
 
 function destroyChart(canvasId) {
@@ -1552,9 +1703,9 @@ function renderOverviewCharts(cities, module) {
     deliveryData.push(delivery);
     profitData.push(profit);
 
-    if (ue < 0) colors.push('#d93025');
-    else if (ue < 2) colors.push('#f9ab00');
-    else colors.push('#1e8e3e');
+    if (ue < 0) colors.push(CHART_COLORS.danger);
+    else if (ue < 2) colors.push(CHART_COLORS.warning);
+    else colors.push(CHART_COLORS.success);
   });
 
   // UE对比柱状图
@@ -1577,7 +1728,7 @@ function renderOverviewCharts(cities, module) {
         legend: { display: false },
         tooltip: { callbacks: { label: function(c) { return 'UE: ' + safeFixed(c.raw, 2) + '元'; } } }
       },
-      scales: { y: { beginAtZero: false, grid: { color: '#eee' } }, x: { grid: { display: false } } }
+      scales: { y: { beginAtZero: false, grid: { color: CHART_COLORS.grid } }, x: { grid: { display: false } } }
     }
   });
 
@@ -1587,8 +1738,8 @@ function renderOverviewCharts(cities, module) {
     data: {
       labels: labels,
       datasets: [
-        { label: '配送成本率', data: deliveryData, backgroundColor: '#e67e22', stack: 'cost' },
-        { label: '补贴率', data: subsidyData, backgroundColor: '#8e44ad', stack: 'cost' }
+        { label: '配送成本率', data: deliveryData, backgroundColor: CHART_COLORS.orange, stack: 'cost' },
+        { label: '补贴率', data: subsidyData, backgroundColor: CHART_COLORS.purple, stack: 'cost' }
       ]
     },
     options: {
@@ -1600,7 +1751,7 @@ function renderOverviewCharts(cities, module) {
       },
       scales: { 
         x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, grid: { color: '#eee' }, ticks: { callback: function(v) { return v + '%'; } } }
+        y: { stacked: true, grid: { color: CHART_COLORS.grid }, ticks: { callback: function(v) { return v + '%'; } } }
       }
     }
   });
@@ -1625,9 +1776,9 @@ function renderCostCharts(cities, module) {
     data: {
       labels: labels,
       datasets: [
-        { label: '加盟配送', data: franchiseData, backgroundColor: '#1a73e8' },
-        { label: '众包配送', data: crowdData, backgroundColor: '#3498db' },
-        { label: '悦跑配送', data: yuepaoData, backgroundColor: '#85c1e9' }
+        { label: '加盟配送', data: franchiseData, backgroundColor: CHART_COLORS.primary },
+        { label: '众包配送', data: crowdData, backgroundColor: CHART_COLORS.secondary },
+        { label: '悦跑配送', data: yuepaoData, backgroundColor: CHART_COLORS.primaryLt }
       ]
     },
     options: {
@@ -1639,7 +1790,7 @@ function renderCostCharts(cities, module) {
       },
       scales: { 
         x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, grid: { color: '#eee' } }
+        y: { stacked: true, grid: { color: CHART_COLORS.grid } }
       }
     }
   });
@@ -1662,7 +1813,7 @@ function renderTrendCharts(trendData) {
       datasets: [{
         label: '单均UE (元)',
         data: ueData,
-        borderColor: '#1a73e8',
+        borderColor: CHART_COLORS.primary,
         backgroundColor: 'rgba(26,115,232,0.1)',
         fill: true,
         tension: 0.3,
@@ -1678,7 +1829,7 @@ function renderTrendCharts(trendData) {
         tooltip: { callbacks: { label: function(c) { return 'UE: ' + safeFixed(c.raw, 2) + '元'; } } }
       },
       scales: { 
-        y: { grid: { color: '#eee' } },
+        y: { grid: { color: CHART_COLORS.grid } },
         x: { grid: { display: false } }
       }
     }
@@ -1690,8 +1841,8 @@ function renderTrendCharts(trendData) {
     data: {
       labels: labels,
       datasets: [
-        { label: '线上收入', data: revenueData, backgroundColor: '#1e8e3e', barThickness: 24 },
-        { label: '总成本', data: costData, backgroundColor: '#d93025', barThickness: 24 }
+        { label: '线上收入', data: revenueData, backgroundColor: CHART_COLORS.success, barThickness: 24 },
+        { label: '总成本', data: costData, backgroundColor: CHART_COLORS.danger, barThickness: 24 }
       ]
     },
     options: {
@@ -1701,7 +1852,7 @@ function renderTrendCharts(trendData) {
         legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } },
         tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + fmtWan(c.raw); } } }
       },
-      scales: { y: { grid: { color: '#eee' } }, x: { grid: { display: false } } }
+      scales: { y: { grid: { color: CHART_COLORS.grid } }, x: { grid: { display: false } } }
     }
   });
 }
@@ -1718,8 +1869,8 @@ function renderCityRatioChart(cityData) {
     data: {
       labels: labels,
       datasets: [
-        { label: 'KA订单', data: kaData, backgroundColor: '#1a73e8' },
-        { label: '城商订单', data: cityData_, backgroundColor: '#f9ab00' }
+        { label: 'KA订单', data: kaData, backgroundColor: CHART_COLORS.primary },
+        { label: '城商订单', data: cityData_, backgroundColor: CHART_COLORS.warning }
       ]
     },
     options: {
@@ -1730,7 +1881,7 @@ function renderCityRatioChart(cityData) {
       },
       scales: { 
         x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, grid: { color: '#eee' } }
+        y: { stacked: true, grid: { color: CHART_COLORS.grid } }
       }
     }
   });
@@ -1750,7 +1901,7 @@ function renderCapacityChart(capacityData) {
       datasets: [{
         label: '单均邮资 (元)',
         data: avgPostageData,
-        backgroundColor: '#16a085',
+        backgroundColor: CHART_COLORS.teal,
         borderRadius: 4,
         barThickness: 28,
         yAxisID: 'y1'
@@ -1758,7 +1909,7 @@ function renderCapacityChart(capacityData) {
         label: '订单量',
         data: ordersData,
         type: 'line',
-        borderColor: '#e67e22',
+        borderColor: CHART_COLORS.orange,
         backgroundColor: 'transparent',
         tension: 0.3,
         pointRadius: 4,
@@ -1772,7 +1923,7 @@ function renderCapacityChart(capacityData) {
         legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } }
       },
       scales: { 
-        y: { position: 'left', grid: { color: '#eee' }, title: { display: true, text: '订单量' } },
+        y: { position: 'left', grid: { color: CHART_COLORS.grid }, title: { display: true, text: '订单量' } },
         y1: { position: 'right', grid: { display: false }, title: { display: true, text: '邮资(元)' } },
         x: { grid: { display: false } }
       }
@@ -1781,7 +1932,7 @@ function renderCapacityChart(capacityData) {
 }
 
 
-// ===== V12: 增强分析报告引擎 =====
+// ===== V13: 增强分析报告引擎 =====
 
 function analyzeTrend(values) {
   if (!values || values.length < 2) return { direction: 'unknown', strength: 0 };
@@ -1936,7 +2087,7 @@ function enhancedReportGenerate(cities, module, allHistory, merchantData) {
     var ueTrend = analyzeTrend(trendUE);
     var profitTrend = analyzeTrend(trendProfit);
 
-    md.push('- UE趋势: ' + (ueTrend.direction === 'up' ? '上升' : ueTrend.direction === 'down' ? '下降' : '平稳') + '（' + (ueTrend.strength * 100).toFixed(0) + '%确认度）');
+    md.push('- UE趋势: ' + (ueTrend.direction === 'up' ? '上升' : ueTrend.direction === 'down' ? '下降' : '平稳') + '（' + safeFixed(ueTrend.strength * 100, 0) + '%确认度）');
     md.push('- 毛利趋势: ' + (profitTrend.direction === 'up' ? '上升' : profitTrend.direction === 'down' ? '下降' : '平稳'));
 
     if (trendUE.length >= 2) {
@@ -2024,15 +2175,15 @@ function enhancedReportGenerate(cities, module, allHistory, merchantData) {
 }
 
 
-// ===== V12: 全局错误处理 =====
+// ===== V13: 全局错误处理 =====
 window.onerror = function(msg, url, line, col, error) {
-  console.error('[V12 Error]', msg, 'Line:', line, 'Col:', col);
+  console.error('[V13 Error]', msg, 'Line:', line, 'Col:', col);
   // 不弹alert，静默记录
   return true;
 };
 
 window.addEventListener('unhandledrejection', function(event) {
-  console.error('[V12 Promise Error]', event.reason);
+  console.error('[V13 Promise Error]', event.reason);
 });
 
 // 数据加载时的全局安全包装
@@ -2040,12 +2191,47 @@ function safeRender(renderFn) {
   try {
     renderFn();
   } catch (e) {
-    console.error('[V12 Render Error]', renderFn.name, e.message, e.stack);
+    console.error('[V13 Render Error]', renderFn.name, e.message, e.stack);
   }
 }
 
 
-// ===== V12: 安全工具函数 =====
+// ===== V13: 安全工具函数 =====
+
+  // ===== V13: safeLog条件日志系统（debug=1开启） =====
+  var LOG_LEVEL = (window.location.search.indexOf('debug=1') !== -1) ? 'debug' : 'error';
+  function safeLog(level) {
+    if (['debug','info','warn','error'].indexOf(level) === -1) level = 'info';
+    var levels = { debug: 0, info: 1, warn: 2, error: 3 };
+    if (levels[level] < levels[LOG_LEVEL]) return;
+    var args = Array.prototype.slice.call(arguments, 1);
+    var prefix = '[' + level.toUpperCase() + '] ';
+    if (level === 'error') console.error(prefix, args);
+    else if (level === 'warn') console.warn(prefix, args);
+    else safeLog('debug', prefix, args);
+  }
+
+  // ===== V13: safeHTML - 安全HTML赋值（防XSS） =====
+  function safeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  // ===== V13: CHART_COLORS统一图表配色 =====
+  var CHART_COLORS = {
+    primary: CHART_COLORS.primary, primaryLt: CHART_COLORS.primaryLt, secondary: CHART_COLORS.secondary,
+    success: CHART_COLORS.success, successLt: CHART_COLORS.successLt, danger: CHART_COLORS.danger, dangerLt: CHART_COLORS.dangerLt,
+    warning: CHART_COLORS.warning, warningLt: CHART_COLORS.warningLt, purple: CHART_COLORS.purple, purpleLt: CHART_COLORS.purpleLt,
+    orange: CHART_COLORS.orange, orangeLt: CHART_COLORS.orangeLt, teal: CHART_COLORS.teal, tealLt: CHART_COLORS.tealLt,
+    grid: '#eee', bg: '#ffffff'
+  };
+  Chart.defaults.color = '#5f6368';
+  Chart.defaults.borderColor = '#dadce0';
+  Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+
 function safeFixed(val, digits) {
   if (digits === undefined) digits = 2;
   var n = parseFloat(val);
@@ -2101,7 +2287,7 @@ function safeDiv(numerator, denominator, fallback) {
   
 // 处理文件协议安全限制
 if (window.location.protocol === 'file:') {
-  console.log('当前使用file://协议，可能存在安全限制');
+  safeLog('debug', '当前使用file://协议，可能存在安全限制');
   // 禁用某些需要安全上下文的功能
   window.DISABLE_CROSS_ORIGIN = true;
   // 提供友好的错误提示
@@ -2397,8 +2583,8 @@ const CONFIG = {
       } else if (mt.key === 'all' && workbook.SheetNames.length > 0) {
         ws = workbook.Sheets[workbook.SheetNames[0]];
       }
-      if (!ws) { console.log('[parseExcelFile] sheet未找到:', mt.sheetName); continue; }
-      console.log('[parseExcelFile] 开始解析:', mt.sheetName);
+      if (!ws) { safeLog('debug', '[parseExcelFile] sheet未找到:', mt.sheetName); continue; }
+      safeLog('debug', '[parseExcelFile] 开始解析:', mt.sheetName);
 
       const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
       const cityRow = data[2];
@@ -2427,7 +2613,7 @@ const CONFIG = {
         }
       }
 
-      console.log('[parseExcelFile]', mt.sheetName, '模块数:', Object.keys(modulePositions).length, Object.keys(modulePositions));
+      safeLog('debug', '[parseExcelFile]', mt.sheetName, '模块数:', Object.keys(modulePositions).length, Object.keys(modulePositions));
         if (Object.keys(modulePositions).length === 0) continue;
 
       const result = [];
@@ -2460,8 +2646,8 @@ const CONFIG = {
       }
     }
 
-    console.log('[parseExcelFile] 解析结果:', Object.keys(merchantData));
-    Object.entries(merchantData).forEach(([k,v]) => console.log('  ', k, '城市:', v.cities.map(c=>c.name)));
+    safeLog('debug', '[parseExcelFile] 解析结果:', Object.keys(merchantData));
+    Object.entries(merchantData).forEach(([k,v]) => safeLog('debug', '  ', k, '城市:', v.cities.map(c=>c.name)));
     if (Object.keys(merchantData).length === 0) {
       throw new Error('未识别到任何商家类型数据，请确认文件格式正确');
     }
@@ -2716,11 +2902,11 @@ const CONFIG = {
   }
 
   function switchMerchant(typeKey) {
-    console.log('[switchMerchant] typeKey:', typeKey);
-    if (!state.merchantData[typeKey]) { console.log('[switchMerchant] ERROR: merchantData[' + typeKey + '] not found'); return; }
+    safeLog('info', '[switchMerchant] typeKey:', typeKey);
+    if (!state.merchantData[typeKey]) { safeLog('error', '[switchMerchant] ERROR: merchantData[' + typeKey + '] not found'); return; }
     state.currentMerchant = typeKey;
     var cities = state.merchantData[typeKey].cities;
-    console.log('[switchMerchant] cities count:', cities.length, 'first:', cities[0] ? cities[0].name : 'N/A');
+    safeLog('info', '[switchMerchant] cities count:', cities.length, 'first:', cities[0] ? cities[0].name : 'N/A');
     state.currentData = {
       date: state.currentData.date,
       cities: cities,
@@ -2729,13 +2915,13 @@ const CONFIG = {
     state.selectedCities = new Set(cities.map(c => c.name));
     renderMerchantSelector();
     renderCityFilters();
-    console.log('[switchMerchant] switching to tab:', state.currentTab || 'overview');
+    safeLog('info', '[switchMerchant] switching to tab:', state.currentTab || 'overview');
     // 刷新当前活跃Tab的数据
     switchTab(state.currentTab || 'overview');
   }
 
 function refreshDashboard() {
-    console.log('[refreshDashboard] cities:', state.currentData.cities.length, 'selected:', state.selectedCities.size);
+    safeLog('info', '[refreshDashboard] cities:', state.currentData.cities.length, 'selected:', state.selectedCities.size);
     renderStatCards();
     renderMatrix();
     renderAnomalyAlert();
@@ -2750,7 +2936,7 @@ function refreshDashboard() {
         document.getElementById('overviewCharts').style.display = 'grid';
         renderOverviewCharts(filtered, mod);
       }
-    } catch(e) { console.warn('[V12 Chart]', e.message); }
+    } catch(e) { console.warn('[V13 Chart]', e.message); }
 }
   // ===== TAB1: OVERVIEW =====
   function renderStatCards() {
@@ -2779,27 +2965,27 @@ function refreshDashboard() {
     }
     const container = $('#statCards');
     container.innerHTML = `
-      <div class="stat-card">
+      <div class="stat-card" role="status" aria-live="polite">
         <div class="label">总订单量</div>
         <div class="value">${fmtWan(totalOrders)}</div>
         <div class="sub-info">总商全品类</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" role="status" aria-live="polite">
         <div class="label">总毛利</div>
         <div class="value ${totalProfit < 0 ? 'danger' : 'success'}">${fmtWan(totalProfit)}</div>
         <div class="sub-info">单均UE ${totalOrders > 0 ? safeFixed(totalProfit/totalOrders, 2) : '-'}元</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" role="status" aria-live="polite">
         <div class="label">代补总额</div>
         <div class="value">${fmtWan(totalSubsidy)}</div>
         <div class="sub-info">B端 ${fmtWan(totalSubsidyB)} / C端 ${fmtWan(totalSubsidyC)}</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" role="status" aria-live="polite">
         <div class="label">配送成本</div>
         <div class="value">${fmtWan(totalDeliveryCost)}</div>
         <div class="sub-info">罚款 ${fmtWan(totalPenalty)}</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" role="status" aria-live="polite">
         <div class="label">异常城市数</div>
         <div class="anomaly-badges">
           ${anomalies.danger > 0 ? `<span class="anomaly-badge red">${anomalies.danger} 严重</span>` : ''}
@@ -2981,7 +3167,7 @@ function renderMatrix() {
     var html = '<div style="margin-bottom:12px;font-size:12px;color:#666;">共' + trendData.length + '期数据 | 城市: ' + costCity + ' | 模块: ' + costModule + '</div>';
 
     // 趋势表格
-    html += '<table class="ka-compare-table"><thead><tr><th>日期</th><th>订单量</th><th>收入</th><th>毛利</th><th>UE</th><th>补贴率</th><th>配送成本率</th></tr></thead><tbody>';
+    html += '<div class="table-wrapper"><table class="ka-compare-table data-table" role="table" aria-label="财务数据表"><thead><tr><th>日期</th><th>订单量</th><th>收入</th><th>毛利</th><th>UE</th><th>补贴率</th><th>配送成本率</th></tr></thead><tbody>';
     trendData.forEach(function(d, i) {
       var rowStyle = i === trendData.length - 1 ? 'style="background:#f0f4ff;font-weight:600;"' : '';
       var change = '';
@@ -2995,18 +3181,18 @@ function renderMatrix() {
       html += '<td>' + fmtInt(d.orders) + '</td>';
       html += '<td>' + fmtWan(d.revenue) + '</td>';
       html += '<td style="color:' + (d.profit >= 0 ? '#27ae60' : '#e74c3c') + '">' + fmtWan(d.profit) + '</td>';
-      html += '<td style="color:' + (d.ue >= 0.3 ? '#27ae60' : d.ue >= 0 ? '#e67e22' : '#e74c3c') + '">' + safeFixed(d.ue, 2) + '元</td>';
+      html += '<td style="color:' + (d.ue >= 0.3 ? '#27ae60' : d.ue >= 0 ? CHART_COLORS.orange : '#e74c3c') + '">' + safeFixed(d.ue, 2) + '元</td>';
       html += '<td>' + safeFixed(d.subsidyRatio*100, 2) + '%</td>';
       html += '<td>' + safeFixed(d.deliveryCostRate*100, 2) + '%</td></tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
 
     // UE趋势（纯CSS条形图）
     html += '<div style="margin-top:16px;"><h4 style="font-size:13px;margin:0 0 8px 0;">UE趋势</h4>';
     var maxUE = Math.max.apply(null, trendData.map(function(d){return Math.abs(d.ue);}).concat([0.1]));
     trendData.forEach(function(d) {
       var isPositive = d.ue >= 0;
-      var barColor = isPositive ? (d.ue >= 0.3 ? '#27ae60' : '#e67e22') : '#e74c3c';
+      var barColor = isPositive ? (d.ue >= 0.3 ? '#27ae60' : CHART_COLORS.orange) : '#e74c3c';
       var barW = Math.min(Math.abs(d.ue) / maxUE * 100, 100);
       html += '<div style="display:flex;align-items:center;margin-bottom:3px;font-size:11px;">';
       html += '<div style="width:70px;color:#666;text-align:right;padding-right:6px;">' + d.date + '</div>';
@@ -3021,7 +3207,7 @@ function renderMatrix() {
     var maxSub = Math.max.apply(null, trendData.map(function(d){return d.subsidyRatio;}));
     if (maxSub < 0.01) maxSub = 0.01;
     trendData.forEach(function(d) {
-      var barColor = d.subsidyRatio > 0.35 ? '#e74c3c' : d.subsidyRatio > 0.30 ? '#e67e22' : '#27ae60';
+      var barColor = d.subsidyRatio > 0.35 ? '#e74c3c' : d.subsidyRatio > 0.30 ? CHART_COLORS.orange : '#27ae60';
       var barW = d.subsidyRatio / maxSub * 100;
       html += '<div style="display:flex;align-items:center;margin-bottom:3px;font-size:11px;">';
       html += '<div style="width:70px;color:#666;text-align:right;padding-right:6px;">' + d.date + '</div>';
@@ -3040,7 +3226,7 @@ function renderMatrix() {
         el.style.display = 'grid';
         renderTrendCharts(trendData);
       }
-    } catch(e) { console.warn('[V12 Chart]', e.message); }
+    } catch(e) { console.warn('[V13 Chart]', e.message); }
 }
 
 
@@ -3158,7 +3344,7 @@ function renderMatrix() {
     ];
     let html = `<div class="comparison-card">
       <div class="card-title">本期 vs 上期对比</div>
-      <table class="comparison-table"><thead><tr>
+      <table class="comparison-table" role="table" aria-label="财务数据表"><thead><tr>
         <th>指标</th><th>本期</th><th>上期</th><th>变化</th><th>变化率</th>
       </tr></thead><tbody>`;
     for (const r of rows) {
@@ -3202,7 +3388,7 @@ function renderMatrix() {
     const moduleName = city.modules[moduleKey]?.moduleName || CONFIG.BLOCKS.find(b => b.key === moduleKey)?.name || '';
     let html = `<div class="comparison-card" style="margin-top:24px">
       <div class="card-title">${city.displayName} - 各模块数据对比</div>
-      <table class="comparison-table"><thead><tr>
+      <table class="comparison-table" role="table" aria-label="财务数据表"><thead><tr>
         <th>模块</th><th>订单量</th><th>收入</th><th>代补</th><th>补贴率</th><th>毛利</th><th>UE</th>
       </tr></thead><tbody>`;
     for (const block of CONFIG.BLOCKS) {
@@ -3545,11 +3731,11 @@ function renderMatrix() {
     function pull(callback) {
       var now = Date.now();
       if (cache && (now - cacheTime) < CACHE_TTL) {
-        console.log('[CloudData] Using cache, age:', (now - cacheTime) / 1000, 's');
+        safeLog('info', '[CloudData] Using cache, age:', (now - cacheTime) / 1000, 's');
         if (callback) callback(cache);
         return;
       }
-      console.log('[CloudData] Pulling from GitHub...');
+      safeLog('info', '[CloudData] Pulling from GitHub...');
       fetch(SHARED_URL + '?t=' + now)
         .then(function(res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -3560,14 +3746,14 @@ function renderMatrix() {
             cache = data;
             cacheTime = Date.now();
             var count = Array.isArray(data) ? data.length : 1;
-            console.log('[CloudData] Pulled from GitHub, records:', count);
+            safeLog('info', '[CloudData] Pulled from GitHub, records:', count);
             if (callback) callback(data);
           } else {
-            console.log('[CloudData] No valid data yet');
+            safeLog('info', '[CloudData] No valid data yet');
           }
         })
         .catch(function(err) {
-          console.log('[CloudData] Pull failed:', err.message);
+          safeLog('info', '[CloudData] Pull failed:', err.message);
         });
     }
 
@@ -4040,14 +4226,14 @@ function generateReport() {
         .catch(function(err) {
           clearInterval(pollTimer);
           // 如果API不可用，fallback到本地规则引擎
-          console.log('[generateReport] API不可用，使用本地分析');
+          safeLog('debug', '[generateReport] API不可用，使用本地分析');
           generateReportLocal();
         });
     }, 500);
   })
   .catch(function(err) {
     // API不可用时的fallback
-    console.log('[generateReport] API不可用，使用本地分析');
+    safeLog('debug', '[generateReport] API不可用，使用本地分析');
     generateReportLocal();
   });
 }
@@ -4110,7 +4296,7 @@ function renderMarkdown(md) {
     var kaCities = allData.ka.cities;
     var cityCities = allData.city.cities;
     var cityList = (costCity && costCity !== '总商') ? [costCity] : allCities.filter(function(c) { return c.name !== '总商'; }).map(function(c) { return c.name; });
-    var html = '<table class="ka-compare-table"><thead><tr><th>指标</th><th style="color:#e74c3c">KA商家</th><th style="color:#3498db">城市商家</th><th>差额(KA-城商)</th><th>KA占全量</th></tr></thead><tbody>';
+    var html = '<div class="table-wrapper"><table class="ka-compare-table data-table" role="table" aria-label="财务数据表"><thead><tr><th>指标</th><th style="color:#e74c3c">KA商家</th><th style="color:#3498db">城市商家</th><th>差额(KA-城商)</th><th>KA占全量</th></tr></thead><tbody>';
     cityList.forEach(function(cityName) {
       var allCity = allCities.find(function(c) { return c.name === cityName; });
       var kaCity = kaCities.find(function(c) { return c.name === cityName; });
@@ -4144,8 +4330,8 @@ function renderMarkdown(md) {
       });
     });
     html += '</tbody></table>';
-    el.innerHTML = html;
-  }
+    el.innerHTML = html; makeTableSortable(el.querySelector('.data-table')); }
+
 
   // ===== V11 NEW: 城商占比 =====
   function renderCityRatio() {
@@ -4321,7 +4507,7 @@ function renderMarkdown(md) {
       if (filtered.length > 0 && el) {
         renderCostCharts(filtered, el.value || 'all');
       }
-    } catch(e) { console.warn('[V12 Chart]', e.message); }
+    } catch(e) { console.warn('[V13 Chart]', e.message); }
 }
 
   function renderCostBars(containerId, items, total, type) {
@@ -4458,12 +4644,18 @@ function renderMarkdown(md) {
 
 function switchTab(tabName) {
     state.currentTab = tabName;
-    console.log('[switchTab] ' + tabName + ', cities:' + state.currentData.cities.length);
+    // V13: 更新ARIA
+    document.querySelectorAll('[role="tab"]').forEach(function(t) {
+      var isActive = t.getAttribute('data-tab') === tabName;
+      t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      t.classList.toggle('active', isActive);
+    });
+    safeLog('info', '[switchTab] ' + tabName + ', cities:' + state.currentData.cities.length);
     $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
     $$('.tab-pane').forEach(p => p.classList.add('hidden'));
     $(`#pane${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.remove('hidden');
     if (tabName === 'overview') {
-      console.log('[switchTab] refreshing overview, merchant:', state.currentMerchant);
+      safeLog('info', '[switchTab] refreshing overview, merchant:', state.currentMerchant);
       refreshDashboard();
     }
     if (tabName === 'detail') {
@@ -4660,7 +4852,109 @@ function renderRawData() {
 }
 
 
-  function init() {
+  
+  // ===== V13: 暗色模式切换 =====
+  (function() {
+    var saved = localStorage.getItem('finance-theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+    var btn = document.getElementById('themeToggle');
+    if (btn) {
+      function updateIcon() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        btn.innerHTML = isDark ? '&#9728;' : '&#9790;';
+      }
+      updateIcon();
+      btn.addEventListener('click', function() {
+        var current = document.documentElement.getAttribute('data-theme');
+        var next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('finance-theme', next);
+        updateIcon();
+        // 重绘所有Chart.js图表
+        Object.keys(chartInstances || {}).forEach(function(k) {
+          if (chartInstances[k]) {
+            chartInstances[k].options.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+            chartInstances[k].update();
+          }
+        });
+      });
+    }
+  })();
+
+  // ===== V13: 键盘快捷键 =====
+  (function() {
+    var tabKeys = ['overview','detail','cost','report','rawdata'];
+    var tabLabels = {'overview':0,'detail':1,'cost':2,'report':3,'rawdata':4};
+    document.addEventListener('keydown', function(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      var ctrl = e.ctrlKey || e.metaKey;
+      // Ctrl+1~5 切换Tab
+      if (ctrl && e.key >= '1' && e.key <= '5') {
+        e.preventDefault();
+        var idx = parseInt(e.key) - 1;
+        if (idx < tabKeys.length) switchTab(tabKeys[idx]);
+      }
+      // Ctrl+E 导出Excel
+      if (ctrl && e.key === 'e') { e.preventDefault(); try { exportExcel(); } catch(ex) {} }
+      // Ctrl+P 打印
+      if (ctrl && e.key === 'p') { e.preventDefault(); window.print(); }
+      // Ctrl+D 暗色模式
+      if (ctrl && e.key === 'd') { e.preventDefault(); document.getElementById('themeToggle').click(); }
+      // ? 显示快捷键
+      if (e.key === '?') {
+        var bar = document.getElementById('shortcutBar');
+        bar.classList.toggle('visible');
+        setTimeout(function() { bar.classList.remove('visible'); }, 4000);
+      }
+    });
+  })();
+
+  // ===== V13: 图表导出为PNG =====
+  function exportChartPNG(chartId) {
+    var canvas = document.getElementById(chartId);
+    if (!canvas) return;
+    var link = document.createElement('a');
+    link.download = chartId + '_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
+  }
+
+  // ===== V13: 表格排序引擎 =====
+  function makeTableSortable(tableEl) {
+    if (!tableEl) return;
+    var headers = tableEl.querySelectorAll('th');
+    var rows = Array.from(tableEl.querySelectorAll('tbody tr'));
+    if (rows.length === 0) return;
+    headers.forEach(function(th, colIdx) {
+      if (th.classList.contains('no-sort')) return;
+      th.style.cursor = 'pointer';
+      th.classList.add('data-table-th');
+      var icon = document.createElement('span');
+      icon.className = 'sort-icon';
+      icon.textContent = '\u2195';
+      th.appendChild(icon);
+      th.addEventListener('click', function() {
+        var asc = !th.classList.contains('sort-asc');
+        headers.forEach(function(h) { h.classList.remove('sort-asc','sort-desc'); });
+        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+        icon.textContent = asc ? '\u2191' : '\u2193';
+        rows.sort(function(a, b) {
+          var aText = a.cells[colIdx] ? a.cells[colIdx].textContent.replace(/[%,\s¥万]/g, '') : '';
+          var bText = b.cells[colIdx] ? b.cells[colIdx].textContent.replace(/[%,\s¥万]/g, '') : '';
+          var aNum = parseFloat(aText), bNum = parseFloat(bText);
+          if (!isNaN(aNum) && !isNaN(bNum)) return asc ? aNum - bNum : bNum - aNum;
+          return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+        });
+        var tbody = tableEl.querySelector('tbody');
+        if (tbody) rows.forEach(function(r) { tbody.appendChild(r); });
+      });
+    });
+  }
+
+  // ===== V13: 增强createChart支持导出按钮 =====
+  var _origCreateChart = (typeof createChart === 'function') ? createChart : null;
+
+function init() {
     // 启动时清理旧格式缓存数据
     try {
       const allData = DataStore.loadAll();
@@ -4674,7 +4968,7 @@ function renderRawData() {
       }
       if (cleaned) {
         localStorage.setItem(DataStore.KEY, JSON.stringify(allData));
-        console.log('[init] 已清理旧格式缓存，请重新上传文件');
+        safeLog('error', '[init] 已清理旧格式缓存，请重新上传文件');
       }
     } catch(e) { console.warn('[init] 缓存清理失败:', e); }
 
@@ -4756,5 +5050,18 @@ function renderRawData() {
   };
 })();
     </script>
+
+  <!-- V13: 暗色模式切换按钮 -->
+  <button class="theme-toggle" id="themeToggle" title="切换暗色/亮色模式" aria-label="切换暗色/亮色模式">&#9790;</button>
+
+  <!-- V13: 快捷键提示条 -->
+  <div class="shortcut-bar" id="shortcutBar">
+    <span><kbd>Ctrl+1-5</kbd> 切换Tab</span>
+    <span><kbd>Ctrl+E</kbd> 导出Excel</span>
+    <span><kbd>Ctrl+P</kbd> 打印报告</span>
+    <span><kbd>Ctrl+D</kbd> 暗色模式</span>
+    <span><kbd>?</kbd> 显示/隐藏</span>
+  </div>
+
 </body>
 </html>
