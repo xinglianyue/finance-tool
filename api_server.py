@@ -543,7 +543,43 @@ class SyncHandler(BaseHTTPRequestHandler):
             self._send_json({"error": "not found"}, 404)
 
 
+def check_update():
+    """启动时自动检查GitHub是否有新版本，如有则自动更新"""
+    try:
+        github_url = "https://raw.githubusercontent.com/xinglianyue/finance-tool/main/api_server.py"
+        resp = requests.get(github_url, timeout=15)
+        if resp.status_code != 200:
+            return
+
+        remote_code = resp.text
+        # 获取当前脚本的MD5
+        import hashlib
+        local_md5 = hashlib.md5(open(__file__, 'rb').read()).hexdigest()
+        remote_md5 = hashlib.md5(remote_code.encode('utf-8')).hexdigest()
+
+        if local_md5 != remote_md5:
+            log.info("检测到新版本，正在自动更新...")
+            # 备份当前版本
+            backup = __file__ + '.bak'
+            with open(backup, 'w', encoding='utf-8') as f:
+                f.write(open(__file__, 'r', encoding='utf-8').read())
+            # 写入新版本（保留config.json读取逻辑）
+            with open(__file__, 'w', encoding='utf-8') as f:
+                f.write(remote_code)
+            log.info("更新完成，新版本将在下次启动时生效")
+            return True
+        else:
+            log.info("已是最新版本")
+            return False
+    except Exception as e:
+        log.warning(f"自动更新检查失败: {e}")
+        return False
+
+
 def main():
+    # 启动时检查更新
+    check_update()
+
     log.info("=" * 50)
     log.info("财务工具 API 服务")
     log.info(f"监听地址: {HOST}:{PORT}")
