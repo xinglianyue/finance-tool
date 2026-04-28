@@ -7,7 +7,7 @@
 <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="version" content="v13.1">
+    <meta name="version" content="v13.2">
     <title>财务工具 v13 - 代理商财务分析系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
@@ -176,7 +176,17 @@
               <!-- Dynamic -->
             </table>
           </div>
+        
+        <!-- V13.2: 智能洞察面板 -->
+        <div class="matrix-card" style="margin-top:12px;">
+          <div class="matrix-header">
+            <span><i class="fas fa-lightbulb" style="margin-right:6px;color:var(--warning);"></i>智能洞察</span>
+          </div>
+          <div id="insightsPanel">
+            <div class="empty-state"><div class="empty-text">加载数据后自动生成洞察</div></div>
+          </div>
         </div>
+</div>
 
           </div><div class="tab-pane hidden" id="paneDetail">
         <div class="detail-selector">
@@ -222,7 +232,15 @@
         id="detailContent">
           <!-- Dynamic -->
         </div>
-      </div><div class="tab-pane hidden" id="paneCost">
+      
+        <!-- V13.2: UE分解面板 -->
+        <div class="cost-panel" style="margin-top:12px;" id="ueDecompWrap">
+          <h3>UE分解分析</h3>
+          <div id="ueDecomposition">
+            <div class="empty-state"><div class="empty-text">选择城市后自动展示UE分解</div></div>
+          </div>
+        </div>
+</div><div class="tab-pane hidden" id="paneCost">
         <div class="cost-selector">
           <label style="font-size:13px;font-weight:600;color:var(--text-secondary);">城市:</label>
           <select id="costCity"></select>
@@ -304,7 +322,33 @@
         <canvas id="chartDeliveryCost" role="img" aria-label="chartDeliveryCost图表" role="img" aria-label="chartDeliveryCost图表" height="260"></canvas></div>
         </div>
 
-        <div class="cost-compare-section">
+        
+        <!-- V13.2: 瀑布图 + 贡献度分析 -->
+        <div class="cost-layout" style="margin-top:16px;">
+          <div class="cost-panel" style="grid-column:1/-1;">
+            <h3>成本变化瀑布图
+              <span style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-left:8px;">需选择两期数据</span>
+            </h3>
+            <div class="chart-card">
+              <div class="chart-container" style="height:260px;">
+                <button class="chart-export-btn" onclick="exportChartPNG('chartWaterfall')" title="下载图表" aria-label="下载瀑布图">&#128249; PNG</button>
+                <canvas id="chartWaterfall" role="img" aria-label="成本变化瀑布图" height="260"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cost-layout" style="margin-top:16px;">
+          <div class="cost-panel" style="grid-column:1/-1;">
+            <h3>城市贡献度分析
+              <span style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-left:8px;">需选择两期数据</span>
+            </h3>
+            <div id="contributionPanel">
+              <div class="empty-state"><div class="empty-text">请选择两期数据进行对比</div></div>
+            </div>
+          </div>
+        </div>
+
+<div class="cost-compare-section">
           <h3>关键指标对比（各城市）</h3>
           <div id="costCompare"></div>
         </div>
@@ -1696,6 +1740,34 @@ body {
   }
 }
 
+
+  /* ===== V13.2: 增强分析面板样式 ===== */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: var(--text-secondary);
+  }
+  .empty-state .empty-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    opacity: 0.4;
+  }
+  .empty-state .empty-text {
+    font-size: 13px;
+  }
+  #insightsPanel > div > div {
+    transition: background 0.2s, transform 0.2s;
+  }
+  #insightsPanel > div > div:hover {
+    transform: translateX(4px);
+  }
+  #contributionPanel .empty-state,
+  #ueDecomposition .empty-state {
+    min-height: 80px;
+  }
 </style>
     <script>
 
@@ -1982,6 +2054,611 @@ function analyzeTrend(values) {
   return { direction: direction, strength: strength };
 }
 
+
+  // ===== V13.2: 增强分析引擎 =====
+
+  // --- 瀑布图分析（成本变化归因） ---
+  
+  // V13.2: 获取上期完整数据
+  function getPrevPeriodAllData() {
+    if (!state.currentData || !DataStore) return null;
+    var allData = DataStore.loadAll();
+    var dates = Object.keys(allData).sort();
+    var currentIdx = dates.indexOf(state.currentData.date);
+    if (currentIdx <= 0) return null;
+    var prevDate = dates[currentIdx - 1];
+    var prev = allData[prevDate];
+    if (prev && prev.currentData) {
+      return prev.currentData;
+    }
+    return null;
+  }
+
+function analyzeCostWaterfall(currentData, previousData) {
+    if (!currentData || !previousData) return null;
+    var cities = currentData.cities || [];
+    var prevCities = previousData.cities || [];
+    if (cities.length === 0) return null;
+
+    var curTotalCost = 0, prevTotalCost = 0;
+    var factors = [];
+    var costKeys = [
+      { key: 'deliveryCost', label: '配送成本' },
+      { key: 'subsidyTotal', label: '补贴' },
+      { key: 'platformCost', label: '平台成本' },
+      { key: 'fixedCost', label: '固定成本' },
+      { key: 'additionalCost', label: '附加成本' }
+    ];
+
+    cities.forEach(function(c) {
+      var m = c.modules && c.modules['all'] ? c.modules['all'] : {};
+      costKeys.forEach(function(ck) {
+        var val = safeNum(m[ck.key]);
+        curTotalCost += val;
+        // 找到上期同城市
+        var pc = prevCities.find(function(p) { return p.name === c.name; });
+        var pm = pc && pc.modules && pc.modules['all'] ? pc.modules['all'] : {};
+        prevTotalCost += safeNum(pm[ck.key]);
+      });
+    });
+
+    // 各因素贡献
+    costKeys.forEach(function(ck) {
+      var curVal = 0, prevVal = 0;
+      cities.forEach(function(c) {
+        var m = c.modules && c.modules['all'] ? c.modules['all'] : {};
+        curVal += safeNum(m[ck.key]);
+        var pc = prevCities.find(function(p) { return p.name === c.name; });
+        var pm = pc && pc.modules && pc.modules['all'] ? pc.modules['all'] : {};
+        prevVal += safeNum(pm[ck.key]);
+      });
+      var delta = curVal - prevVal;
+      factors.push({
+        label: ck.label,
+        previous: prevVal,
+        current: curVal,
+        delta: delta,
+        contribution: curTotalCost !== prevTotalCost ? delta / Math.abs(prevTotalCost) * 100 : 0
+      });
+    });
+
+    // 收入端变化
+    var curRev = 0, prevRev = 0;
+    cities.forEach(function(c) {
+      var m = c.modules && c.modules['all'] ? c.modules['all'] : {};
+      curRev += safeNum(m.onlineRevenue);
+      var pc = prevCities.find(function(p) { return p.name === c.name; });
+      var pm = pc && pc.modules && pc.modules['all'] ? pc.modules['all'] : {};
+      prevRev += safeNum(pm.onlineRevenue);
+    });
+
+    return {
+      previousCost: prevTotalCost,
+      currentCost: curTotalCost,
+      totalDelta: curTotalCost - prevTotalCost,
+      previousRevenue: prevRev,
+      currentRevenue: curRev,
+      factors: factors,
+      revenueDelta: curRev - prevRev
+    };
+  }
+
+  // --- 增强统计指标 ---
+  function calcAdvancedStats(values) {
+    if (!values || values.length === 0) return null;
+    var sorted = values.slice().sort(function(a,b){return a-b;});
+    var n = sorted.length;
+    var sum = sorted.reduce(function(a,b){return a+b;}, 0);
+    var mean = sum / n;
+    var variance = sorted.reduce(function(s,v){return s+(v-mean)*(v-mean);}, 0) / n;
+    var stddev = Math.sqrt(variance);
+    var median = n % 2 === 0 ? (sorted[n/2-1] + sorted[n/2]) / 2 : sorted[Math.floor(n/2)];
+
+    // 四分位
+    var q1 = sorted[Math.floor(n * 0.25)];
+    var q3 = sorted[Math.floor(n * 0.75)];
+    var iqr = q3 - q1;
+
+    // IQR异常边界
+    var lowerBound = q1 - 1.5 * iqr;
+    var upperBound = q3 + 1.5 * iqr;
+
+    // 变异系数
+    var cv = mean !== 0 ? (stddev / Math.abs(mean)) * 100 : 0;
+
+    // Z-Score（对每个值）
+    var zScores = sorted.map(function(v) { return stddev > 0 ? (v - mean) / stddev : 0; });
+
+    return {
+      mean: mean, median: median, stddev: stddev, variance: variance,
+      min: sorted[0], max: sorted[n-1], range: sorted[n-1] - sorted[0],
+      q1: q1, q3: q3, iqr: iqr,
+      lowerBound: lowerBound, upperBound: upperBound,
+      cv: cv, zScores: zScores, n: n, sum: sum
+    };
+  }
+
+  // --- IQR增强异常检测（替代纯Z-Score） ---
+  function detectAnomaliesIQR(cities, module) {
+    if (!cities || cities.length < 4) return [];
+    var anomalies = [];
+
+    var ueVals = [], subVals = [], delVals = [], revVals = [];
+    cities.forEach(function(c) {
+      var m = c.modules && c.modules[module] ? c.modules[module] : {};
+      ueVals.push(safeNum(m.ue));
+      subVals.push(safeNum(m.subsidyRatio));
+      delVals.push(safeNum(m.deliveryCostRate));
+      revVals.push(safeNum(m.onlineRevenue));
+    });
+
+    var ueStats = calcAdvancedStats(ueVals);
+    var subStats = calcAdvancedStats(subVals);
+    var delStats = calcAdvancedStats(delVals);
+
+    cities.forEach(function(c, i) {
+      var m = c.modules && c.modules[module] ? c.modules[module] : {};
+      var items = [];
+
+      // UE异常（IQR方法）
+      if (ueStats) {
+        if (ueVals[i] < ueStats.lowerBound) {
+          items.push({ type: 'ue_low', severity: 'danger',
+            message: 'UE异常偏低(' + safeFixed(ueVals[i],2) + ')，低于下界' + safeFixed(ueStats.lowerBound,2) + '（Q1-1.5IQR）',
+            zscore: safeFixed(ueStats.zScores[i], 2) });
+        }
+      }
+
+      // 补贴率异常
+      if (subStats) {
+        if (subVals[i] > subStats.upperBound) {
+          items.push({ type: 'subsidy_high', severity: 'warning',
+            message: '补贴率异常偏高(' + safeFixed(subVals[i]*100,2) + '%)，高于上界' + safeFixed(subStats.upperBound*100,2) + '%',
+            zscore: safeFixed(subStats.zScores[i], 2) });
+        }
+      }
+
+      // 配送成本率异常
+      if (delStats) {
+        if (delVals[i] > delStats.upperBound) {
+          items.push({ type: 'delivery_high', severity: 'warning',
+            message: '配送成本率偏高(' + safeFixed(delVals[i]*100,2) + '%)，高于上界' + safeFixed(delStats.upperBound*100,2) + '%',
+            zscore: safeFixed(delStats.zScores[i], 2) });
+        }
+      }
+
+      if (items.length > 0) {
+        anomalies.push({ city: c.displayName || c.name, cityName: c.name, items: items });
+      }
+    });
+
+    return anomalies;
+  }
+
+  // --- 贡献度分析（各城市对总指标变化的贡献） ---
+  function analyzeContribution(currentData, previousData, module) {
+    if (!currentData || !previousData) return null;
+    var curCities = currentData.cities || [];
+    var prevCities = previousData.cities || [];
+    var metrics = [
+      { key: 'orders', label: '订单量', format: 'int' },
+      { key: 'onlineRevenue', label: '收入', format: 'wan' },
+      { key: 'profit', label: '毛利', format: 'wan' },
+      { key: 'deliveryCost', label: '配送成本', format: 'wan' },
+      { key: 'subsidyTotal', label: '补贴', format: 'wan' }
+    ];
+
+    var contributions = {};
+    metrics.forEach(function(metric) {
+      var totalDelta = 0;
+      var details = [];
+      curCities.forEach(function(c) {
+        var m = c.modules && c.modules[module] ? c.modules[module] : {};
+        var curVal = safeNum(m[metric.key]);
+        var pc = prevCities.find(function(p) { return p.name === c.name; });
+        var pm = pc && pc.modules && pc.modules[module] ? pc.modules[module] : {};
+        var prevVal = safeNum(pm[metric.key]);
+        var delta = curVal - prevVal;
+        totalDelta += delta;
+        details.push({ city: c.displayName || c.name, current: curVal, previous: prevVal, delta: delta });
+      });
+      // 计算贡献占比
+      details.forEach(function(d) {
+        d.contribution = totalDelta !== 0 ? (d.delta / totalDelta * 100) : 0;
+      });
+      details.sort(function(a,b) { return Math.abs(b.delta) - Math.abs(a.delta); });
+      contributions[metric.key] = { label: metric.label, format: metric.format, totalDelta: totalDelta, details: details };
+    });
+
+    return contributions;
+  }
+
+  // --- UE分解分析（= 收入/订单 - 成本/订单） ---
+  function decomposeUE(cityData, module) {
+    if (!cityData) return null;
+    var m = cityData.modules && cityData.modules[module] ? cityData.modules[module] : {};
+    var orders = safeNum(m.orders, 1);
+    var onlineRev = safeNum(m.onlineRevenue);
+    var totalExp = safeNum(m.totalExpense);
+    var deliveryCost = safeNum(m.deliveryCost);
+    var subsidyTotal = safeNum(m.subsidyTotal);
+    var platformCost = safeNum(m.platformCost);
+    var fixedCost = safeNum(m.fixedCost);
+    var otherCost = safeNum(m.additionalCost) + safeNum(m.otherCost || 0);
+
+    var revPerOrder = onlineRev / orders;
+    var costPerOrder = totalExp / orders;
+    var ue = onlineRev > 0 ? (onlineRev - totalExp) / orders : -costPerOrder;
+
+    return {
+      ue: ue,
+      revenuePerOrder: revPerOrder,
+      costPerOrder: costPerOrder,
+      costBreakdown: {
+        delivery: deliveryCost / orders,
+        subsidy: subsidyTotal / orders,
+        platform: platformCost / orders,
+        fixed: fixedCost / orders,
+        other: otherCost / orders
+      },
+      // 各成本项占UE的比重（正=拖累UE，负=改善UE）
+      costWeight: {
+        delivery: ue !== 0 ? (deliveryCost / orders) / Math.abs(ue) * 100 : 0,
+        subsidy: ue !== 0 ? (subsidyTotal / orders) / Math.abs(ue) * 100 : 0,
+        platform: ue !== 0 ? (platformCost / orders) / Math.abs(ue) * 100 : 0,
+        fixed: ue !== 0 ? (fixedCost / orders) / Math.abs(ue) * 100 : 0
+      }
+    };
+  }
+
+  // --- 多期趋势增强分析（移动平均+线性回归斜率） ---
+  function analyzeTrendAdvanced(values, dates) {
+    if (!values || values.length < 2) return null;
+    var n = values.length;
+
+    // 移动平均（3期）
+    var ma3 = [];
+    for (var i = 0; i < n; i++) {
+      if (i < 2) { ma3.push(null); continue; }
+      ma3.push((values[i] + values[i-1] + values[i-2]) / 3);
+    }
+
+    // 简单线性回归（最小二乘法）
+    var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (var j = 0; j < n; j++) {
+      sumX += j; sumY += values[j];
+      sumXY += j * values[j]; sumX2 += j * j;
+    }
+    var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    var intercept = (sumY - slope * sumX) / n;
+
+    // R²
+    var mean = sumY / n;
+    var ssTotal = 0, ssResidual = 0;
+    for (var k = 0; k < n; k++) {
+      var predicted = slope * k + intercept;
+      ssTotal += (values[k] - mean) * (values[k] - mean);
+      ssResidual += (values[k] - predicted) * (values[k] - predicted);
+    }
+    var r2 = ssTotal !== 0 ? 1 - ssResidual / ssTotal : 0;
+
+    // 环比变化
+    var momChanges = [];
+    for (var l = 1; l < n; l++) {
+      momChanges.push(values[l-1] !== 0 ? (values[l] - values[l-1]) / Math.abs(values[l-1]) * 100 : null);
+    }
+    var avgMomChange = momChanges.filter(function(v){return v !== null;});
+    avgMomChange = avgMomChange.length > 0 ? avgMomChange.reduce(function(a,b){return a+b;},0) / avgMomChange.length : 0;
+
+    // 波动性（变异系数）
+    var stats = calcAdvancedStats(values);
+
+    return {
+      slope: slope,
+      intercept: intercept,
+      r2: r2,
+      trendDirection: slope > 0.01 ? '上升' : slope < -0.01 ? '下降' : '平稳',
+      trendStrength: Math.abs(r2) > 0.7 ? '强' : Math.abs(r2) > 0.3 ? '中' : '弱',
+      ma3: ma3,
+      momChanges: momChanges,
+      avgMomChange: avgMomChange,
+      volatility: stats ? stats.cv : 0,
+      latest: values[n-1],
+      predicted: slope * n + intercept,
+      predictedDelta: n > 0 && slope * (n-1) + intercept !== 0 ?
+        (slope * n + intercept - values[n-1]) / Math.abs(values[n-1]) * 100 : 0
+    };
+  }
+
+  // --- 智能洞察生成（自然语言分析摘要） ---
+  function generateInsights(cities, module, allHistory) {
+    var insights = [];
+    if (!cities || cities.length === 0) return insights;
+
+    // 1. UE分布洞察
+    var ueVals = cities.map(function(c) {
+      var m = c.modules && c.modules[module] ? c.modules[module] : {};
+      return safeNum(m.ue);
+    });
+    var stats = calcAdvancedStats(ueVals);
+    if (stats) {
+      if (stats.cv > 100) {
+        insights.push({ type: 'warning', icon: 'analysis',
+          title: 'UE波动剧烈',
+          detail: 'UE变异系数' + safeFixed(stats.cv, 1) + '%（超过100%），城市间UE差异极大。最高' + safeFixed(stats.max,2) + '元 vs 最低' + safeFixed(stats.min,2) + '元，差距' + safeFixed(stats.range,2) + '元。建议重点关注亏损城市。' });
+      } else if (stats.cv > 50) {
+        insights.push({ type: 'info', icon: 'trending_up',
+          title: 'UE分化明显',
+          detail: 'UE变异系数' + safeFixed(stats.cv, 1) + '%，城市间表现分化。中位数' + safeFixed(stats.median,2) + '元，均值' + safeFixed(stats.mean,2) + '元。' });
+      } else {
+        insights.push({ type: 'good', icon: 'check_circle',
+          title: 'UE分布稳定',
+          detail: 'UE变异系数仅' + safeFixed(stats.cv, 1) + '%，各城市UE较为一致，均值为' + safeFixed(stats.mean,2) + '元。' });
+      }
+
+      // 2. 亏损面洞察
+      var lossCount = ueVals.filter(function(v){return v < 0;}).length;
+      var lossRate = lossCount / ueVals.length * 100;
+      if (lossRate > 50) {
+        insights.push({ type: 'danger', icon: 'warning',
+          title: '亏损面过大',
+          detail: lossCount + '/' + ueVals.length + '个城市亏损（' + safeFixed(lossRate,1) + '%），需紧急排查成本结构。' });
+      } else if (lossRate > 20) {
+        insights.push({ type: 'warning', icon: 'error_outline',
+          title: '部分城市亏损',
+          detail: lossCount + '/' + ueVals.length + '个城市亏损（' + safeFixed(lossRate,1) + '%），建议分析亏损城市成本结构。' });
+      }
+    }
+
+    // 3. 多期趋势洞察
+    if (allHistory && allHistory.length >= 3) {
+      var trendUE = [];
+      allHistory.forEach(function(h) {
+        var cd = h.currentData || h;
+        if (cd.cities) {
+          var totalOrders = 0, totalProfit = 0;
+          cd.cities.forEach(function(c) {
+            var m = c.modules && c.modules[module] ? c.modules[module] : {};
+            totalOrders += safeNum(m.orders);
+            totalProfit += safeNum(m.profit);
+          });
+          if (totalOrders > 0) trendUE.push(totalProfit / totalOrders);
+        }
+      });
+
+      var advancedTrend = analyzeTrendAdvanced(trendUE);
+      if (advancedTrend && advancedTrend.volatility > 0) {
+        if (advancedTrend.trendDirection === '下降' && advancedTrend.trendStrength === '强') {
+          insights.push({ type: 'danger', icon: 'trending_down',
+            title: 'UE持续下滑趋势',
+            detail: '线性回归斜率' + safeFixed(advancedTrend.slope,4) + '，R²=' + safeFixed(advancedTrend.r2,3) + '（' + advancedTrend.trendStrength + '趋势）。预测下期UE' + safeFixed(advancedTrend.predicted,2) + '元，' + (advancedTrend.predictedDelta >= 0 ? '+' : '') + safeFixed(advancedTrend.predictedDelta,1) + '%。' });
+        } else if (advancedTrend.trendDirection === '上升' && advancedTrend.trendStrength === '强') {
+          insights.push({ type: 'good', icon: 'trending_up',
+            title: 'UE持续改善',
+            detail: '斜率' + safeFixed(advancedTrend.slope,4) + '，R²=' + safeFixed(advancedTrend.r2,3) + '。预测下期' + safeFixed(advancedTrend.predicted,2) + '元。' });
+        }
+      }
+    }
+
+    // 4. 成本结构洞察
+    var totalRev = 0, totalDelivery = 0, totalSubsidy = 0;
+    cities.forEach(function(c) {
+      var m = c.modules && c.modules[module] ? c.modules[module] : {};
+      totalRev += safeNum(m.onlineRevenue);
+      totalDelivery += safeNum(m.deliveryCost);
+      totalSubsidy += safeNum(m.subsidyTotal);
+    });
+    if (totalRev > 0) {
+      var deliveryPct = totalDelivery / totalRev * 100;
+      var subsidyPct = totalSubsidy / totalRev * 100;
+      if (deliveryPct > 35) {
+        insights.push({ type: 'warning', icon: 'local_shipping',
+          title: '配送成本占比过高',
+          detail: '配送成本占总收入' + safeFixed(deliveryPct,1) + '%（' + fmtWan(totalDelivery) + '/' + fmtWan(totalRev) + '），建议优化配送模式或提升客单价。' });
+      }
+      if (subsidyPct > 20) {
+        insights.push({ type: 'warning', icon: 'redeem',
+          title: '补贴率偏高',
+          detail: '补贴占总收入' + safeFixed(subsidyPct,1) + '%（' + fmtWan(totalSubsidy) + '/' + fmtWan(totalRev) + '），建议核查补贴发放规则。' });
+      }
+    }
+
+    return insights;
+  }
+
+  // --- 渲染智能洞察面板 ---
+  function renderInsightsPanel(insights) {
+    var container = document.getElementById('insightsPanel');
+    if (!container) return;
+    if (!insights || insights.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">analysis</div><div class="empty-text">暂无智能洞察</div></div>';
+      return;
+    }
+
+    var typeColors = { danger: 'var(--danger)', warning: 'var(--warning)', info: 'var(--primary)', good: 'var(--success)' };
+    var typeBg = { danger: 'var(--danger-light)', warning: 'var(--warning-light)', info: 'var(--primary-light)', good: 'var(--success-light)' };
+    var typeIcons = { danger: 'warning', warning: 'info', info: 'lightbulb', good: 'check_circle' };
+
+    var html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    insights.forEach(function(ins) {
+      var color = typeColors[ins.type] || 'var(--text-secondary)';
+      var bg = typeBg[ins.type] || 'var(--gray-light)';
+      html += '<div style="background:' + bg + ';border-left:3px solid ' + color + ';border-radius:0 6px 6px 0;padding:10px 14px;">';
+      html += '<div style="font-weight:600;font-size:13px;color:' + color + ';margin-bottom:4px;">' + ins.title + '</div>';
+      html += '<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">' + ins.detail + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // --- 渲染瀑布图（成本变化归因） ---
+  function renderWaterfallChart(waterfallData) {
+    if (!waterfallData) return;
+    var canvas = document.getElementById('chartWaterfall');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+
+    // 销毁已有实例
+    if (chartInstances && chartInstances['chartWaterfall']) {
+      chartInstances['chartWaterfall'].destroy();
+    }
+
+    var labels = ['上期成本'];
+    var increases = [];
+    var decreases = [];
+    var dataValues = [waterfallData.previousCost];
+    var bgColors = [CHART_COLORS.grid];
+    var borderColors = ['rgba(150,150,150,0.3)'];
+
+    waterfallData.factors.forEach(function(f) {
+      labels.push(f.label);
+      dataValues.push(null); // 瀑布图需要浮动柱
+      if (f.delta >= 0) {
+        increases.push(f.delta);
+        decreases.push(0);
+        bgColors.push(CHART_COLORS.dangerLt);
+        borderColors.push(CHART_COLORS.danger);
+      } else {
+        increases.push(0);
+        decreases.push(Math.abs(f.delta));
+        bgColors.push(CHART_COLORS.successLt);
+        borderColors.push(CHART_COLORS.success);
+      }
+    });
+    labels.push('本期成本');
+    dataValues.push(waterfallData.currentCost);
+    bgColors.push(waterfallData.currentCost >= waterfallData.previousCost ? CHART_COLORS.dangerLt : CHART_COLORS.successLt);
+    borderColors.push(waterfallData.currentCost >= waterfallData.previousCost ? CHART_COLORS.danger : CHART_COLORS.success);
+
+    // 用堆叠柱状图模拟瀑布图
+    var chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: '增加', data: [waterfallData.previousCost].concat(increases).concat([0]), backgroundColor: CHART_COLORS.dangerLt, borderColor: CHART_COLORS.danger, borderWidth: 1, stack: 'stack' },
+          { label: '减少', data: [0].concat(decreases).concat([waterfallData.currentCost]), backgroundColor: CHART_COLORS.successLt, borderColor: CHART_COLORS.success, borderWidth: 1, stack: 'stack' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: '成本变化瀑布图（元）', font: { size: 13, weight: '600' } },
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                if (ctx.dataIndex === 0) return '上期: ' + fmtWan(waterfallData.previousCost);
+                if (ctx.dataIndex === labels.length - 1) return '本期: ' + fmtWan(waterfallData.currentCost);
+                var f = waterfallData.factors[ctx.dataIndex - 1];
+                return f.label + ': ' + (f.delta >= 0 ? '+' : '') + fmtWan(f.delta) + ' (' + (f.contribution >= 0 ? '+' : '') + safeFixed(f.contribution, 1) + '%)';
+              }
+            }
+          }
+        },
+        scales: {
+          y: { stacked: true, grid: { color: CHART_COLORS.grid }, ticks: { callback: function(v) { return fmtWan(v); } } },
+          x: { stacked: true, grid: { display: false } }
+        }
+      }
+    });
+
+    if (chartInstances) chartInstances['chartWaterfall'] = chart;
+  }
+
+  // --- 渲染贡献度面板 ---
+  function renderContributionPanel(contributions) {
+    var container = document.getElementById('contributionPanel');
+    if (!container || !contributions) return;
+
+    var metricOrder = ['orders', 'onlineRevenue', 'profit', 'deliveryCost', 'subsidyTotal'];
+    var html = '<div style="display:flex;flex-direction:column;gap:16px;">';
+
+    metricOrder.forEach(function(key) {
+      var mc = contributions[key];
+      if (!mc || mc.details.length === 0) return;
+
+      html += '<div>';
+      html += '<div style="font-weight:600;font-size:13px;margin-bottom:6px;">' + mc.label + '变化: ' + (mc.totalDelta >= 0 ? '+' : '') + (mc.format === 'wan' ? fmtWan(mc.totalDelta) : fmtInt(mc.totalDelta)) + '</div>';
+
+      var barMax = Math.max.apply(null, mc.details.map(function(d) { return Math.abs(d.delta); }));
+      if (barMax === 0) barMax = 1;
+
+      mc.details.slice(0, 5).forEach(function(d) {
+        var pct = Math.abs(d.delta) / barMax * 100;
+        var color = d.delta >= 0 ? (key === 'deliveryCost' || key === 'subsidyTotal' ? 'var(--danger)' : 'var(--success)') : (key === 'deliveryCost' || key === 'subsidyTotal' ? 'var(--success)' : 'var(--danger)');
+        var valStr = mc.format === 'wan' ? fmtWan(Math.abs(d.delta)) : fmtInt(Math.abs(d.delta));
+        html += '<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px;">';
+        html += '<span style="min-width:50px;color:var(--text-secondary);">' + d.city + '</span>';
+        html += '<div style="flex:1;height:16px;background:var(--bg);border-radius:3px;overflow:hidden;">';
+        html += '<div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:3px;transition:width 0.5s;"></div>';
+        html += '</div>';
+        html += '<span style="min-width:60px;text-align:right;font-weight:500;">' + (d.delta >= 0 ? '+' : '-') + valStr + ' (' + safeFixed(d.contribution, 1) + '%)</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // --- 渲染UE分解面板 ---
+  function renderUEDecomposition(cityName, module) {
+    var container = document.getElementById('ueDecomposition');
+    if (!container || !state.currentData) return;
+
+    var cities = state.currentData.cities || [];
+    var city = cities.find(function(c) { return c.name === cityName || c.displayName === cityName; });
+    if (!city) { container.innerHTML = '<div class="empty-state"><div class="empty-text">请选择城市</div></div>'; return; }
+
+    var decomp = decomposeUE(city, module);
+    if (!decomp) { container.innerHTML = '<div class="empty-state"><div class="empty-text">无数据</div></div>'; return; }
+
+    var html = '<div style="text-align:center;margin-bottom:12px;">';
+    html += '<div style="font-size:11px;color:var(--text-secondary);">UE分解: 收入/单 - 成本/单</div>';
+    html += '<div style="font-size:24px;font-weight:700;color:' + (decomp.ue >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + safeFixed(decomp.ue, 2) + ' 元</div>';
+    html += '</div>';
+
+    html += '<div style="display:flex;gap:12px;margin-bottom:12px;">';
+    html += '<div style="flex:1;background:var(--success-light);border-radius:8px;padding:10px;text-align:center;">';
+    html += '<div style="font-size:11px;color:var(--text-secondary);">收入/单</div>';
+    html += '<div style="font-size:16px;font-weight:600;color:var(--success);">' + safeFixed(decomp.revenuePerOrder, 2) + '</div>';
+    html += '</div>';
+    html += '<div style="flex:1;background:var(--danger-light);border-radius:8px;padding:10px;text-align:center;">';
+    html += '<div style="font-size:11px;color:var(--text-secondary);">成本/单</div>';
+    html += '<div style="font-size:16px;font-weight:600;color:var(--danger);">' + safeFixed(decomp.costPerOrder, 2) + '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // 成本分解柱状图
+    var costItems = [
+      { label: '配送', value: decomp.costBreakdown.delivery, weight: decomp.costWeight.delivery },
+      { label: '补贴', value: decomp.costBreakdown.subsidy, weight: decomp.costWeight.subsidy },
+      { label: '平台', value: decomp.costBreakdown.platform, weight: decomp.costWeight.platform },
+      { label: '固定', value: decomp.costBreakdown.fixed, weight: decomp.costWeight.fixed },
+      { label: '其他', value: decomp.costBreakdown.other, weight: 0 }
+    ];
+
+    var maxCost = Math.max.apply(null, costItems.map(function(c) { return c.value; }));
+    if (maxCost === 0) maxCost = 1;
+
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:6px;">成本/单分解</div>';
+    costItems.forEach(function(item) {
+      var pct = Math.abs(item.value) / maxCost * 100;
+      html += '<div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:12px;">';
+      html += '<span style="min-width:36px;color:var(--text-secondary);">' + item.label + '</span>';
+      html += '<div style="flex:1;height:14px;background:var(--bg);border-radius:3px;overflow:hidden;">';
+      html += '<div style="width:' + pct + '%;height:100%;background:var(--orange);border-radius:3px;"></div>';
+      html += '</div>';
+      html += '<span style="min-width:50px;text-align:right;">' + safeFixed(item.value, 2) + '</span>';
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+  }
 function analyzeAnomalies(cities, module) {
   var anomalies = [];
   if (!cities || cities.length < 3) return anomalies;
@@ -2119,11 +2796,21 @@ function enhancedReportGenerate(cities, module, allHistory, merchantData) {
       }
     });
 
-    var ueTrend = analyzeTrend(trendUE);
+    var ueTrendBasic = analyzeTrend(trendUE);
     var profitTrend = analyzeTrend(trendProfit);
 
-    md.push('- UE趋势: ' + (ueTrend.direction === 'up' ? '上升' : ueTrend.direction === 'down' ? '下降' : '平稳') + '（' + safeFixed(ueTrend.strength * 100, 0) + '%确认度）');
+    // V13.2: 增强趋势分析
+    var ueAdvanced = analyzeTrendAdvanced(trendUE);
+    var profitAdvanced = analyzeTrendAdvanced(trendProfit);
+
+    md.push('- UE趋势: ' + (ueTrendBasic.direction === 'up' ? '上升' : ueTrendBasic.direction === 'down' ? '下降' : '平稳') + '（' + safeFixed(ueTrendBasic.strength * 100, 0) + '%确认度）');
+    if (ueAdvanced) {
+      md.push('- UE线性回归: 斜率' + safeFixed(ueAdvanced.slope, 4) + '，R²=' + safeFixed(ueAdvanced.r2, 3) + '（' + ueAdvanced.trendStrength + '趋势），预测下期' + safeFixed(ueAdvanced.predicted, 2) + '元');
+    }
     md.push('- 毛利趋势: ' + (profitTrend.direction === 'up' ? '上升' : profitTrend.direction === 'down' ? '下降' : '平稳'));
+    if (profitAdvanced) {
+      md.push('- 毛利线性回归: 斜率' + safeFixed(profitAdvanced.slope, 2) + '，R²=' + safeFixed(profitAdvanced.r2, 3));
+    }
 
     if (trendUE.length >= 2) {
       var latestUE = trendUE[trendUE.length - 1];
@@ -2136,16 +2823,31 @@ function enhancedReportGenerate(cities, module, allHistory, merchantData) {
   }
   md.push('');
 
-  // === 异常检测 ===
+  // === 异常检测（V13.2 IQR增强） ===
   md.push('## 三、异常检测');
-  var anomalies = analyzeAnomalies(validCities, module);
-  if (anomalies.length === 0) {
+  var iqrAnomalies = detectAnomaliesIQR(validCities, module);
+  var stdAnomalies = analyzeAnomalies(validCities, module);
+  var mergedAnomalies = {};
+  // 合并IQR和标准差检测结果
+  function addMerged(arr) {
+    arr.forEach(function(a) {
+      if (!mergedAnomalies[a.city]) mergedAnomalies[a.city] = [];
+      a.items.forEach(function(item) {
+        var exists = mergedAnomalies[a.city].some(function(e) { return e.type === item.type; });
+        if (!exists) mergedAnomalies[a.city].push(item);
+      });
+    });
+  }
+  addMerged(iqrAnomalies);
+  addMerged(stdAnomalies);
+
+  if (Object.keys(mergedAnomalies).length === 0) {
     md.push('- 未检测到显著异常');
   } else {
-    anomalies.forEach(function(a) {
-      a.items.forEach(function(item) {
+    Object.keys(mergedAnomalies).forEach(function(city) {
+      mergedAnomalies[city].forEach(function(item) {
         var icon = item.severity === 'danger' ? '🔴' : '🟡';
-        md.push('- ' + icon + ' **' + a.city + '**: ' + item.message);
+        md.push('- ' + icon + ' **' + city + '**: ' + item.message);
       });
     });
   }
@@ -2968,7 +3670,7 @@ function refreshDashboard() {
     renderMatrix();
     renderAnomalyAlert();
     renderDetailTab();
-  
+
     // V13: 触发概况页图表
     try {
       var filtered = getFilteredCities();
@@ -2979,7 +3681,28 @@ function refreshDashboard() {
         renderOverviewCharts(filtered, mod);
       }
     } catch(e) { console.warn('[V13 Chart]', e.message); }
+
+    // V13.2: 智能洞察
+    try {
+      var filtered2 = getFilteredCities();
+      var mod2 = currentModule ? currentModule.dataset.module : 'all';
+      if (filtered2.length > 0) {
+        var history = DataStore ? DataStore.loadAll() : {};
+        var allHistory = Object.keys(history).sort().map(function(d) { return history[d]; });
+        var insights = generateInsights(filtered2, mod2, allHistory);
+        renderInsightsPanel(insights);
+      }
+    } catch(e) { console.warn('[V13.2 Insights]', e.message); }
+
+    // V13.2: UE分解面板
+    try {
+      if (state.detailCity) {
+        var mod3 = currentModule ? currentModule.dataset.module : 'all';
+        renderUEDecomposition(state.detailCity, mod3);
+      }
+    } catch(e) { console.warn('[V13.2 UE Decomp]', e.message); }
 }
+
   // ===== TAB1: OVERVIEW =====
   function renderStatCards() {
     const cities = getFilteredCities();
@@ -4614,10 +5337,18 @@ function renderMarkdown(md) {
     el.innerHTML = html;
   }
 
-  function isCostAnomaly(key, value, base) {
+  function isCostAnomaly(key, value, base, statsObj) {
+    // V13.2: 优先使用IQR动态阈值，无统计对象时回退静态阈值
+    if (statsObj) {
+      if (key === 'ue' && statsObj.lowerBound !== undefined) return value < statsObj.lowerBound;
+      if (key === 'deliveryCostRate' && statsObj.upperBound !== undefined) return value > statsObj.upperBound;
+      if (key === 'subsidyRatio' && statsObj.upperBound !== undefined) return value > statsObj.upperBound;
+      if (key === 'avgRevenuePerOrder' && statsObj.lowerBound !== undefined) return value < statsObj.lowerBound;
+    }
+    // 回退：静态阈值
     if (key === 'ue') return value < -0.5;
-    if (key === 'deliveryCostRate') return value > 40;
-    if (key === 'subsidyRatio') return value > 10;
+    if (key === 'deliveryCostRate') return value > 0.40;
+    if (key === 'subsidyRatio') return value > 0.10;
     if (key === 'avgRevenuePerOrder') return value < 8;
     return false;
   }
@@ -4709,12 +5440,32 @@ function switchTab(tabName) {
       updateDetailSelectors();
       renderDetailTab();
       renderTrendCompare();
+      // V13.2: UE分解
+      try {
+        if (state.detailCity) {
+          var curMod = document.querySelector('.module-select.active');
+          var cm = curMod ? curMod.dataset.module : 'all';
+          renderUEDecomposition(state.detailCity, cm);
+        }
+      } catch(e) { console.warn('[V13.2 UE Decomp]', e.message); }
     }
     if (tabName === 'cost') {
       renderCostStructure();
       renderKACityCompare();
       renderCityRatio();
       renderCapacity();
+      // V13.2: 瀑布图 + 贡献度（需要两期数据）
+      try {
+        var prevData = getPrevPeriodAllData();
+        if (prevData && state.currentData) {
+          var wf = analyzeCostWaterfall(state.currentData, prevData);
+          renderWaterfallChart(wf);
+          var curMod = document.querySelector('.module-select.active');
+          var cm = curMod ? curMod.dataset.module : 'all';
+          var contrib = analyzeContribution(state.currentData, prevData, cm);
+          renderContributionPanel(contrib);
+        }
+      } catch(e) { console.warn('[V13.2 Waterfall/Contribution]', e.message); }
     }
     if (tabName === 'rawdata') {
       renderRawData();
