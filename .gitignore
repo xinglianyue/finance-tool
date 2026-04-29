@@ -3,3 +3,10 @@ preloaded_data.json
 
 # API服务敏感配置
 config.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
