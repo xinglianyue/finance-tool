@@ -51,7 +51,7 @@ DB_CONFIG = {
     "host": "192.168.0.12",
     "port": 3306,
     "user": "root",
-    "password": "Mysql!@#123,.",
+    "password": ""  # 从config.json读取,
     "database": "ruo_yi",
     "charset": "utf8mb4",
     "connect_timeout": 30,
