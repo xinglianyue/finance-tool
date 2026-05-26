@@ -1,0 +1,252 @@
+/* === 财务工具v17 分析面板增强样式 (灵犀UI优化 5/8) === */
+/* 覆盖: 敏感度矩阵 / 同比趋势 / What-If / UE分解 / 趋势预测 */
+
+/* --- Section 标题层级 --- */
+.an-sec-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+  margin: 0 0 4px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary, #4f46e5);
+  display: inline-block;
+}
+.an-sec-title-sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #374151);
+  margin: 12px 0 8px 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--primary, #4f46e5);
+}
+.an-hint-text {
+  font-size: 12px;
+  color: var(--text-sec, #6b7280);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+/* --- 指标卡片行 --- */
+.an-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.an-card {
+  background: linear-gradient(135deg, var(--bg-secondary, #f9fafb), var(--bg-sec, #f3f4f6));
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.an-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.an-label {
+  font-size: 11px;
+  color: var(--text-sec, #6b7280);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.an-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+  line-height: 1.2;
+}
+.an-val.an-green { color: #16a34a; }
+.an-val.an-red { color: #dc2626; }
+
+/* --- 表格增强 --- */
+.an-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.an-table thead th {
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary, #4f46e5);
+  font-weight: 600;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 2px solid var(--primary, #4f46e5);
+  white-space: nowrap;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.an-table thead th:first-child { border-radius: 8px 0 0 0; }
+.an-table thead th:last-child { border-radius: 0 8px 0 0; }
+.an-table tbody td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border, #f3f4f6);
+  color: var(--text, #374151);
+}
+.an-table tbody tr { transition: background 0.12s; }
+.an-table tbody tr:hover { background: var(--primary-light, #eef2ff); }
+.an-table tbody tr:last-child td { border-bottom: none; }
+.an-table tbody tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+.an-table tbody tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+/* 弹性高亮 */
+.an-table .an-red { font-weight: 600; color: #dc2626; }
+.an-table .an-orange { font-weight: 600; color: #d97706; }
+.an-table .an-green { font-weight: 600; color: #16a34a; }
+
+/* --- 横向条形图 (弹性归因 / 量价分解) --- */
+.an-bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 70px 50px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.an-bar-label {
+  font-size: 12px;
+  color: var(--text, #374151);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.an-bar-wrap {
+  height: 20px;
+  background: var(--bg, #f3f4f6);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+.an-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--primary, #4f46e5), #818cf8);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 2px;
+}
+.an-bar-fill.an-red { background: linear-gradient(90deg, #fca5a5, #ef4444); }
+.an-bar-fill.an-orange { background: linear-gradient(90deg, #fde68a, #f59e0b); }
+.an-bar-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  text-align: right;
+  white-space: nowrap;
+}
+.an-bar-pct {
+  font-size: 11px;
+  color: var(--text-sec, #6b7280);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* --- 同比趋势行 (4指标布局) --- */
+#secDetailYoY .an-bar-row {
+  grid-template-columns: 80px 80px 90px 1fr;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border, #f3f4f6);
+  align-items: center;
+  gap: 6px;
+}
+#secDetailYoY .an-bar-row:last-child { border-bottom: none; }
+#secDetailYoY .an-bar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #374151);
+}
+#secDetailYoY .an-bar-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+}
+
+/* --- What-If 场景最佳高亮 --- */
+.an-table tbody tr.an-best-scenario {
+  background: var(--success-light, #f0fdf4);
+  border-left: 3px solid var(--success, #22c55e);
+}
+.an-table tbody tr.an-best-scenario td:first-child {
+  font-weight: 700;
+  color: var(--success-hover, #16a34a);
+}
+
+/* --- 提示/建议框 --- */
+.an-hint {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--primary-light, #eef2ff), #faf5ff);
+  border: 1px solid var(--primary-light-hover, #e0e7ff);
+  border-radius: 10px;
+  border-left: 4px solid var(--primary, #4f46e5);
+}
+.an-hint-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary, #4f46e5);
+  margin-bottom: 4px;
+}
+
+/* --- UE分解 量价分解增强 --- */
+#secDetailUEDecomp .an-sec-title-sub {
+  margin-top: 16px;
+}
+
+/* --- 趋势预测面板 --- */
+.an-forecast-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 12px;
+}
+.an-forecast-label {
+  font-weight: 600;
+  min-width: 80px;
+  color: var(--text, #374151);
+}
+.an-forecast-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #1f2937);
+  min-width: 70px;
+}
+.an-forecast-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.an-forecast-tag-strong_up { background: #dcfce7; color: #16a34a; }
+.an-forecast-tag-moderate_up { background: #f0fdf4; color: #22c55e; }
+.an-forecast-tag-stable { background: #f3f4f6; color: #6b7280; }
+.an-forecast-tag-moderate_down { background: #fffbeb; color: #d97706; }
+.an-forecast-tag-strong_down { background: #fef2f2; color: #ef4444; }
+
+/* --- 空状态 --- */
+.an-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-sec, #9ca3af);
+  font-size: 13px;
+}
+
+/* --- 敏感度矩阵热力图 (条件格式) --- */
+.an-table tbody tr.an-heat-high td {
+  background: rgba(239, 68, 68, 0.06);
+}
+.an-table tbody tr.an-heat-medium td {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+/* --- 响应式 --- */
+@media (max-width: 768px) {
+  .an-row { grid-template-columns: repeat(2, 1fr); }
+  .an-bar-row { grid-template-columns: 100px 1fr 60px 40px; gap: 4px; }
+  #secDetailYoY .an-bar-row { grid-template-columns: 70px 70px 80px 1fr; gap: 4px; }
+  .an-val { font-size: 16px; }
+}
