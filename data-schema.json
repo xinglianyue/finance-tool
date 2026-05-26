@@ -1,0 +1,101 @@
+{
+  "columns": [
+    {
+      "field": "城市",
+      "required": true,
+      "description": "城市名称",
+      "example": "北京"
+    },
+    {
+      "field": "模块",
+      "required": true,
+      "description": "数据模块，固定为'all'",
+      "example": "all"
+    },
+    {
+      "field": "日期",
+      "required": true,
+      "description": "数据所属月份，格式YYYY-MM",
+      "example": "2024-01"
+    },
+    {
+      "field": "订单量",
+      "required": true,
+      "description": "当月总订单数",
+      "example": "150000"
+    },
+    {
+      "field": "线上收入",
+      "required": true,
+      "description": "当月线上收入总额（元）",
+      "example": "4500000"
+    },
+    {
+      "field": "配送成本",
+      "required": true,
+      "description": "当月配送成本总额（元）",
+      "example": "2250000"
+    },
+    {
+      "field": "平台成本",
+      "required": false,
+      "description": "当月平台费用（元）",
+      "example": "180000"
+    },
+    {
+      "field": "补贴B端",
+      "required": false,
+      "description": "B端补贴金额（元）",
+      "example": "450000"
+    },
+    {
+      "field": "补贴C端",
+      "required": false,
+      "description": "C端补贴金额（元）",
+      "example": "225000"
+    },
+    {
+      "field": "固定成本",
+      "required": false,
+      "description": "固定成本（元）",
+      "example": "90000"
+    },
+    {
+      "field": "附加成本",
+      "required": false,
+      "description": "其他附加成本（元）",
+      "example": "45000"
+    },
+    {
+      "field": "毛利",
+      "required": false,
+      "description": "毛利=收入-成本，如果不填则自动计算",
+      "example": "1350000"
+    },
+    {
+      "field": "罚款",
+      "required": false,
+      "description": "当月罚款金额（元）",
+      "example": "15000"
+    }
+  ],
+  "rules": {
+    "city_required": "城市名称不能为空",
+    "module_fixed": "模块必须为'all'",
+    "date_format": "日期格式必须为YYYY-MM",
+    "positive_numbers": "订单量、收入、成本必须为正数",
+    "min_order": "订单量最小为0",
+    "max_order": "单月订单量不建议超过1000万"
+  },
+  "example": {
+    "single_city_month": "单城市单月一行数据",
+    "multi_city": "多个城市则多行",
+    "multi_month": "多个月份则重复城市数据"
+  },
+  "calculation": {
+    "ue": "UE = (线上收入 - 总成本) / 订单量",
+    "total_cost": "总成本 = 配送成本 + 平台成本 + 补贴B端 + 补贴C端 + 固定成本 + 附加成本 + 罚款",
+    "subsidy_total": "补贴总额 = 补贴B端 + 补贴C端",
+    "subsidy_rate": "补贴率 = 补贴总额 / 线上收入"
+  }
+}

@@ -1,0 +1,359 @@
+/* ===== 详细分析页面统一样式 ===== */
+
+/* 统计卡片网格 - 统一为4列布局 */
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1200px) {
+  .detail-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .detail-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 统计卡片统一样式 */
+.detail-stat {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.detail-stat:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.detail-stat .s-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.detail-stat .s-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.detail-stat .s-change {
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.detail-stat .s-change.up { color: var(--success); }
+.detail-stat .s-change.down { color: var(--danger); }
+
+/* 根因分析卡片 */
+.root-cause-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.root-cause-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+/* 公式显示 */
+.root-cause-formula {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: 'Consolas', monospace;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  border-left: 3px solid var(--primary);
+}
+
+/* 结论文本 */
+.root-cause-conclusion {
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 16px;
+}
+
+.root-cause-conclusion.ok {
+  background: var(--success-light);
+  border-left: 3px solid var(--success);
+  color: var(--success);
+}
+
+.root-cause-conclusion.warning {
+  background: var(--warning-light);
+  border-left: 3px solid var(--warning);
+  color: var(--warning-dark);
+}
+
+.root-cause-conclusion.danger {
+  background: var(--danger-light);
+  border-left: 3px solid var(--danger);
+  color: var(--danger);
+}
+
+/* 补贴四维分析 - 统一卡片样式 */
+.subsidy-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .subsidy-breakdown { grid-template-columns: 1fr; }
+}
+
+.subsidy-item {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.subsidy-item.b-subsidy { border-left: 3px solid #3b82f6; }
+.subsidy-item.c-subsidy { border-left: 3px solid #8b5cf6; }
+.subsidy-item.special { border-left: 3px solid #f59e0b; }
+.subsidy-item.weather { border-left: 3px solid #10b981; }
+
+.subsidy-item .item-title {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.subsidy-item .item-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.subsidy-item .item-ratio {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.subsidy-item .item-desc {
+  font-size: 11px;
+  color: var(--gray);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* 结构洞察 */
+.structure-insight {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  border-left: 3px solid var(--primary);
+}
+
+/* 健康度卡片 */
+.health-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.health-card.healthy { border-left: 3px solid var(--success); }
+.health-card.warning { border-left: 3px solid var(--warning); }
+.health-card.danger { border-left: 3px solid var(--danger); }
+
+.health-card .health-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.health-card.healthy .health-title { color: var(--success); }
+.health-card.warning .health-title { color: var(--warning-dark); }
+.health-card.danger .health-title { color: var(--danger); }
+
+.health-card .health-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ROI分析卡片 */
+.roi-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.roi-card .roi-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.roi-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .roi-metrics { grid-template-columns: 1fr; }
+}
+
+.roi-metric {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.roi-metric .metric-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.roi-metric .metric-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.roi-metric .metric-value.good { color: var(--success); }
+.roi-metric .metric-value.bad { color: var(--danger); }
+.roi-metric .metric-value.warning { color: var(--warning-dark); }
+
+.roi-suggestion {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--warning-light);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--warning-dark);
+  border-left: 3px solid var(--warning);
+}
+
+/* 对比表格统一 */
+.comparison-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.comparison-card .card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 12px 16px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.comparison-table th {
+  text-align: left;
+  background: var(--bg-tertiary);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.comparison-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+.comparison-table tr:hover td {
+  background: var(--bg-hover);
+}
+
+.comparison-table .val-up { color: var(--success); }
+.comparison-table .val-down { color: var(--danger); }
+.comparison-table .total-row {
+  font-weight: 600;
+  background: var(--bg-tertiary);
+}
+
+/* 可折叠区域 */
+.collapsible-section {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.collapsible-header {
+  padding: 16px 20px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.collapsible-header:hover {
+  background: var(--bg-hover);
+}
+
+.collapsible-content {
+  padding: 20px;
+}
+
+/* 空状态提示 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

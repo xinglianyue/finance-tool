@@ -1,0 +1,311 @@
+/* ===== 分析模块统一样式 ===== */
+
+/* 补贴四维分析容器 */
+.subsidy-breakdown-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.subsidy-breakdown-card .card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 四维网格 */
+.subsidy-dims {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .subsidy-dims { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .subsidy-dims { grid-template-columns: 1fr; }
+}
+
+/* 补贴维度项 */
+.subsidy-dim-item {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.subsidy-dim-item.b-subsidy { border-left: 3px solid #3b82f6; }
+.subsidy-dim-item.c-subsidy { border-left: 3px solid #8b5cf6; }
+.subsidy-dim-item.activity { border-left: 3px solid #f59e0b; }
+.subsidy-dim-item.weather { border-left: 3px solid #10b981; }
+
+.subsidy-dim-item .dim-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.subsidy-dim-item.b-subsidy .dim-name { color: #3b82f6; }
+.subsidy-dim-item.c-subsidy .dim-name { color: #8b5cf6; }
+.subsidy-dim-item.activity .dim-name { color: #f59e0b; }
+.subsidy-dim-item.weather .dim-name { color: #10b981; }
+
+.subsidy-dim-item .dim-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.subsidy-dim-item .dim-ratio {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.subsidy-dim-item .dim-bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.subsidy-dim-item .dim-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.subsidy-dim-item.b-subsidy .dim-bar-fill { background: #3b82f6; }
+.subsidy-dim-item.c-subsidy .dim-bar-fill { background: #8b5cf6; }
+.subsidy-dim-item.activity .dim-bar-fill { background: #f59e0b; }
+.subsidy-dim-item.weather .dim-bar-fill { background: #10b981; }
+
+.subsidy-dim-item .dim-desc {
+  font-size: 11px;
+  color: var(--gray);
+  line-height: 1.4;
+}
+
+/* 结构洞察 */
+.structure-insight {
+  background: var(--bg-tertiary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 16px 0;
+  border-left: 3px solid var(--primary);
+  line-height: 1.6;
+}
+
+/* 健康度卡片 */
+.health-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+.health-card.healthy { background: #f0fdf4; border-color: #86efac; }
+.health-card.warning { background: #fffbeb; border-color: #fcd34d; }
+.health-card.danger { background: #fef2f2; border-color: #fca5a5; }
+
+.health-card .health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.health-card .health-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.health-card.healthy .health-title { color: #16a34a; }
+.health-card.warning .health-title { color: #d97706; }
+.health-card.danger .health-title { color: #dc2626; }
+
+.health-card .health-score {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.health-card.healthy .health-score { color: #16a34a; }
+.health-card.warning .health-score { color: #d97706; }
+.health-card.danger .health-score { color: #dc2626; }
+
+.health-card .health-score span {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* ROI分析卡片 */
+.roi-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+.roi-card.good { background: #f0fdf4; border-color: #86efac; }
+.roi-card.bad { background: #fef2f2; border-color: #fca5a5; }
+
+.roi-card .roi-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.roi-card.good .roi-title { color: #16a34a; }
+.roi-card.bad .roi-title { color: #dc2626; }
+
+.roi-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .roi-metrics { grid-template-columns: 1fr; }
+}
+
+.roi-metric {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.roi-metric .metric-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.roi-metric .metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.roi-metric .metric-sub {
+  font-size: 11px;
+  color: var(--gray);
+  margin-top: 2px;
+}
+
+.roi-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+.roi-suggestion {
+  margin-top: 12px;
+  padding: 12px;
+  background: #fffbeb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400e;
+  border-left: 3px solid #f59e0b;
+  line-height: 1.5;
+}
+
+/* 环比变化网格 */
+.change-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (max-width: 992px) {
+  .change-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 576px) {
+  .change-grid { grid-template-columns: 1fr; }
+}
+
+.change-item {
+  background: var(--bg-tertiary);
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.change-item .change-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.change-item .change-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.change-item .change-value.up { color: var(--danger); }
+.change-item .change-value.down { color: var(--success); }
+
+.change-item .change-pct {
+  font-size: 11px;
+  color: var(--gray);
+  margin-top: 2px;
+}
+
+/* 异常诊断卡片 */
+.anomaly-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.anomaly-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.anomaly-item:last-child { border-bottom: none; }
+
+.anomaly-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.anomaly-badge.danger { background: #fee2e2; color: #dc2626; }
+.anomaly-badge.warning { background: #fef3c7; color: #d97706; }
+.anomaly-badge.trend { background: #dbeafe; color: #2563eb; }
+
+.anomaly-metric {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+}
