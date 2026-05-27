@@ -1,1 +1,19 @@
-[]
+[
+  {
+    "date": "2026-05-27",
+    "updatedAt": "2026-05-27T02:58:55.259Z",
+    "uploadedBy": "web",
+    "fileName": "外卖账单20260331.xlsx",
+    "currentData": {
+      "date": "2026-05-27",
+      "cities": []
+    },
+    "merchantData": {
+      "all": {
+        "label": "全量商家",
+        "cities": []
+      }
+    },
+    "currentMerchant": "all"
+  }
+]
