@@ -35,6 +35,8 @@ archive/
 # 本地数据和配置（shared-data.json 需要上传到云端共享）
 config.json
 preloaded_data.json
+config-db.json
+token.json
 !shared-data.json
 *.csv
 *.xlsx

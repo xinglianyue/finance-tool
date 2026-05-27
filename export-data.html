@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务数据导出 - 美团代理商专用</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      padding: 40px;
+    }
+    h1 { text-align: center; color: #1f2937; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #374151;
+      font-weight: 500;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .form-group input.error {
+      border-color: var(--danger);
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+    
+    .status {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      display: none;
+      text-align: center;
+    }
+    .status.success { background: #dcfce7; color: #166534; display: block; }
+    .status.error { background: #fee2e2; color: #991b1b; display: block; }
+    .status.info { background: #dbeafe; color: #1e40af; display: block; }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 16px;
+      display: none;
+    }
+    .progress-bar .progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .features {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    .feature {
+      text-align: center;
+      padding: 15px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    .feature i { font-size: 24px; color: var(--primary); margin-bottom: 8px; }
+    .feature h3 { color: #374151; margin-bottom: 4px; font-size: 14px; }
+    .feature p { color: #6b7280; font-size: 12px; }
+    
+    .back-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .back-link a { color: var(--primary); text-decoration: none; }
+    .back-link a:hover { text-decoration: underline; }
+    
+    .lock-icon {
+      text-align: center;
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="lock-icon">🔐</div>
+    <h1>📊 财务数据导出</h1>
+    <p class="subtitle">输入日期和密码，导出原始格式的Excel文件</p>
+    
+    <div class="form-group">
+      <label for="dateInput">📅 选择日期</label>
+      <input type="date" id="dateInput" value="2026-05-19">
+    </div>
+    
+    <div class="form-group">
+      <label for="passwordInput">🔑 输入密码</label>
+      <input type="password" id="passwordInput" placeholder="请输入导出密码">
+    </div>
+    
+    <button class="btn btn-primary" id="exportBtn">
+      📥 导出Excel
+    </button>
+    
+    <div class="progress-bar" id="progressBar">
+      <div class="progress" id="progress"></div>
+    </div>
+    
+    <div class="status" id="status"></div>
+    
+    <div class="features">
+      <div class="feature">
+        <i>🔒</i>
+        <h3>密码保护</h3>
+        <p>安全导出，保护数据</p>
+      </div>
+      <div class="feature">
+        <i>📋</i>
+        <h3>原始格式</h3>
+        <p>与上传文件格式一致</p>
+      </div>
+    </div>
+    
+    <div class="back-link">
+      <a href="index-new.html">← 返回查看数据</a>
+    </div>
+  </div>
+
+  <script>
+    const dateInput = document.getElementById('dateInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const exportBtn = document.getElementById('exportBtn');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+    const progress = document.getElementById('progress');
+
+    const GITHUB_API = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
+    
+    async function getToken() {
+      const response = await fetch('token.json');
+      if (response.ok) {
+        const data = await response.json();
+        return data.token;
+      }
+      throw new Error('无法获取访问令牌');
+    }
+    
+    const VALID_PASSWORD = 'meituan123';
+
+    exportBtn.addEventListener('click', async () => {
+      const date = dateInput.value;
+      const password = passwordInput.value;
+      
+      if (!date) {
+        showStatus('error', '请选择日期');
+        return;
+      }
+      
+      if (password !== VALID_PASSWORD) {
+        passwordInput.classList.add('error');
+        showStatus('error', '密码错误，请重试');
+        return;
+      }
+      passwordInput.classList.remove('error');
+      
+      await exportData(date);
+    });
+
+    function showStatus(type, message) {
+      status.className = `status ${type}`;
+      status.innerHTML = message;
+    }
+
+    async function exportData(date) {
+      showStatus('info', '📡 正在从云端获取数据...');
+      progressBar.style.display = 'block';
+      progress.style.width = '10%';
+      exportBtn.disabled = true;
+      
+      try {
+        const data = await fetchDataFromGithub();
+        progress.style.width = '40%';
+        
+        if (!data || data.length === 0) {
+          throw new Error('云端没有数据，请先上传数据');
+        }
+        
+        showStatus('info', '📊 正在生成Excel文件...');
+        progress.style.width = '70%';
+        
+        const month = date.substring(0, 7);
+        const record = data.find(r => r.date && r.date.startsWith(month));
+        
+        if (!record) {
+          throw new Error(`未找到 ${month} 月份的数据`);
+        }
+        
+        const wb = await createExcel(record);
+        progress.style.width = '90%';
+        
+        downloadExcel(wb, date);
+        
+        progress.style.width = '100%';
+        showStatus('success', '✅ 导出成功！文件已下载');
+        
+      } catch (error) {
+        showStatus('error', '❌ 导出失败: ' + error.message);
+      } finally {
+        setTimeout(() => {
+          progressBar.style.display = 'none';
+          progress.style.width = '0%';
+          exportBtn.disabled = false;
+        }, 1000);
+      }
+    }
+
+    async function fetchDataFromGithub() {
+      const token = await getToken();
+      const headers = { 'Authorization': 'token ' + token };
+      
+      const response = await fetch(GITHUB_API, { headers });
+      if (!response.ok) {
+        throw new Error(`获取数据失败 (HTTP ${response.status})`);
+      }
+      
+      const result = await response.json();
+      const content = atob(result.content);
+      return JSON.parse(content);
+    }
+
+    async function createExcel(record) {
+      const wb = XLSX.utils.book_new();
+      
+      const merchantData = record.merchantData || {};
+      const sheetNames = ['全量商家', '城市商家', 'KA商家'];
+      const keys = ['all', 'city', 'ka'];
+      
+      const indicatorStructure = [
+        { first: '业务数据', second: '体量', third: '原价交易额', items: [
+          { name: '加盟原价交易额', field: 'franchiseGMV' },
+          { name: '自配原价交易额', field: 'selfGMV' },
+          { name: '原价交易额汇总', field: 'gmvAmount' },
+        ]},
+        { first: '业务数据', second: '体量', third: '订单量', items: [
+          { name: '加盟订单量', field: 'franchiseOrders' },
+          { name: '自配订单量', field: 'selfOrders' },
+          { name: '企客订单量', field: 'enterpriseOrders' },
+          { name: '订单量汇总', field: 'orders' },
+        ]},
+        { first: '收入', second: '线上收入', third: '抽佣金额（收入一）', items: [
+          { name: '加盟抽佣金额', field: 'franchiseCommission' },
+          { name: '自配抽佣金额', field: 'selfCommission' },
+          { name: '企客商家抽佣金额', field: 'enterpriseCommission' },
+          { name: '抽佣金额汇总', field: 'commission' },
+        ]},
+        { first: '收入', second: '线上收入', third: '配送费（收入二）', items: [
+          { name: '加盟配送费', field: 'franchiseDeliveryFee' },
+          { name: '二次配送费', field: 'secondDeliveryFee' },
+          { name: '企客配送费', field: 'enterpriseDeliveryFee' },
+          { name: '一对一急送配送费', field: 'urgentDeliveryFee' },
+          { name: '配送费汇总', field: 'deliveryFee' },
+        ]},
+        { first: '收入', second: '线上收入', third: '其他收入', items: [
+          { name: '合作商运营服务费', field: 'otherRevenue' },
+          { name: '专项补贴', field: 'specialSubsidy' },
+          { name: '其他收入汇总', field: 'otherRevenueTotal' },
+        ]},
+        { first: '收入', second: '线上收入', third: '线上收入汇总', items: [
+          { name: '线上收入汇总', field: 'onlineRevenue' },
+        ]},
+        { first: '收入', second: '收入汇总', third: '', items: [
+          { name: '收入汇总', field: 'totalRevenue' },
+        ]},
+        { first: '支出', second: '线上支出', third: '代补金额花费', items: [
+          { name: 'B端代补金额', field: 'subsidyB' },
+          { name: 'C端代补金额', field: 'subsidyC' },
+          { name: '代补金额花费汇总', field: 'subsidyTotal' },
+        ]},
+        { first: '支出', second: '线上支出', third: '平台成本', items: [
+          { name: '平台抽佣金额', field: 'platformCommissionCost' },
+          { name: '罚款', field: 'penalty' },
+          { name: '平台成本汇总', field: 'platformCost' },
+        ]},
+        { first: '支出', second: '线上支出', third: '线上支出汇总', items: [
+          { name: '线上支出汇总', field: 'onlineExpense' },
+        ]},
+        { first: '支出', second: '线下支出', third: '固定成本', items: [
+          { name: '办公室房租', field: 'officeRent' },
+          { name: '业务团队', field: 'teamCost' },
+          { name: '固定成本汇总', field: 'fixedCost' },
+        ]},
+        { first: '支出', second: '线下支出', third: '配送成本', items: [
+          { name: '加盟邮资', field: 'franchiseDelivery' },
+          { name: '普众众包邮资', field: 'crowdDelivery' },
+          { name: '悦跑邮资', field: 'yuepaoDelivery' },
+          { name: '配送成本汇总', field: 'deliveryCost' },
+        ]},
+        { first: '支出', second: '线下支出', third: '附加成本', items: [
+          { name: '三方服务费', field: 'thirdPartyServiceCost' },
+          { name: '附加成本汇总', field: 'additionalCost' },
+        ]},
+        { first: '支出', second: '线下支出', third: '其他成本', items: [
+          { name: '其他成本汇总', field: 'otherCost' },
+        ]},
+        { first: '支出', second: '线下支出', third: '线下支出汇总', items: [
+          { name: '线下支出汇总', field: 'offlineExpense' },
+        ]},
+        { first: '支出', second: '支出汇总', third: '', items: [
+          { name: '支出汇总', field: 'totalExpense' },
+        ]},
+        { first: '盈利', second: '毛利', third: '', items: [
+          { name: '毛利', field: 'profit' },
+        ]},
+      ];
+      
+      const cityOrder = [
+        '承德市', '围场满族蒙古族自治县', '玉田县', '安国市', '安平',
+        '献县', '晋州', '威县', '深泽县', '康保县'
+      ];
+      
+      const cityIds = {
+        '承德市': 1103, '围场满族蒙古族自治县': 1289, '玉田县': 14818,
+        '安国市': 1027, '安平': 580, '献县': 4448, '晋州': 573,
+        '威县': 4091, '深泽县': 14122, '康保县': 14121
+      };
+      
+      sheetNames.forEach((sheetName, idx) => {
+        const key = keys[idx];
+        const blockData = merchantData[key];
+        const cities = blockData ? blockData.cities : [];
+        
+        const rows = [];
+        rows.push(['全品类财务指标', `城市线上UE（${sheetName}）`, '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+        rows.push(['', '城市id', '', '', '', 1103, 1289, 14818, 1027, 580, 4448, 573, 4091, 14122, 14121, '总商']);
+        rows.push(['', '城市名称', '', '', '', '承德市', '围场满族蒙古族自治县', '玉田县', '安国市', '安平', '献县', '晋州', '威县', '深泽县', '康保县', '总商']);
+        rows.push(['', '一级指标', '二级指标', '三级指标', '四级指标', '', '', '', '', '', '', '', '', '', '', '']);
+        
+        indicatorStructure.forEach(struct => {
+          let prevFirst = '';
+          let prevSecond = '';
+          let prevThird = '';
+          
+          struct.items.forEach(item => {
+            const row = ['', 
+              struct.first !== prevFirst ? struct.first : '',
+              struct.second !== prevSecond ? struct.second : '',
+              struct.third !== prevThird ? struct.third : '',
+              item.name
+            ];
+            
+            cityOrder.forEach(cityName => {
+              const city = cities.find(c => c.name === cityName);
+              if (city) {
+                const modules = city.modules || {};
+                const allData = modules.all || {};
+                const val = allData[item.field] || 0;
+                row.push(val);
+              } else {
+                row.push(0);
+              }
+            });
+            
+            const total = row.slice(5, 15).reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0);
+            row.push(total);
+            
+            rows.push(row);
+            
+            prevFirst = struct.first;
+            prevSecond = struct.second;
+            prevThird = struct.third;
+          });
+        });
+        
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        
+        ws['!cols'] = [
+          { wch: 15 }, { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 18 },
+          { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 },
+          { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      });
+      
+      return wb;
+    }
+
+    function downloadExcel(wb, date) {
+      const fileName = `外卖账单导出${date.replace(/-/g, '')}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    }
+  </script>
+</body>
+</html>
