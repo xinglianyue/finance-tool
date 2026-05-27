@@ -32,9 +32,10 @@ index.html.backup-20260521-205649
 # 存档目录
 archive/
 
-# 本地数据和配置
+# 本地数据和配置（shared-data.json 需要上传到云端共享）
 config.json
 preloaded_data.json
+!shared-data.json
 *.csv
 *.xlsx
 *.xls
