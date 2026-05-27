@@ -3007,28 +3007,46 @@
       // 2. 加载数据
       let loaded = loadFromLocalStorage();
       
-      // 3. 如果本地没有数据，尝试从云端加载
-      if (!loaded) {
+      // 3. 检查本地数据是否有效
+      if (loaded) {
+        const state = StateManager.get();
+        const hasValidData = state.importHistory?.length > 0 && 
+                            state.currentData?.cities?.length > 0;
+        
+        if (!hasValidData) {
+          console.log('[App] 本地数据无效，尝试从云端加载...');
+          loaded = await loadFromCloud();
+          if (loaded) {
+            // 重新获取状态
+            StateManager.init(DataStore.load());
+          }
+        }
+      } else {
+        // 4. 如果本地没有数据，尝试从云端加载
         console.log('[App] 本地无数据，尝试从云端加载...');
         loaded = await loadFromCloud();
+        if (loaded) {
+          // 重新初始化状态
+          StateManager.init(DataStore.load());
+        }
       }
       
       if (loaded) {
-        // 4. 健康检查
+        // 5. 健康检查
         const health = StateManager.validate();
         if (!health.valid) {
           console.warn('[App] 状态验证警告:', health.issues);
         }
         
-        // 5. 获取状态信息
+        // 6. 获取状态信息
         const state = StateManager.get();
         
-        // 6. 渲染UI
+        // 7. 渲染UI
         renderOverview();
         renderDimension();
         renderTrend();
         
-        // 7. 显示加载成功
+        // 8. 显示加载成功
         const recordCount = state.importHistory?.length || 0;
         showToast('已加载上次的数据，共' + recordCount + '条记录', 'success');
         
