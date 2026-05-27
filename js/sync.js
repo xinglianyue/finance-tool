@@ -35,8 +35,52 @@ import { onDataLoaded } from './ui';
       }, null, 2);
     }
 
-    function push(date, currentData, merchantData, currentMerchant) {
-      // 已禁用：数据同步统一由db-sync.py自动完成，无需前端手动推送
+    function push(date, currentData, merchantData, currentMerchant, callback) {
+      var payload = buildPayload(date, currentData, merchantData, currentMerchant);
+      safeLog('info', '[CloudData] Pushing to GitHub...');
+      
+      pull(function(existingData) {
+        var allRecords = Array.isArray(existingData) ? existingData : [];
+        var existingIndex = allRecords.findIndex(function(r) { return r.date === date; });
+        
+        if (existingIndex >= 0) {
+          allRecords[existingIndex] = JSON.parse(payload);
+        } else {
+          allRecords.push(JSON.parse(payload));
+        }
+        
+        var finalData = JSON.stringify(allRecords, null, 2);
+        var encodedData = btoa(unescape(encodeURIComponent(finalData)));
+        
+        var config = {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'token ' + GITHUB_TOKEN
+          },
+          body: JSON.stringify({
+            message: 'CloudData sync: ' + date + ' (auto)',
+            content: encodedData,
+            branch: 'main'
+          })
+        };
+        
+        fetch(GITHUB_API, config)
+          .then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+          })
+          .then(function(data) {
+            safeLog('info', '[CloudData] Push successful:', data.commit.sha);
+            cache = allRecords;
+            cacheTime = Date.now();
+            if (callback) callback(null, data);
+          })
+          .catch(function(err) {
+            safeLog('info', '[CloudData] Push failed:', err.message);
+            if (callback) callback(err);
+          });
+      });
     }
 
     function pull(callback) {
