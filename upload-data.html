@@ -1341,16 +1341,29 @@
         return;
       }
       
-      cloudData.splice(index, 1);
-      
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(cloudData, null, 2))));
-      
       fetch(GITHUB_API, {
         headers: {
           'Authorization': 'token ' + token,
           'Accept': 'application/vnd.github.v3+json'
         }
       }).then(resp => resp.json()).then(data => {
+        const currentContent = atob(data.content);
+        const currentData = JSON.parse(currentContent);
+        
+        if (!Array.isArray(currentData)) {
+          alert('数据格式错误');
+          return;
+        }
+        
+        if (index >= currentData.length) {
+          alert('记录不存在');
+          return;
+        }
+        
+        currentData.splice(index, 1);
+        
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(currentData, null, 2))));
+        
         return fetch(GITHUB_API, {
           method: 'PUT',
           headers: {
