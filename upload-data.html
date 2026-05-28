@@ -1289,7 +1289,7 @@
           let content = null;
           
           if (data.content && data.content.trim() !== '') {
-            content = atob(data.content);
+            content = decodeURIComponent(escape(atob(data.content)));
           } else if (data.download_url) {
             const downloadResp = await fetch(data.download_url);
             if (downloadResp.ok) {
