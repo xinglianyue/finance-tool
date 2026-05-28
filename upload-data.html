@@ -1288,13 +1288,13 @@
           
           let content = null;
           
-          if (data.content && data.content.trim() !== '') {
-            content = decodeURIComponent(escape(atob(data.content)));
-          } else if (data.download_url) {
+          if (data.download_url) {
             const downloadResp = await fetch(data.download_url);
             if (downloadResp.ok) {
               content = await downloadResp.text();
             }
+          } else if (data.content && data.content.trim() !== '') {
+            content = decodeURIComponent(escape(atob(data.content)));
           }
           
           if (!content || content.trim() === '') {
