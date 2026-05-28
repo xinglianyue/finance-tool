@@ -321,7 +321,11 @@
         </div>
         <button class="btn btn-outline" style="height: 42px; padding: 0 20px;" onclick="validateToken()">验证Token</button>
       </div>
-      <p style="font-size: 12px; color: #b45309; margin-top: 8px; margin-bottom: 0;">提示：Token需拥有 repo 权限，用于上传数据到GitHub</p>
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+        <input type="checkbox" id="rememberToken" style="width: 16px; height: 16px;">
+        <label for="rememberToken" style="font-size: 13px; color: #b45309;">记住Token（保存到本地浏览器，更换浏览器或清除缓存后需重新输入）</label>
+      </div>
+      <p style="font-size: 12px; color: #b45309; margin-top: 4px; margin-bottom: 0;">提示：Token需拥有 repo 权限，用于上传数据到GitHub</p>
     </div>
 
     <div class="upload-area" id="uploadArea">
@@ -410,6 +414,22 @@
       return document.getElementById('githubTokenInput').value.trim();
     }
     
+    function saveToken(token) {
+      if (document.getElementById('rememberToken').checked) {
+        localStorage.setItem('finance_tool_github_token', token);
+        console.log('[Token] Token已保存到本地存储');
+      }
+    }
+    
+    function loadSavedToken() {
+      const savedToken = localStorage.getItem('finance_tool_github_token');
+      if (savedToken) {
+        document.getElementById('githubTokenInput').value = savedToken;
+        document.getElementById('rememberToken').checked = true;
+        console.log('[Token] 已加载保存的Token');
+      }
+    }
+    
     async function validateToken() {
       const token = getToken();
       if (!token || !token.startsWith('ghp_')) {
@@ -425,6 +445,7 @@
       try {
         const resp = await fetch('https://api.github.com/user', { headers });
         if (resp.ok) {
+          saveToken(token);
           alert('✅ Token验证成功！');
         } else {
           alert('❌ Token无效或权限不足');
@@ -948,6 +969,8 @@
         return false;
       }
       
+      saveToken(token);
+      
       const headers = {
         'Authorization': 'token ' + token,
         'Accept': 'application/vnd.github.v3+json'
@@ -1139,6 +1162,7 @@
     testCloudBtn.addEventListener('click', runCloudDiagnostic);
 
     document.addEventListener('DOMContentLoaded', function() {
+      loadSavedToken();
       loadHistoryData();
     });
 
