@@ -873,16 +873,6 @@
         totalProfit += module.profit || 0;
       });
       
-      const totalRow = document.createElement('tr');
-      totalRow.style.fontWeight = 'bold';
-      const totalCells = ['合计', totalOrders.toLocaleString(), (totalGMV / 10000).toFixed(2), (totalProfit / 10000).toFixed(2), (totalOrders > 0 ? ((totalProfit / (totalGMV || 1)) * 100).toFixed(2) : '0') + '%'];
-      totalCells.forEach(c => {
-        const td = document.createElement('td');
-        td.textContent = c;
-        totalRow.appendChild(td);
-      });
-      previewTable.appendChild(totalRow);
-      
       dataPreview.style.display = 'block';
     }
 
