@@ -799,6 +799,19 @@
       return merchantData;
     }
     
+    function parseDateFromFilename(filename) {
+      const p1 = filename.match(/(\d{4})[-_]?(0[1-9]|1[0-2])[-_]?(0[1-9]|[12]\d|3[01])/);
+      if (p1) { return p1[1] + '-' + p1[2] + '-' + p1[3]; }
+      const p2 = filename.match(/(\d{4})年(\d{1,2})月(\d{1,2})/);
+      if (p2) { return p2[1] + '-' + String(parseInt(p2[2])).padStart(2,'0') + '-' + String(parseInt(p2[3])).padStart(2,'0'); }
+      const p3 = filename.match(/(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?![\d年])/);
+      if (p3) {
+        const yr = new Date().getFullYear();
+        return yr + '-' + p3[1] + '-' + p3[2];
+      }
+      return new Date().toISOString().split('T')[0];
+    }
+
     function buildOutputData(merchantData) {
       const cities = [];
       const allCities = merchantData.all?.cities || [];
@@ -812,10 +825,13 @@
         cities.push(cityItem);
       });
       
+      const dataDate = currentFileName ? parseDateFromFilename(currentFileName) : new Date().toISOString().split('T')[0];
+      
       return {
-        date: new Date().toISOString().split('T')[0],
+        date: dataDate,
         cities: cities,
-        merchantData: merchantData
+        merchantData: merchantData,
+        fileName: currentFileName
       };
     }
 
