@@ -1279,11 +1279,18 @@
 
     async function loadHistoryData() {
       try {
-        const resp = await fetch(GITHUB_RAW_URL);
+        const token = localStorage.getItem('GITHUB_TOKEN');
+        const headers = token ? { 'Authorization': 'token ' + token } : {};
+        const resp = await fetch(GITHUB_API_URL, { headers });
         
         if (resp.ok) {
           const data = await resp.json();
-          cloudData = Array.isArray(data) ? data : [];
+          const content = atob(data.content);
+          cloudData = JSON.parse(content);
+          
+          if (!Array.isArray(cloudData)) {
+            cloudData = [];
+          }
           
           if (cloudData.length === 0) {
             historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>暂无上传记录</div><div style="font-size: 13px; margin-top: 4px;">上传数据后会显示在这里</div></div>';
@@ -1310,7 +1317,8 @@
         }
       } catch (e) {
         console.error('[Error] 加载历史记录失败:', e);
-        historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>无法加载历史记录</div><div style="font-size: 13px; margin-top: 4px;">网络错误: ' + e.message + '</div></div>';
+        historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>历史记录加载失败</div><div style="font-size: 13px; margin-top: 4px;">将创建新的数据集</div></div>';
+        cloudData = [];
       }
     }
 
