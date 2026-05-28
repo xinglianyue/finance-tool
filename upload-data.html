@@ -1285,7 +1285,21 @@
         
         if (resp.ok) {
           const data = await resp.json();
+          
+          if (!data.content || data.content.trim() === '') {
+            cloudData = [];
+            historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>暂无上传记录</div><div style="font-size: 13px; margin-top: 4px;">上传数据后会显示在这里</div></div>';
+            return;
+          }
+          
           const content = atob(data.content);
+          
+          if (!content || content.trim() === '') {
+            cloudData = [];
+            historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>暂无上传记录</div><div style="font-size: 13px; margin-top: 4px;">上传数据后会显示在这里</div></div>';
+            return;
+          }
+          
           cloudData = JSON.parse(content);
           
           if (!Array.isArray(cloudData)) {
