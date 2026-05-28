@@ -1288,16 +1288,7 @@
           
           let content = null;
           
-          if (data.download_url) {
-            const downloadResp = await fetch(data.download_url, {
-              headers: {
-                'Accept': 'application/json; charset=utf-8'
-              }
-            });
-            if (downloadResp.ok) {
-              content = await downloadResp.text();
-            }
-          } else if (data.content && data.content.trim() !== '') {
+          if (data.content && data.content.trim() !== '') {
             content = decodeURIComponent(escape(atob(data.content)));
           }
           
