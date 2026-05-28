@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务数据上传 - 美团代理商专用</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
+  <script src="js/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      padding: 40px;
+    }
+    h1 { text-align: center; color: #1f2937; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; }
+    .upload-area {
+      border: 3px dashed #e2e8f0;
+      border-radius: 12px;
+      padding: 60px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #fafafa;
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--primary);
+      background: #f0f4ff;
+    }
+    .upload-area i { font-size: 48px; color: var(--primary); margin-bottom: 16px; display: block; }
+    .upload-area span { display: block; color: #374151; font-size: 16px; margin-bottom: 8px; }
+    .upload-area small { color: #9ca3af; }
+    #fileInput { display: none; }
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #15803d; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+    .btn-outline:hover { background: #f0f4ff; }
+    .status {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 8px;
+      display: none;
+    }
+    .status.success { background: #dcfce7; color: #166534; display: block; }
+    .status.error { background: #fee2e2; color: #991b1b; display: block; }
+    .status.info { background: #dbeafe; color: #1e40af; display: block; }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 16px;
+      display: none;
+    }
+    .progress-bar .progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .features {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .feature {
+      text-align: center;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    .feature i { font-size: 28px; color: var(--primary); margin-bottom: 8px; }
+    .feature h3 { color: #374151; margin-bottom: 4px; }
+    .feature p { color: #6b7280; font-size: 14px; }
+    .github-link { text-align: center; margin-top: 24px; color: #6b7280; }
+    .github-link a { color: var(--primary); text-decoration: none; }
+    .data-preview {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+      border: 1px solid #e5e7eb;
+      padding: 8px;
+      text-align: left;
+      font-size: 12px;
+    }
+    .data-table th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+    .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .history-section {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .history-section h3 {
+      color: #374151;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .history-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: #6b7280;
+    }
+    .empty-state i {
+      font-size: 32px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .history-item {
+      background: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+    .history-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .history-item:last-child { margin-bottom: 0; }
+    .history-date { font-weight: 600; color: #1f2937; }
+    .history-info { font-size: 13px; color: #6b7280; }
+    .history-actions { display: flex; gap: 8px; }
+    .history-btn {
+      padding: 4px 12px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+    }
+    .history-btn.view { background: #f3f4f6; color: #374151; }
+    .history-btn.view:hover { background: #e5e7eb; }
+    .history-btn.delete { background: #fee2e2; color: #dc2626; }
+    .history-btn.delete:hover { background: #fecaca; }
+    .status-panel {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+      display: none;
+    }
+    .status-panel.success { background: #dcfce7; display: block; }
+    .status-panel.error { background: #fee2e2; display: block; }
+    .status-panel.info { background: #dbeafe; display: block; }
+    .status-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .status-icon { font-size: 24px; }
+    .status-title { font-size: 18px; font-weight: 600; color: #1f2937; }
+    .status-body { margin-bottom: 16px; line-height: 1.6; color: #4b5563; }
+    .status-timeline { border-left: 2px solid #e2e8f0; padding-left: 20px; }
+    .status-panel.success .status-timeline { border-color: #86efac; }
+    .status-panel.error .status-timeline { border-color: #fca5a5; }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      flex-shrink: 0;
+      margin-left: -26px;
+      margin-top: 3px;
+    }
+    .status-panel.success .timeline-item.done .timeline-dot { background: #10b981; }
+    .status-panel.error .timeline-item.error .timeline-dot { background: #ef4444; }
+    .timeline-text { font-size: 13px; color: #64748b; }
+    .timeline-text.success { color: #166534; }
+    .timeline-text.error { color: #991b1b; }
+    .timeline-time { font-size: 11px; color: #9ca3af; margin-left: 8px; }
+    .status-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 8px;
+    }
+    .stat-value { font-size: 20px; font-weight: 700; color: #1f2937; }
+    .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .token-section {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: #fef3c7;
+      border-radius: 8px;
+      border: 1px solid #fbbf24;
+    }
+    .cloud-test-section {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border: 1px solid #7dd3fc;
+      display: none;
+    }
+    .cloud-test-results {
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+    .progress-container {
+      margin-top: 16px;
+      display: none;
+    }
+    .progress-text {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 8px;
+      text-align: center;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 财务数据上传</h1>
+    <p class="subtitle">上传美团财务Excel账单，数据将自动同步到云端</p>
+    
+    <div class="features">
+      <div class="feature">
+        <i>💻</i>
+        <h3>本地解析</h3>
+        <p>数据在浏览器中处理，安全可靠</p>
+      </div>
+      <div class="feature">
+        <i>📁</i>
+        <h3>格式兼容</h3>
+        <p>支持.xlsx, .xls, .csv格式</p>
+      </div>
+      <div class="feature">
+        <i>📋</i>
+        <h3>历史记录</h3>
+        <p>查看已上传的数据记录</p>
+      </div>
+    </div>
+
+    <div class="token-section" id="tokenSection">
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+          <label style="display: block; font-size: 13px; font-weight: 500; color: #92400e; margin-bottom: 4px;">🔑 GitHub Token</label>
+          <input type="password" id="githubTokenInput" placeholder="请输入GitHub Personal Access Token" style="width: 100%; padding: 10px; border: 1px solid #f59e0b; border-radius: 6px; font-family: monospace; font-size: 12px;">
+        </div>
+        <button class="btn btn-outline" style="height: 42px; padding: 0 20px;" onclick="validateToken()">验证Token</button>
+      </div>
+      <p style="font-size: 12px; color: #b45309; margin-top: 8px; margin-bottom: 0;">提示：Token需拥有 repo 权限，用于上传数据到GitHub</p>
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+      <i>📁</i>
+      <span>点击或拖拽Excel文件到此处上传</span>
+      <small>支持 .xlsx, .xls, .csv格式</small>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+    
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar">
+        <div class="progress" id="progress"></div>
+      </div>
+      <div class="progress-text" id="progressText"></div>
+    </div>
+    
+    <div class="status-panel" id="statusPanel">
+      <div class="status-header" id="statusHeader"></div>
+      <div class="status-body" id="statusBody"></div>
+      <div class="status-timeline" id="statusTimeline"></div>
+    </div>
+    
+    <div class="data-preview" id="dataPreview" style="display: none;">
+      <h3 style="margin: 12px;">📋 数据预览</h3>
+      <table class="data-table" id="previewTable"></table>
+    </div>
+    
+    <div class="actions" id="actions" style="display: none;">
+      <button class="btn btn-success" id="uploadCloudBtn">☁️ 上传到云端</button>
+      <button class="btn btn-primary" id="saveLocalBtn">💾 保存到本地</button>
+      <button class="btn btn-outline" id="goToAnalysisBtn">📈 查看分析</button>
+      <button class="btn btn-outline" id="testCloudBtn">🔍 云端诊断</button>
+    </div>
+    
+    <div class="cloud-test-section" id="cloudTestSection">
+      <h3 style="margin: 0 0 12px 0; color: #0369a1;">☁️ 云端连接诊断</h3>
+      <div class="cloud-test-results" id="cloudTestResults"></div>
+    </div>
+    
+    <div class="history-section" id="historySection">
+      <h3>📋 上传历史记录 <button class="btn btn-outline" style="margin-left: auto; padding: 6px 16px; font-size: 13px;" onclick="refreshHistory()">🔄 刷新列表</button></h3>
+      <div class="history-list" id="historyList">
+        <div class="empty-state" id="emptyState">
+          <i>📭</i>
+          <div>暂无上传记录</div>
+          <div style="font-size: 13px; margin-top: 4px;">上传数据后会显示在这里</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const progressBar = document.getElementById('progressBar');
+    const progress = document.getElementById('progress');
+    const progressText = document.getElementById('progressText');
+    const progressContainer = document.getElementById('progressContainer');
+    const statusPanel = document.getElementById('statusPanel');
+    const statusHeader = document.getElementById('statusHeader');
+    const statusBody = document.getElementById('statusBody');
+    const statusTimeline = document.getElementById('statusTimeline');
+    const dataPreview = document.getElementById('dataPreview');
+    const previewTable = document.getElementById('previewTable');
+    const actions = document.getElementById('actions');
+    const uploadCloudBtn = document.getElementById('uploadCloudBtn');
+    const saveLocalBtn = document.getElementById('saveLocalBtn');
+    const goToAnalysisBtn = document.getElementById('goToAnalysisBtn');
+    const testCloudBtn = document.getElementById('testCloudBtn');
+    const historySection = document.getElementById('historySection');
+    const historyList = document.getElementById('historyList');
+    const emptyState = document.getElementById('emptyState');
+    const cloudTestSection = document.getElementById('cloudTestSection');
+    const cloudTestResults = document.getElementById('cloudTestResults');
+    const loadHistoryBtn = document.getElementById('refreshBtn');
+
+    let parsedData = null;
+    let cloudData = [];
+    let currentFileName = '';
+    let timelineItems = [];
+    
+    const GITHUB_API = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
+    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
+    
+    function getToken() {
+      return document.getElementById('githubTokenInput').value.trim();
+    }
+    
+    async function validateToken() {
+      const token = getToken();
+      if (!token || !token.startsWith('ghp_')) {
+        alert('请输入有效的GitHub Token（以ghp_开头）');
+        return;
+      }
+      
+      const headers = {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json'
+      };
+      
+      try {
+        const resp = await fetch('https://api.github.com/user', { headers });
+        if (resp.ok) {
+          alert('✅ Token验证成功！');
+        } else {
+          alert('❌ Token无效或权限不足');
+        }
+      } catch (e) {
+        alert('❌ 连接失败: ' + e.message);
+      }
+    }
+    
+    const CONFIG = {
+      CITY_DISPLAY_MAP: {
+        '承德市': '承德',
+        '围场满族蒙古族自治县': '围场',
+        '玉田县': '玉田',
+        '安国市': '安国',
+        '安平': '安平',
+        '献县': '献县',
+        '晋州': '晋州',
+        '威县': '威县',
+        '深泽县': '深泽',
+        '康保县': '康保'
+      },
+      MERCHANT_TYPES: [
+        { sheetName: '全量商家', key: 'all', label: '全量商家' },
+        { sheetName: '城市商家', key: 'city', label: '城市商家' },
+        { sheetName: 'KA商家', key: 'ka', label: 'KA商家' }
+      ],
+      MODULES: {
+        all: { key: 'all', name: '全品类' },
+        food: { key: 'food', name: '餐饮外卖' },
+        flash: { key: 'flash', name: '闪购' },
+        medicine: { key: 'medicine', name: '医药' },
+        group: { key: 'group', name: '到店' }
+      }
+    };
+
+    const FIELD_RULES = [
+      ['订单量汇总', 'orders'],
+      ['加盟订单量', 'franchiseOrders'],
+      ['自配订单量', 'selfOrders'],
+      ['企客订单量', 'enterpriseOrders'],
+      ['加盟原价交易额', 'franchiseGMV'],
+      ['自配原价交易额', 'selfGMV'],
+      ['原价交易额', 'gmvAmount'],
+      ['原价交易额汇总', 'gmvAmount'],
+      ['加盟抽佣金额', 'franchiseCommission'],
+      ['自配抽佣金额', 'selfCommission'],
+      ['企客商家抽佣金额', 'enterpriseCommission'],
+      ['抽佣金额汇总', 'commission'],
+      ['加盟配送费', 'franchiseDeliveryFee'],
+      ['二次配送费', 'secondDeliveryFee'],
+      ['企客配送费', 'enterpriseDeliveryFee'],
+      ['一对一急送配送费', 'urgentDeliveryFee'],
+      ['配送费汇总', 'deliveryFee'],
+      ['合作商运营服务费', 'otherRevenue'],
+      ['B端代补金额', 'subsidyB'],
+      ['C端代补金额', 'subsidyC'],
+      ['账单-代补差额', 'subsidyDiff'],
+      ['代补金额花费汇总', 'subsidyTotal'],
+      ['专项补贴', 'specialSubsidy'],
+      ['星火激励调账', 'crowdSubsidyAdjust'],
+      ['平台抽佣金额', 'platformCommissionCost'],
+      ['合作商售后赔付费用', 'afterSaleCost'],
+      ['关爱基金', 'careFund'],
+      ['保险费用', 'insuranceCost'],
+      ['竞价', 'biddingCost'],
+      ['罚款', 'penalty'],
+      ['平台成本汇总', 'platformCost'],
+      ['加盟承接订单量', 'franchiseDeliverOrders'],
+      ['加盟单均邮资', 'franchiseAvgPostage'],
+      ['加盟活动花费', 'franchiseActivityCost'],
+      ['加盟邮资', 'franchiseDelivery'],
+      ['普众众包订单量', 'crowdOrders'],
+      ['普众众包基础邮资', 'crowdBasePostage'],
+      ['普众众包活动花费', 'crowdActivityCost'],
+      ['普众众包邮资', 'crowdDelivery'],
+      ['悦跑订单量', 'yuepaoOrders'],
+      ['悦跑基础邮资', 'yuepaoBasePostage'],
+      ['悦跑活动花费', 'yuepaoActivityCost'],
+      ['悦跑邮资', 'yuepaoDelivery'],
+      ['众包天气补贴', 'weatherSubsidy'],
+      ['配送成本汇总', 'deliveryCost'],
+      ['办公室房租', 'officeRent'],
+      ['业务团队', 'teamCost'],
+      ['固定成本汇总', 'fixedCost'],
+      ['三方服务费', 'thirdPartyServiceCost'],
+      ['社保', 'socialInsurance'],
+      ['税', 'taxCost'],
+      ['附加成本汇总', 'additionalCost'],
+      ['外卖运营增单', 'operationBoostCost'],
+      ['水电电话网物料费', 'utilityCost'],
+      ['差旅招待', 'travelCost'],
+      ['其他成本', 'otherMiscCost'],
+      ['其他成本汇总', 'otherCost']
+    ];
+
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function showProgress(percent, text) {
+      progressContainer.style.display = 'block';
+      progressBar.style.display = 'block';
+      progress.style.width = percent + '%';
+      progressText.textContent = text;
+    }
+
+    function hideProgress() {
+      progressContainer.style.display = 'none';
+      progressBar.style.display = 'none';
+    }
+
+    function showStatus(type, title, body) {
+      statusPanel.className = 'status-panel ' + type;
+      const icon = type === 'success' ? '🎉' : (type === 'error' ? '😢' : '📋');
+      statusHeader.innerHTML = '<span class="status-icon">' + icon + '</span><span class="status-title">' + title + '</span>';
+      statusBody.innerHTML = body;
+    }
+
+    function clearTimeline() {
+      statusTimeline.innerHTML = '';
+      timelineItems = [];
+    }
+
+    function addTimelineItem(text) {
+      const item = document.createElement('div');
+      item.className = 'timeline-item';
+      item.innerHTML = '<div class="timeline-dot"></div><span class="timeline-text">' + text + '<span class="timeline-time">' + new Date().toLocaleTimeString() + '</span></span>';
+      statusTimeline.appendChild(item);
+      timelineItems.push(item);
+    }
+
+    function updateTimelineItem(index, status) {
+      if (timelineItems[index]) {
+        timelineItems[index].className = 'timeline-item ' + status;
+        const textSpan = timelineItems[index].querySelector('.timeline-text');
+        if (status === 'done') {
+          textSpan.className = 'timeline-text success';
+        } else if (status === 'error') {
+          textSpan.className = 'timeline-text error';
+        }
+      }
+    }
+
+    function parseWorkbook(workbook) {
+      const result = {};
+      
+      CONFIG.MERCHANT_TYPES.forEach(merchantType => {
+        const sheetName = merchantType.sheetName;
+        const key = merchantType.key;
+        
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+          console.log('[Parse] 未找到工作表:', sheetName);
+          return;
+        }
+        
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        console.log('[Parse] 工作表', sheetName, '行数:', jsonData.length);
+        
+        if (jsonData.length < 10) {
+          console.log('[Parse] 数据不足，跳过:', sheetName);
+          return;
+        }
+        
+        const cities = [];
+        let currentCityName = '';
+        let currentCityData = null;
+        let moduleStartRow = -1;
+        
+        for (let rowIndex = 0; rowIndex < jsonData.length; rowIndex++) {
+          const row = jsonData[rowIndex];
+          if (!row || row.length === 0) continue;
+          
+          const firstCell = String(row[0] || '').trim();
+          
+          if (CONFIG.CITY_DISPLAY_MAP[firstCell]) {
+            if (currentCityData) {
+              cities.push(currentCityData);
+            }
+            currentCityName = firstCell;
+            currentCityData = {
+              name: currentCityName,
+              displayName: CONFIG.CITY_DISPLAY_MAP[currentCityName],
+              modules: {}
+            };
+            moduleStartRow = rowIndex + 2;
+          } else if (currentCityData && rowIndex >= moduleStartRow) {
+            const moduleName = String(row[0] || '').trim();
+            if (moduleName && CONFIG.MODULES[moduleName]) {
+              const moduleData = {
+                moduleKey: moduleName,
+                moduleName: CONFIG.MODULES[moduleName].name
+              };
+              
+              for (let i = 1; i < row.length; i++) {
+                const headerRow = jsonData[rowIndex - 1];
+                if (!headerRow) continue;
+                
+                const fieldName = String(headerRow[i] || '').trim();
+                const fieldValue = row[i];
+                
+                for (const [sourceName, targetName] of FIELD_RULES) {
+                  if (fieldName.includes(sourceName) || sourceName.includes(fieldName)) {
+                    moduleData[targetName] = typeof fieldValue === 'number' ? fieldValue : parseFloat(String(fieldValue).replace(/,/g, '')) || 0;
+                    break;
+                  }
+                }
+              }
+              
+              moduleData.gmvAmount = moduleData.gmvAmount || moduleData['原价交易额'] || 0;
+              moduleData.franchiseGMV = moduleData.franchiseGMV || 0;
+              moduleData.selfGMV = moduleData.selfGMV || 0;
+              
+              calculateDerivedMetrics(moduleData);
+              currentCityData.modules[moduleName] = moduleData;
+            }
+          }
+        }
+        
+        if (currentCityData) {
+          cities.push(currentCityData);
+        }
+        
+        result[key] = {
+          label: merchantType.label,
+          cities: cities
+        };
+        
+        console.log('[Parse]', sheetName, '解析完成，城市数:', cities.length);
+      });
+      
+      return result;
+    }
+
+    function calculateDerivedMetrics(module) {
+      module.gmvAmount = module.gmvAmount || (module.franchiseGMV || 0) + (module.selfGMV || 0);
+      
+      module.totalRevenue = (module.commission || 0) + (module.deliveryFee || 0) + (module.otherRevenue || 0);
+      
+      module.onlineExpense = (module.subsidyTotal || 0) + (module.platformCost || 0);
+      module.offlineExpense = (module.deliveryCost || 0) + (module.fixedCost || 0) + (module.additionalCost || 0) + (module.otherCost || 0);
+      module.totalExpense = module.onlineExpense + module.offlineExpense;
+      
+      module.profit = module.totalRevenue - module.totalExpense;
+      
+      module.onlineRevenue = module.totalRevenue;
+      
+      if (module.orders > 0) {
+        module.ue = module.profit / module.orders;
+        module.subsidyRatio = (module.subsidyTotal || 0) / module.gmvAmount;
+        module.profitRate = module.profit / module.totalRevenue;
+        module.avgRevenuePerOrder = module.totalRevenue / module.orders;
+        module.avgCostPerOrder = module.totalExpense / module.orders;
+        module.deliveryCostRate = (module.deliveryCost || 0) / module.gmvAmount;
+        module.fixedCostRate = (module.fixedCost || 0) / module.gmvAmount;
+        module.subsidyRateB = (module.subsidyB || 0) / module.gmvAmount;
+        module.subsidyRateC = (module.subsidyC || 0) / module.gmvAmount;
+      }
+      
+      if (module.orders > 0) {
+        module.enterpriseRatio = (module.enterpriseOrders || 0) / module.orders;
+        module.selfRatio = (module.selfOrders || 0) / module.orders;
+      }
+    }
+
+    function buildOutputData(merchantData) {
+      const cities = [];
+      const allCities = merchantData.all?.cities || [];
+      
+      allCities.forEach(city => {
+        const cityItem = {
+          name: city.name,
+          displayName: city.displayName,
+          modules: city.modules
+        };
+        cities.push(cityItem);
+      });
+      
+      return {
+        date: new Date().toISOString().split('T')[0],
+        cities: cities,
+        merchantData: merchantData
+      };
+    }
+
+    function renderPreview(data) {
+      previewTable.innerHTML = '';
+      
+      if (!data || !data.cities || data.cities.length === 0) {
+        dataPreview.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">暂无数据</div>';
+        return;
+      }
+      
+      const headerRow = document.createElement('tr');
+      const headers = ['城市', '订单量', '交易额(万)', '利润(万)', '利润率'];
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      previewTable.appendChild(headerRow);
+      
+      let totalOrders = 0;
+      let totalGMV = 0;
+      let totalProfit = 0;
+      
+      data.cities.forEach(city => {
+        const module = city.modules.all;
+        if (!module) return;
+        
+        const row = document.createElement('tr');
+        
+        const cityNameCell = document.createElement('td');
+        cityNameCell.textContent = city.displayName;
+        row.appendChild(cityNameCell);
+        
+        const ordersCell = document.createElement('td');
+        ordersCell.textContent = (module.orders || 0).toLocaleString();
+        row.appendChild(ordersCell);
+        
+        const gmvCell = document.createElement('td');
+        gmvCell.textContent = ((module.gmvAmount || 0) / 10000).toFixed(2);
+        row.appendChild(gmvCell);
+        
+        const profitCell = document.createElement('td');
+        profitCell.textContent = ((module.profit || 0) / 10000).toFixed(2);
+        row.appendChild(profitCell);
+        
+        const profitRateCell = document.createElement('td');
+        profitRateCell.textContent = (((module.profitRate || 0) * 100)).toFixed(2) + '%';
+        row.appendChild(profitRateCell);
+        
+        previewTable.appendChild(row);
+        
+        totalOrders += module.orders || 0;
+        totalGMV += module.gmvAmount || 0;
+        totalProfit += module.profit || 0;
+      });
+      
+      const totalRow = document.createElement('tr');
+      totalRow.style.fontWeight = 'bold';
+      const totalCells = ['合计', totalOrders.toLocaleString(), (totalGMV / 10000).toFixed(2), (totalProfit / 10000).toFixed(2), (totalOrders > 0 ? ((totalProfit / (totalGMV || 1)) * 100).toFixed(2) : '0') + '%'];
+      totalCells.forEach(c => {
+        const td = document.createElement('td');
+        td.textContent = c;
+        totalRow.appendChild(td);
+      });
+      previewTable.appendChild(totalRow);
+      
+      dataPreview.style.display = 'block';
+    }
+
+    async function handleFile(file) {
+      if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+        alert('请选择Excel文件（.xlsx, .xls, .csv格式）');
+        return;
+      }
+      
+      currentFileName = file.name;
+      
+      showStatus('info', '开始处理', '正在解析Excel文件...');
+      clearTimeline();
+      addTimelineItem('开始解析Excel文件...');
+      showProgress(5, '读取文件中...');
+      
+      try {
+        await delay(500);
+        
+        const reader = new FileReader();
+        
+        await new Promise((resolve, reject) => {
+          reader.onload = resolve;
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        });
+        
+        updateTimelineItem(0, 'done');
+        addTimelineItem('解析Excel工作簿...');
+        showProgress(20, '解析中...');
+        
+        await delay(300);
+        
+        const workbook = XLSX.read(reader.result, { type: 'array' });
+        console.log('[Parse] 工作表列表:', workbook.SheetNames);
+        
+        updateTimelineItem(1, 'done');
+        addTimelineItem('提取商家数据...');
+        showProgress(40, '提取数据...');
+        
+        await delay(300);
+        
+        const merchantData = parseWorkbook(workbook);
+        console.log('[Parse] 解析结果:', Object.keys(merchantData));
+        
+        updateTimelineItem(2, 'done');
+        addTimelineItem('构建输出数据...');
+        showProgress(60, '构建数据...');
+        
+        await delay(300);
+        
+        parsedData = buildOutputData(merchantData);
+        console.log('[Parse] 最终数据:', parsedData);
+        
+        updateTimelineItem(3, 'done');
+        addTimelineItem('生成数据预览...');
+        showProgress(80, '生成预览...');
+        
+        await delay(300);
+        
+        renderPreview(parsedData);
+        
+        updateTimelineItem(4, 'done');
+        showProgress(100, '解析完成');
+        
+        const totalOrders = parsedData.cities.reduce((sum, city) => sum + (city.modules.all?.orders || 0), 0);
+        const totalGMV = parsedData.cities.reduce((sum, city) => sum + (city.modules.all?.gmvAmount || 0), 0);
+        const totalProfit = parsedData.cities.reduce((sum, city) => sum + (city.modules.all?.profit || 0), 0);
+        
+        const statsHtml = '<div class="status-stats">' +
+          '<div class="stat-item"><div class="stat-value">' + parsedData.cities.length + '</div><div class="stat-label">城市数量</div></div>' +
+          '<div class="stat-item"><div class="stat-value">' + totalOrders.toLocaleString() + '</div><div class="stat-label">订单总量</div></div>' +
+          '<div class="stat-item"><div class="stat-value">¥' + (totalGMV / 10000).toFixed(2) + '万</div><div class="stat-label">交易额</div></div>' +
+          '</div>';
+        statusPanel.innerHTML += statsHtml;
+        
+        showStatus('success', '解析完成！', 'Excel文件解析成功，共 ' + parsedData.cities.length + ' 个城市数据');
+        actions.style.display = 'flex';
+        
+        hideProgress();
+        
+      } catch (error) {
+        console.error('[Error] 解析失败:', error);
+        updateTimelineItem(timelineItems.length - 1, 'error');
+        showStatus('error', '解析失败', '解析Excel文件时发生错误: ' + error.message);
+        hideProgress();
+      }
+    }
+
+    saveLocalBtn.addEventListener('click', function() {
+      if (parsedData) {
+        const blob = new Blob([JSON.stringify(parsedData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '财务数据_' + new Date().toISOString().split('T')[0] + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('数据已保存到本地！');
+      }
+    });
+
+    uploadCloudBtn.addEventListener('click', async function() {
+      if (!parsedData || !parsedData.cities || parsedData.cities.length === 0) {
+        alert('请先上传并解析数据！');
+        return;
+      }
+      
+      uploadCloudBtn.disabled = true;
+      uploadCloudBtn.innerHTML = '☁️ 上传中...';
+      clearTimeline();
+      
+      showStatus('info', '开始上传', '正在将数据上传到云端...');
+      addTimelineItem('连接服务器...');
+      showProgress(10, '连接中...');
+      
+      try {
+        await delay(300);
+        updateTimelineItem(0, 'done');
+        addTimelineItem('读取云端现有数据...');
+        showProgress(25, '读取数据中...');
+        
+        const success = await uploadToCloud(parsedData, currentFileName);
+        
+        updateTimelineItem(1, 'done');
+        addTimelineItem('上传新数据...');
+        showProgress(60, '上传中...');
+        
+        await delay(500);
+        
+        updateTimelineItem(2, 'done');
+        addTimelineItem('验证数据完整性...');
+        showProgress(85, '验证中...');
+        
+        await delay(300);
+        
+        if (success) {
+          updateTimelineItem(3, 'done');
+          showProgress(100, '上传完成');
+          
+          const successBody = '<div style="text-align: center;">' +
+            '<div style="font-size: 48px; margin-bottom: 16px;">🎉</div>' +
+            '<div style="font-size: 18px; font-weight: 600;">上传成功！</div>' +
+            '<div style="color: #64748b; margin-top: 8px;">数据已同步到云端，其他用户可以查看最新数据</div>' +
+            '</div>';
+          showStatus('success', '上传成功', successBody);
+          
+          await delay(1000);
+          loadHistoryData();
+        } else {
+          showStatus('error', '上传失败', '上传到云端时发生错误，请检查Token或网络连接');
+        }
+        
+        hideProgress();
+        uploadCloudBtn.disabled = false;
+        uploadCloudBtn.innerHTML = '☁️ 上传到云端';
+        
+      } catch (error) {
+        console.error('[Error] 上传失败:', error);
+        showStatus('error', '上传失败', '上传失败: ' + error.message);
+        hideProgress();
+        uploadCloudBtn.disabled = false;
+        uploadCloudBtn.innerHTML = '☁️ 上传到云端';
+      }
+    });
+
+    async function uploadToCloud(data, fileName) {
+      const token = getToken();
+      if (!token || !token.startsWith('ghp_')) {
+        alert('请先输入有效的GitHub Token');
+        return false;
+      }
+      
+      const headers = {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json'
+      };
+
+      let sha = null;
+      let existingRecords = [];
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 30000);
+        
+        const resp = await fetch(GITHUB_API, { headers: headers, signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (resp.ok) {
+          const githubData = await resp.json();
+          sha = githubData.sha;
+          try {
+            const decoded = JSON.parse(atob(githubData.content));
+            existingRecords = Array.isArray(decoded) ? decoded : [];
+          } catch (e) {
+            existingRecords = [];
+          }
+        }
+      } catch (e) {
+        console.log('[Upload] 无法读取现有数据，可能是首次上传');
+      }
+
+      const newRecord = {
+        date: data.date,
+        updatedAt: new Date().toISOString(),
+        uploadedBy: 'web',
+        fileName: fileName,
+        currentData: data
+      };
+
+      const monthKey = data.date.substring(0, 7);
+      const existingIndex = existingRecords.findIndex(r => r.date.startsWith(monthKey));
+      
+      if (existingIndex >= 0) {
+        existingRecords[existingIndex] = newRecord;
+      } else {
+        existingRecords.unshift(newRecord);
+      }
+
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(existingRecords, null, 2))));
+      
+      const body = {
+        message: 'Update financial data: ' + data.date,
+        content: content,
+        branch: 'main'
+      };
+      
+      if (sha) {
+        body.sha = sha;
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 30000);
+        
+        const response = await fetch(GITHUB_API, {
+          method: 'PUT',
+          headers: headers,
+          body: JSON.stringify(body),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('[Upload] 上传成功:', result);
+          return true;
+        } else {
+          console.error('[Upload] 上传失败:', response.status, await response.text());
+          return false;
+        }
+      } catch (e) {
+        console.error('[Upload] 上传异常:', e);
+        return false;
+      }
+    }
+
+    function saveToDataStore(data) {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('finance_data', JSON.stringify(data));
+      }
+    }
+
+    goToAnalysisBtn.addEventListener('click', function() {
+      if (parsedData) {
+        saveToDataStore(parsedData);
+        window.location.href = 'index-new.html';
+      }
+    });
+
+    function refreshHistory() {
+      loadHistoryData();
+    }
+
+    async function runCloudDiagnostic() {
+      cloudTestSection.style.display = 'block';
+      cloudTestResults.textContent = '🔍 正在诊断云端连接...\n\n';
+      
+      const token = getToken();
+      let results = '';
+      
+      try {
+        results += '1️⃣ 检查GitHub Token...\n';
+        const tokenValid = token && token.startsWith('ghp_');
+        results += '   Token格式: ' + (tokenValid ? '✅ 有效' : '❌ 无效') + '\n';
+        results += '   Token长度: ' + (token ? token.length : 0) + ' 字符\n\n';
+        
+        results += '2️⃣ 测试GitHub API读取权限...\n';
+        const headers = {
+          'Authorization': 'token ' + token,
+          'Accept': 'application/vnd.github.v3+json'
+        };
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const readResponse = await fetch(GITHUB_API, { headers: headers, signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        results += '   读取API响应: ' + readResponse.status + ' ' + readResponse.statusText + '\n';
+        
+        if (readResponse.ok) {
+          const data = await readResponse.json();
+          results += '   ✅ 文件存在\n';
+          results += '   SHA: ' + (data.sha ? data.sha.substring(0, 20) + '...' : '无') + '\n';
+          results += '   内容大小: ' + (data.content ? '有' : '无') + '\n';
+          
+          try {
+            const decoded = JSON.parse(atob(data.content));
+            results += '   ✅ JSON解析成功\n';
+            results += '   记录数: ' + (Array.isArray(decoded) ? decoded.length : '非数组') + '\n';
+            
+            if (Array.isArray(decoded) && decoded.length > 0) {
+              results += '   最新记录日期: ' + (decoded[0].date || '未知') + '\n';
+              results += '   上传者: ' + (decoded[0].uploadedBy || '未知') + '\n';
+            }
+          } catch (e) {
+            results += '   ❌ JSON解析失败: ' + e.message + '\n';
+          }
+        } else if (readResponse.status === 404) {
+          results += '   ⚠️ 文件不存在（正常，首次上传前会显示此信息）\n';
+        } else {
+          results += '   ❌ API错误: ' + readResponse.status + '\n';
+        }
+        
+        results += '\n3️⃣ 测试GitHub Raw URL访问...\n';
+        const rawController = new AbortController();
+        const rawTimeoutId = setTimeout(() => rawController.abort(), 10000);
+        
+        const rawResponse = await fetch(GITHUB_RAW_URL, { signal: rawController.signal });
+        clearTimeout(rawTimeoutId);
+        
+        results += '   Raw URL响应: ' + rawResponse.status + ' ' + rawResponse.statusText + '\n';
+        
+        if (rawResponse.ok) {
+          results += '   ✅ Raw URL可访问\n';
+        } else if (rawResponse.status === 404) {
+          results += '   ⚠️ Raw文件不存在（正常，首次上传前会显示此信息）\n';
+        } else {
+          results += '   ❌ Raw URL访问失败\n';
+        }
+        
+        results += '\n4️⃣ 检查CORS策略...\n';
+        results += '   GitHub API: ' + (readResponse.ok || readResponse.status === 404 ? '✅ 支持CORS' : '❌ CORS问题') + '\n';
+        results += '   GitHub Raw: ' + (rawResponse.ok || rawResponse.status === 404 ? '✅ 支持CORS' : '❌ CORS问题') + '\n';
+        
+        results += '\n✅ 诊断完成！\n';
+        results += '\n💡 如果所有检查都通过，云端功能应该正常工作。\n';
+        results += '   如果有任何❌标记，请检查相应配置或Token权限。\n';
+        
+      } catch (e) {
+        results += '\n❌ 诊断失败: ' + e.message + '\n';
+        if (e.name === 'AbortError') {
+          results += '   可能原因: 网络超时或请求被阻止\n';
+        }
+      }
+      
+      cloudTestResults.textContent = results;
+      cloudTestResults.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    testCloudBtn.addEventListener('click', runCloudDiagnostic);
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadHistoryData();
+    });
+
+    uploadArea.addEventListener('click', function() { fileInput.click(); });
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', function() {
+      uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) handleFile(files[0]);
+    });
+    fileInput.addEventListener('change', function(e) {
+      if (e.target.files.length > 0) handleFile(e.target.files[0]);
+    });
+
+    async function loadHistoryData() {
+      try {
+        const resp = await fetch(GITHUB_RAW_URL);
+        
+        if (resp.ok) {
+          const data = await resp.json();
+          cloudData = Array.isArray(data) ? data : [];
+          
+          if (cloudData.length === 0) {
+            historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>暂无上传记录</div><div style="font-size: 13px; margin-top: 4px;">上传数据后会显示在这里</div></div>';
+            return;
+          }
+          
+          let html = '';
+          cloudData.forEach((record, index) => {
+            html += '<div class="history-item">' +
+              '<div>' +
+                '<div class="history-date">' + record.date + '</div>' +
+                '<div class="history-info">文件: ' + (record.fileName || '未知') + ' | 上传者: ' + (record.uploadedBy || '未知') + '</div>' +
+              '</div>' +
+              '<div class="history-actions">' +
+                '<button class="history-btn view" onclick="viewRecord(' + index + ')">查看</button>' +
+                '<button class="history-btn delete" onclick="deleteRecord(' + index + ')">删除</button>' +
+              '</div>' +
+            '</div>';
+          });
+          
+          historyList.innerHTML = html;
+        } else {
+          historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>无法加载历史记录</div><div style="font-size: 13px; margin-top: 4px;">请检查网络连接</div></div>';
+        }
+      } catch (e) {
+        console.error('[Error] 加载历史记录失败:', e);
+        historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>无法加载历史记录</div><div style="font-size: 13px; margin-top: 4px;">网络错误: ' + e.message + '</div></div>';
+      }
+    }
+
+    function viewRecord(index) {
+      const record = cloudData[index];
+      if (record && record.currentData) {
+        parsedData = record.currentData;
+        renderPreview(parsedData);
+        showStatus('info', '查看历史数据', '已加载 ' + record.date + ' 的数据');
+        actions.style.display = 'flex';
+      }
+    }
+
+    function deleteRecord(index) {
+      if (!confirm('确定要删除这条记录吗？')) return;
+      
+      const token = getToken();
+      if (!token || !token.startsWith('ghp_')) {
+        alert('请先输入有效的GitHub Token');
+        return;
+      }
+      
+      cloudData.splice(index, 1);
+      
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(cloudData, null, 2))));
+      
+      fetch(GITHUB_API, {
+        headers: {
+          'Authorization': 'token ' + token,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      }).then(resp => resp.json()).then(data => {
+        return fetch(GITHUB_API, {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'token ' + token,
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify({
+            message: 'Delete record',
+            content: content,
+            sha: data.sha,
+            branch: 'main'
+          })
+        });
+      }).then(() => {
+        loadHistoryData();
+        alert('删除成功！');
+      }).catch(e => {
+        console.error('[Error] 删除失败:', e);
+        alert('删除失败: ' + e.message);
+      });
+    }
+  </script>
+</body>
+</html>
