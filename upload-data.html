@@ -622,6 +622,10 @@
           
           const firstCell = String(row[0] || '').trim();
           
+          if (rowIndex < 50 && firstCell && !CONFIG.MODULES[firstCell]) {
+            console.log('[Parse Debug] 第' + rowIndex + '行, 第一列值:', JSON.stringify(firstCell));
+          }
+          
           if (CONFIG.CITY_DISPLAY_MAP[firstCell]) {
             if (currentCityData) {
               cities.push(currentCityData);
