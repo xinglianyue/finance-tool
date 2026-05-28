@@ -591,8 +591,79 @@
     }
 
     function parseWorkbook(workbook) {
-      const result = {};
-      
+      const MERCHANT_TYPES = [
+        { sheetName: '全量商家', key: 'all', label: '全量商家' },
+        { sheetName: '城市商家', key: 'city', label: '城市商家' },
+        { sheetName: 'KA商家', key: 'ka', label: 'KA商家' }
+      ];
+
+      const FIELD_RULES = [
+        ['', '订单量汇总', 'orders'],
+        ['', '加盟订单量', 'franchiseOrders'],
+        ['', '自配订单量', 'selfOrders'],
+        ['', '企客订单量', 'enterpriseOrders'],
+        ['', '加盟原价交易额', 'franchiseGMV'],
+        ['', '自配原价交易额', 'selfGMV'],
+        ['', '原价交易额汇总', 'gmvAmount'],
+        ['', '加盟抽佣金额', 'franchiseCommission'],
+        ['', '自配抽佣金额', 'selfCommission'],
+        ['', '企客商家抽佣金额', 'enterpriseCommission'],
+        ['', '抽佣金额汇总', 'commission'],
+        ['', '加盟配送费', 'franchiseDeliveryFee'],
+        ['', '二次配送费', 'secondDeliveryFee'],
+        ['', '企客配送费', 'enterpriseDeliveryFee'],
+        ['', '一对一急送配送费', 'urgentDeliveryFee'],
+        ['', '配送费汇总', 'deliveryFee'],
+        ['', '其他收入汇总', 'otherRevenue'],
+        ['', 'B端代补金额', 'subsidyB'],
+        ['', 'C端代补金额', 'subsidyC'],
+        ['', '账单-代补差额', 'subsidyDiff'],
+        ['', '代补金额花费汇总', 'subsidyTotal'],
+        ['', '拼单补贴', 'pinDanSubsidy'],
+        ['', '拼好饭补贴', 'pinHaoFanSubsidy'],
+        ['', '专项补贴', 'specialSubsidy'],
+        ['', '众包补贴调账', 'crowdSubsidyAdjust'],
+        ['', '平台抽佣金额', 'platformCommissionCost'],
+        ['', '合作商售后赔付费用', 'afterSaleCost'],
+        ['', '关爱基金', 'careFund'],
+        ['', '保险费用', 'insuranceCost'],
+        ['', '竞价', 'biddingCost'],
+        ['', '罚款', 'penalty'],
+        ['', '平台成本汇总', 'platformCost'],
+        ['', '加盟承接订单量', 'franchiseDeliverOrders'],
+        ['', '加盟单均邮资', 'franchiseAvgPostage'],
+        ['', '加盟活动花费', 'franchiseActivityCost'],
+        ['', '加盟邮资', 'franchiseDelivery'],
+        ['', '普众众包订单量', 'crowdOrders'],
+        ['', '普众众包基础邮资', 'crowdBasePostage'],
+        ['', '普众众包活动花费', 'crowdActivityCost'],
+        ['', '普众众包邮资', 'crowdDelivery'],
+        ['', '悦跑订单量', 'yuepaoOrders'],
+        ['', '悦跑基础邮资', 'yuepaoBasePostage'],
+        ['', '悦跑活动花费', 'yuepaoActivityCost'],
+        ['', '悦跑邮资', 'yuepaoDelivery'],
+        ['', '众包天气补贴', 'weatherSubsidy'],
+        ['', '配送成本汇总', 'deliveryCost'],
+        ['', '办公室房租', 'officeRent'],
+        ['', '业务团队', 'teamCost'],
+        ['', '固定成本汇总', 'fixedCost'],
+        ['', '三方服务费', 'thirdPartyServiceCost'],
+        ['', '社保', 'socialInsurance'],
+        ['', '税', 'taxCost'],
+        ['', '附加成本汇总', 'additionalCost'],
+        ['', '外卖运营增单', 'operationBoostCost'],
+        ['', '水电电话网物料费', 'utilityCost'],
+        ['', '差旅招待', 'travelCost'],
+        ['', '其他成本', 'otherMiscCost'],
+        ['', '其他成本汇总', 'otherCost'],
+      ];
+
+      const COL2_RULES = { '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense' };
+      const COL3_RULES = {
+        '线上收入汇总': 'onlineRevenue', '线上支出汇总': 'onlineExpense', '线下支出汇总': 'offlineExpense',
+        '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense',
+      };
+
       const MODULE_DEFS = [
         { searchName: '全品类财务指标', key: 'all', label: '全品类' },
         { searchName: '餐饮财务指标', key: 'food', label: '餐饮' },
@@ -600,38 +671,73 @@
         { searchName: '医药财务指标', key: 'medicine', label: '医药' },
         { searchName: '拼好饭财务指标', key: 'group', label: '拼好饭' }
       ];
-      
-      CONFIG.MERCHANT_TYPES.forEach(merchantType => {
-        const sheetName = merchantType.sheetName;
-        const key = merchantType.key;
-        
-        const worksheet = workbook.Sheets[sheetName];
-        if (!worksheet) {
-          console.log('[Parse] 未找到工作表:', sheetName);
-          return;
+
+      function extractModule(data, startRow, colIdx) {
+        const result = {};
+        FIELD_RULES.forEach(r => result[r[2]] = 0);
+        Object.values(COL2_RULES).forEach(f => result[f] = 0);
+        Object.values(COL3_RULES).forEach(f => result[f] = 0);
+
+        for (let rn = startRow + 3; rn < Math.min(startRow + 100, data.length); rn++) {
+          const row = data[rn];
+          if (!row) continue;
+          const c2 = String(row[2] || '').trim();
+          const c3 = String(row[3] || '').trim();
+          const c4 = String(row[4] || '').trim();
+          if (c3 && c3.includes('财务指标')) break;
+          const val = typeof row[colIdx] === 'number' ? row[colIdx] : parseFloat(String(row[colIdx]).replace(/,/g, '')) || 0;
+
+          FIELD_RULES.forEach(([k23, k4, field]) => {
+            if (k4 && c4 === k4 && result[field] === 0 && val !== 0) result[field] = val;
+          });
+          for (const [k2, field] of Object.entries(COL2_RULES)) {
+            if (c2 === k2 && result[field] === 0) result[field] = val;
+          }
+          for (const [k3, field] of Object.entries(COL3_RULES)) {
+            if (c3 === k3 && c4 === '' && result[field] === 0 && val !== 0) result[field] = val;
+          }
         }
-        
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        console.log('[Parse] 工作表', sheetName, '行数:', jsonData.length);
-        
-        if (jsonData.length < 10) {
-          console.log('[Parse] 数据不足，跳过:', sheetName);
-          return;
+
+        const o = result.orders;
+        result.ue = o > 0 ? result.profit / o : 0;
+        result.subsidyRatio = result.gmvAmount > 0 ? result.subsidyTotal / result.gmvAmount : 0;
+        result.profitRate = result.onlineRevenue > 0 ? result.profit / result.onlineRevenue : 0;
+        result.avgRevenuePerOrder = o > 0 ? result.onlineRevenue / o : 0;
+        result.avgCostPerOrder = o > 0 ? result.totalExpense / o : 0;
+        result.deliveryCostRate = result.onlineRevenue > 0 ? result.deliveryCost / result.onlineRevenue : 0;
+        result.fixedCostRate = result.onlineRevenue > 0 ? result.fixedCost / result.onlineRevenue : 0;
+        result.subsidyRateB = result.gmvAmount > 0 ? result.subsidyB / result.gmvAmount : 0;
+        result.subsidyRateC = result.gmvAmount > 0 ? result.subsidyC / result.gmvAmount : 0;
+        result.enterpriseRatio = o > 0 ? result.enterpriseOrders / o : 0;
+        result.selfRatio = o > 0 ? result.selfOrders / o : 0;
+
+        return result;
+      }
+
+      const merchantData = {};
+      for (const mt of MERCHANT_TYPES) {
+        let ws = null;
+        if (workbook.SheetNames.includes(mt.sheetName)) {
+          ws = workbook.Sheets[mt.sheetName];
+        } else if (mt.key === 'all' && workbook.SheetNames.length > 0) {
+          ws = workbook.Sheets[workbook.SheetNames[0]];
         }
-        
-        const cityRow = jsonData[2];
-        if (!cityRow) {
-          console.log('[Parse] 未找到城市行');
-          return;
+        if (!ws) {
+          console.log('[parseExcelFile] sheet未找到:', mt.sheetName);
+          continue;
         }
-        
+        console.log('[parseExcelFile] 开始解析:', mt.sheetName);
+
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const cityRow = data[2];
+        if (!cityRow) continue;
+
         const cityMap = {};
         for (let col = 5; col < cityRow.length; col++) {
           const excelName = String(cityRow[col] || '').trim();
           if (!excelName || excelName === '总商') continue;
           cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] || excelName };
         }
-        
         let totalCol = -1;
         for (let col = 5; col < (cityRow.length || 20); col++) {
           if (String(cityRow[col] || '').trim() === '总商') {
@@ -639,10 +745,10 @@
             break;
           }
         }
-        
+
         const modulePositions = {};
-        for (let rn = 0; rn < Math.min(500, jsonData.length); rn++) {
-          const row = jsonData[rn];
+        for (let rn = 0; rn < Math.min(500, data.length); rn++) {
+          const row = data[rn];
           if (!row) continue;
           const c0 = String(row[0] || '').trim();
           for (const md of MODULE_DEFS) {
@@ -651,117 +757,48 @@
             }
           }
         }
-        
-        console.log('[Parse]', sheetName, '模块数:', Object.keys(modulePositions).length, Object.keys(modulePositions));
-        if (Object.keys(modulePositions).length === 0) {
-          console.log('[Parse] 未找到任何模块');
-          return;
-        }
-        
-        const cities = [];
+
+        console.log('[parseExcelFile]', mt.sheetName, '模块数:', Object.keys(modulePositions).length, Object.keys(modulePositions));
+        if (Object.keys(modulePositions).length === 0) continue;
+
+        const result = [];
         for (const [col, cityInfo] of Object.entries(cityMap)) {
           const cityData = { name: cityInfo.excelName, displayName: cityInfo.displayName, modules: {} };
           for (const md of MODULE_DEFS) {
             if (modulePositions[md.key] === undefined) continue;
-            const fields = extractModule(jsonData, modulePositions[md.key], parseInt(col));
+            const fields = extractModule(data, modulePositions[md.key], parseInt(col));
             fields.moduleName = md.label;
             fields.moduleKey = md.key;
             cityData.modules[md.key] = fields;
           }
-          cities.push(cityData);
+          result.push(cityData);
         }
-        
+
         if (totalCol >= 0) {
           const totalData = { name: '总商', displayName: '总商', modules: {} };
           for (const md of MODULE_DEFS) {
             if (modulePositions[md.key] === undefined) continue;
-            const fields = extractModule(jsonData, modulePositions[md.key], totalCol);
+            const fields = extractModule(data, modulePositions[md.key], totalCol);
             fields.moduleName = md.label;
             fields.moduleKey = md.key;
             totalData.modules[md.key] = fields;
           }
-          cities.unshift(totalData);
+          result.unshift(totalData);
         }
-        
-        result[key] = {
-          label: merchantType.label,
-          cities: cities
-        };
-        
-        console.log('[Parse]', sheetName, '解析完成，城市数:', cities.length);
-      });
-      
-      return result;
+
+        if (result.length > 0) {
+          merchantData[mt.key] = { label: mt.label, cities: result };
+        }
+      }
+
+      console.log('[parseExcelFile] 解析结果:', Object.keys(merchantData));
+      Object.entries(merchantData).forEach(([k, v]) => console.log('  ', k, '城市:', v.cities.map(c => c.name)));
+      if (Object.keys(merchantData).length === 0) {
+        throw new Error('未识别到任何商家类型数据，请确认文件格式正确');
+      }
+      return merchantData;
     }
     
-    function extractModule(data, startRow, colIdx) {
-      const result = {};
-      FIELD_RULES.forEach(r => result[r[1]] = 0);
-      
-      const COL2_RULES = { '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense' };
-      const COL3_RULES = {
-        '线上收入汇总': 'onlineRevenue', '线上支出汇总': 'onlineExpense', '线下支出汇总': 'offlineExpense',
-        '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense',
-      };
-      
-      Object.values(COL2_RULES).forEach(f => result[f] = 0);
-      Object.values(COL3_RULES).forEach(f => result[f] = 0);
-      
-      for (let rn = startRow + 3; rn < Math.min(startRow + 100, data.length); rn++) {
-        const row = data[rn];
-        if (!row) continue;
-        const c2 = String(row[2] || '').trim();
-        const c3 = String(row[3] || '').trim();
-        const c4 = String(row[4] || '').trim();
-        if (c3 && c3.includes('财务指标')) break;
-        const val = typeof row[colIdx] === 'number' ? row[colIdx] : parseFloat(String(row[colIdx]).replace(/,/g, '')) || 0;
-        
-        FIELD_RULES.forEach(([k23, k4, field]) => {
-          if (k4 && c4 === k4 && result[field] === 0 && val !== 0) result[field] = val;
-        });
-        for (const [k2, field] of Object.entries(COL2_RULES)) {
-          if (c2 === k2 && result[field] === 0) result[field] = val;
-        }
-        for (const [k3, field] of Object.entries(COL3_RULES)) {
-          if (c3 === k3 && c4 === '' && result[field] === 0 && val !== 0) result[field] = val;
-        }
-      }
-      
-      calculateDerivedMetrics(result);
-      return result;
-    }
-
-    function calculateDerivedMetrics(module) {
-      module.gmvAmount = module.gmvAmount || (module.franchiseGMV || 0) + (module.selfGMV || 0);
-      
-      module.totalRevenue = (module.commission || 0) + (module.deliveryFee || 0) + (module.otherRevenue || 0);
-      
-      module.onlineExpense = (module.subsidyTotal || 0) + (module.platformCost || 0);
-      module.offlineExpense = (module.deliveryCost || 0) + (module.fixedCost || 0) + (module.additionalCost || 0) + (module.otherCost || 0);
-      module.totalExpense = module.onlineExpense + module.offlineExpense;
-      
-      module.profit = module.totalRevenue - module.totalExpense;
-      
-      module.onlineRevenue = module.totalRevenue;
-      
-      if (module.orders > 0) {
-        module.ue = module.profit / module.orders;
-        module.subsidyRatio = (module.subsidyTotal || 0) / module.gmvAmount;
-        module.profitRate = module.profit / module.totalRevenue;
-        module.avgRevenuePerOrder = module.totalRevenue / module.orders;
-        module.avgCostPerOrder = module.totalExpense / module.orders;
-        module.deliveryCostRate = (module.deliveryCost || 0) / module.gmvAmount;
-        module.fixedCostRate = (module.fixedCost || 0) / module.gmvAmount;
-        module.subsidyRateB = (module.subsidyB || 0) / module.gmvAmount;
-        module.subsidyRateC = (module.subsidyC || 0) / module.gmvAmount;
-      }
-      
-      if (module.orders > 0) {
-        module.enterpriseRatio = (module.enterpriseOrders || 0) / module.orders;
-        module.selfRatio = (module.selfOrders || 0) / module.orders;
-      }
-    }
-
     function buildOutputData(merchantData) {
       const cities = [];
       const allCities = merchantData.all?.cities || [];
