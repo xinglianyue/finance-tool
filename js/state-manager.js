@@ -246,12 +246,19 @@ const StateManager = {
       if (city.name === '总商') {
         totalData = city;
       } else {
-        citiesData.push(city);
+        citiesData.push(this._calculateCityMetrics(city));
       }
     });
     
+    let totals = {};
+    if (totalData && totalData.modules?.all) {
+      totals = totalData.modules.all;
+    } else {
+      totals = this._calculateTotals(citiesData);
+    }
+    
     this._state.currentData = {
-      totals: totalData ? (totalData.modules?.all || {}) : {},
+      totals: totals,
       cities: citiesData
     };
     
@@ -259,6 +266,123 @@ const StateManager = {
     if (citiesData.length > 0 && this._state.selectedCities.length === 0) {
       this._state.selectedCities = citiesData.slice(0, 3).map(c => c.name);
     }
+  },
+  
+  _calculateCityMetrics(city) {
+    const mod = city.modules?.all || {};
+    
+    const orders = this._getValue(mod, 'orders', '订单量', '订单', '总订单量');
+    const gmvAmount = this._getValue(mod, 'gmvAmount', 'gmv', '原价交易额', '原价交易额汇总', '交易额', 'GMV');
+    const profit = this._getValue(mod, 'profit', '毛利', '利润');
+    const onlineRevenue = this._getValue(mod, 'onlineRevenue', '抽佣金额', '抽佣金额（收入一）', '收入一', 'commission') || gmvAmount * 0.1;
+    const deliveryCost = this._getValue(mod, 'deliveryCost', '配送费', '配送费（收入二）', '收入二');
+    const fixedCost = this._getValue(mod, 'fixedCost', '固定成本', '其他支出');
+    const subsidyTotal = this._getValue(mod, 'subsidyTotal', '补贴B', '补贴C', '补贴');
+    const totalExpense = deliveryCost + fixedCost + subsidyTotal;
+    
+    const ue = orders > 0 ? profit / orders : 0;
+    const profitRate = onlineRevenue > 0 ? profit / onlineRevenue : 0;
+    const avgRevenuePerOrder = orders > 0 ? onlineRevenue / orders : 0;
+    const avgCostPerOrder = orders > 0 ? totalExpense / orders : 0;
+    
+    const newMod = {
+      ...mod,
+      orders: orders,
+      gmvAmount: gmvAmount,
+      profit: profit,
+      onlineRevenue: onlineRevenue,
+      deliveryCost: deliveryCost,
+      fixedCost: fixedCost,
+      subsidyTotal: subsidyTotal,
+      totalExpense: totalExpense,
+      ue: ue,
+      profitRate: profitRate,
+      avgRevenuePerOrder: avgRevenuePerOrder,
+      avgCostPerOrder: avgCostPerOrder
+    };
+    
+    return {
+      ...city,
+      modules: {
+        ...city.modules,
+        all: newMod
+      }
+    };
+  },
+  
+  _getValue(obj, ...keys) {
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        return parseFloat(obj[key]) || 0;
+      }
+    }
+    return 0;
+  },
+  
+  _calculateTotals(cities) {
+    const totals = {
+      orders: 0,
+      gmvAmount: 0,
+      profit: 0,
+      ue: 0,
+      profitRate: 0,
+      avgRevenuePerOrder: 0,
+      avgCostPerOrder: 0,
+      deliveryCost: 0,
+      fixedCost: 0,
+      subsidyTotal: 0,
+      onlineRevenue: 0,
+      totalExpense: 0
+    };
+    
+    let totalOrders = 0;
+    let totalGMV = 0;
+    let totalProfit = 0;
+    let totalOnlineRevenue = 0;
+    let totalExpense = 0;
+    let totalDeliveryCost = 0;
+    let totalFixedCost = 0;
+    let totalSubsidy = 0;
+    
+    cities.forEach(city => {
+      const mod = city.modules?.all || {};
+      totalOrders += this._getValue(mod, 'orders', '订单量', '订单', '总订单量');
+      totalGMV += this._getValue(mod, 'gmvAmount', 'gmv', '原价交易额', '原价交易额汇总', '交易额', 'GMV');
+      totalProfit += this._getValue(mod, 'profit', '毛利', '利润');
+      totalOnlineRevenue += this._getValue(mod, 'onlineRevenue', '抽佣金额', '抽佣金额（收入一）', '收入一', 'commission') || totalGMV * 0.1;
+      totalDeliveryCost += this._getValue(mod, 'deliveryCost', '配送费', '配送费（收入二）', '收入二');
+      totalFixedCost += this._getValue(mod, 'fixedCost', '固定成本', '其他支出');
+      totalSubsidy += this._getValue(mod, 'subsidyTotal', '补贴B', '补贴C', '补贴');
+    });
+    
+    totalExpense = totalDeliveryCost + totalFixedCost + totalSubsidy;
+    
+    totals.orders = totalOrders;
+    totals.gmvAmount = totalGMV;
+    totals.profit = totalProfit;
+    totals.onlineRevenue = totalOnlineRevenue;
+    totals.totalExpense = totalExpense;
+    totals.deliveryCost = totalDeliveryCost;
+    totals.fixedCost = totalFixedCost;
+    totals.subsidyTotal = totalSubsidy;
+    
+    if (totalOrders > 0) {
+      totals.ue = totalProfit / totalOrders;
+      totals.avgRevenuePerOrder = totalOnlineRevenue / totalOrders;
+      totals.avgCostPerOrder = totalExpense / totalOrders;
+    }
+    
+    if (totalOnlineRevenue > 0) {
+      totals.profitRate = totalProfit / totalOnlineRevenue;
+      totals.deliveryCostRate = totalDeliveryCost / totalOnlineRevenue;
+      totals.fixedCostRate = totalFixedCost / totalOnlineRevenue;
+    }
+    
+    if (totalGMV > 0) {
+      totals.subsidyRatio = totalSubsidy / totalGMV;
+    }
+    
+    return totals;
   },
   
   /**

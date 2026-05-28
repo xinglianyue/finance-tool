@@ -1,0 +1,121 @@
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;修复数据&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;修复 shared-data.json 数据&lt;/h1&gt;
+    
+    &lt;div class="section"&gt;
+        &lt;h2&gt;步骤 1: 加载 preloaded_data.json&lt;/h2&gt;
+        &lt;button id="loadPreloaded"&gt;加载 preloaded_data.json&lt;/button&gt;
+        &lt;div id="preloadedStatus"&gt;&lt;/div&gt;
+        &lt;div id="preloadedInfo" style="display:none;"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="section"&gt;
+        &lt;h2&gt;步骤 2: 生成并下载修复后的 shared-data.json&lt;/h2&gt;
+        &lt;button id="generateFix" disabled&gt;生成修复后的 shared-data.json&lt;/button&gt;
+        &lt;div id="fixStatus"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="section" id="previewSection" style="display:none;"&gt;
+        &lt;h2&gt;数据预览&lt;/h2&gt;
+        &lt;pre id="previewData"&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        let preloadedData = null;
+
+        document.getElementById('loadPreloaded').addEventListener('click', async () =&gt; {
+            const statusDiv = document.getElementById('preloadedStatus');
+            statusDiv.innerHTML = '正在加载...';
+            
+            try {
+                const response = await fetch('preloaded_data.json');
+                if (!response.ok) {
+                    throw new Error('无法加载文件');
+                }
+                preloadedData = await response.json();
+                
+                const dates = Object.keys(preloadedData).sort();
+                const latestDate = dates[dates.length - 1];
+                const data = preloadedData[latestDate];
+                
+                statusDiv.innerHTML = `&lt;div class="success"&gt;✅ 加载成功！最新日期: ${latestDate}&lt;/div&gt;`;
+                
+                const infoDiv = document.getElementById('preloadedInfo');
+                infoDiv.style.display = 'block';
+                infoDiv.innerHTML = `
+                    &lt;p&gt;全量商家城市数量: ${data['all']['cities'].length}&lt;/p&gt;
+                    &lt;p&gt;可用的商家类型: ${Object.keys(data).join(', ')}&lt;/p&gt;
+                `;
+                
+                document.getElementById('generateFix').disabled = false;
+            } catch (err) {
+                statusDiv.innerHTML = `&lt;div class="error"&gt;❌ 加载失败: ${err.message}&lt;/div&gt;`;
+            }
+        });
+
+        document.getElementById('generateFix').addEventListener('click', () =&gt; {
+            const statusDiv = document.getElementById('fixStatus');
+            statusDiv.innerHTML = '正在生成...';
+            
+            const dates = Object.keys(preloadedData).sort();
+            const latestDate = dates[dates.length - 1];
+            const data = preloadedData[latestDate];
+            
+            const newRecord = {
+                date: latestDate,
+                updatedAt: new Date().toISOString(),
+                uploadedBy: "local-fix",
+                fileName: "preloaded_data " + latestDate,
+                currentData: {
+                    date: latestDate,
+                    cities: data['all']['cities'],
+                    fileName: "preloaded_data " + latestDate
+                },
+                merchantData: {},
+                currentMerchant: "all"
+            };
+            
+            // 添加所有商家类型
+            for (const type in data) {
+                newRecord.merchantData[type] = {
+                    label: data[type].label,
+                    cities: data[type].cities
+                };
+            }
+            
+            const fixedData = [newRecord];
+            
+            // 预览
+            document.getElementById('previewSection').style.display = 'block';
+            document.getElementById('previewData').textContent = JSON.stringify(fixedData, null, 2).substring(0, 5000) + '...';
+            
+            // 下载
+            const blob = new Blob([JSON.stringify(fixedData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'shared-data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            statusDiv.innerHTML = `&lt;div class="success"&gt;✅ 修复成功！文件已下载，请替换项目中的 shared-data.json！&lt;/div&gt;`;
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
