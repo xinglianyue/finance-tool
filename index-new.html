@@ -984,6 +984,9 @@
         if (latestRecord.currentData && latestRecord.currentData.cities && latestRecord.currentData.cities.length > 0) {
           const monthLabel = latestRecord.date || '云端数据';
           
+          const totalCity = latestRecord.currentData.cities.find(c => c.name === '总商');
+          const totals = totalCity && totalCity.modules && totalCity.modules.all ? totalCity.modules.all : {};
+          
           const dataToSave = {
             version: 2,
             importHistory: [{
@@ -993,7 +996,7 @@
             }],
             currentImportIndex: 0,
             currentData: {
-              totals: {},
+              totals: totals,
               cities: latestRecord.currentData.cities || []
             },
             allMerchantData: latestRecord.merchantData || {
