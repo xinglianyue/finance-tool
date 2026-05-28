@@ -1111,6 +1111,7 @@
       }
 
       const content = btoa(unescape(encodeURIComponent(JSON.stringify(existingRecords, null, 2))));
+      console.log('Debug - 数据示例:', JSON.stringify(existingRecords[0].fileName));
       
       const body = {
         message: 'Update financial data: ' + data.date,
@@ -1375,6 +1376,7 @@
         currentData.splice(index, 1);
         
         const content = btoa(unescape(encodeURIComponent(JSON.stringify(currentData, null, 2))));
+        console.log('Debug - 删除记录后，剩余记录:', currentData.length);
         
         return fetch(GITHUB_API, {
           method: 'PUT',
