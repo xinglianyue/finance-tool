@@ -1360,7 +1360,7 @@
           'Accept': 'application/vnd.github.v3+json'
         }
       }).then(resp => resp.json()).then(data => {
-        const currentContent = atob(data.content);
+        const currentContent = decodeURIComponent(escape(atob(data.content)));
         const currentData = JSON.parse(currentContent);
         
         if (!Array.isArray(currentData)) {
