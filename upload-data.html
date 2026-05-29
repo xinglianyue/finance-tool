@@ -1253,10 +1253,10 @@
         currentData: data
       }];
 
-      recordsToAdd.forEach(newRecord =&gt; {
-        const existingIndex = existingRecords.findIndex(r =&gt; r.date === newRecord.date);
+      recordsToAdd.forEach(newRecord => {
+        const existingIndex = existingRecords.findIndex(r => r.date === newRecord.date);
         
-        if (existingIndex &gt;= 0) {
+        if (existingIndex >= 0) {
           existingRecords[existingIndex] = newRecord;
         } else {
           existingRecords.unshift(newRecord);
@@ -1350,7 +1350,7 @@
         currentData: data
       };
 
-      const existingIndex = existingRecords.findIndex(r =&gt; r.date === data.date);
+      const existingIndex = existingRecords.findIndex(r => r.date === data.date);
       
       if (existingIndex >= 0) {
         existingRecords[existingIndex] = newRecord;
