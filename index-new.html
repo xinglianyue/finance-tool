@@ -3034,15 +3034,6 @@
       if (!loaded) {
         console.log('[App] 云端无数据，显示空状态');
         StateManager.init(DataStore.load());
-        StateManager.update({
-          hasData: false,
-          historyCount: 0,
-          currentMerchantType: 'all',
-          currentModule: 'all',
-          selectedCities: [],
-          showCityDetail: false,
-          selectedCityIndex: null
-        });
         return;
       }
       
