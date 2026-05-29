@@ -338,6 +338,64 @@
       .charts-grid { grid-template-columns: 1fr; }
       .selectors { flex-direction: column; }
     }
+
+    .cloud-loading-panel {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 2px solid #e2e8f0;
+    }
+
+    .cloud-loading-content {
+      text-align: center;
+    }
+
+    .cloud-loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e2e8f0;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .cloud-loading-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .cloud-loading-progress {
+      font-size: 14px;
+      color: var(--text-secondary);
+      min-height: 20px;
+    }
+
+    .cloud-loading-panel.success {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border-color: var(--success);
+    }
+
+    .cloud-loading-panel.error {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border-color: var(--danger);
+    }
+
+    .cloud-loading-panel.success .cloud-loading-spinner {
+      border-top-color: var(--success);
+    }
+
+    .cloud-loading-panel.error .cloud-loading-spinner {
+      border-top-color: var(--danger);
+    }
   </style>
 </head>
 <body>
@@ -352,6 +410,14 @@
         <button class="btn btn-secondary" onclick="clearStorage()">🗑️ 清除数据</button>
       </div>
       <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+    </div>
+
+    <div class="cloud-loading-panel" id="cloudLoadingPanel" style="display: none;">
+      <div class="cloud-loading-content">
+        <div class="cloud-loading-spinner"></div>
+        <div class="cloud-loading-text" id="cloudLoadingText">正在从云端加载数据...</div>
+        <div class="cloud-loading-progress" id="cloudLoadingProgress"></div>
+      </div>
     </div>
 
     <div class="tabs-container">
@@ -3020,47 +3086,71 @@
     window.onload = async function() {
       console.log('[App] 开始初始化...');
       
-      // 1. 绑定事件
+      // 绑定事件
       document.getElementById('fileInput').addEventListener('change', handleFileImport);
       
-      // 2. 确保本地存储清空，完全依赖云端数据
-      console.log('[App] 从云端加载数据...');
+      // 显示加载状态面板
+      const loadingPanel = document.getElementById('cloudLoadingPanel');
+      const loadingText = document.getElementById('cloudLoadingText');
+      const loadingProgress = document.getElementById('cloudLoadingProgress');
+      
+      loadingPanel.style.display = 'block';
+      loadingPanel.className = 'cloud-loading-panel';
+      loadingText.textContent = '正在从云端加载数据...';
+      loadingProgress.textContent = '准备连接服务器...';
+      
+      // 清空本地存储，确保完全与云端同步
       DataStore.clear();
+      loadingProgress.textContent = '已清空本地缓存，准备从云端同步...';
       
-      // 3. 从云端加载数据
-      let loaded = await loadFromCloud();
+      // 从云端加载数据
+      let loaded = false;
       
-      // 4. 如果云端加载失败或无数据，显示空状态
+      try {
+        loadingProgress.textContent = '正在连接云端服务器...';
+        loaded = await loadFromCloud();
+      } catch (error) {
+        console.error('[App] 加载失败:', error);
+        loadingProgress.textContent = '加载失败: ' + error.message;
+      }
+      
+      // 加载完成后的处理
       if (!loaded) {
-        console.log('[App] 云端无数据，显示空状态');
+        console.log('[App] 云端无数据或加载失败，显示空状态');
         StateManager.init(DataStore.load());
+        
+        loadingPanel.className = 'cloud-loading-panel error';
+        loadingText.textContent = '⚠️ 暂无数据';
+        loadingProgress.textContent = '云端暂无数据，请先上传数据';
+        
+        // 3秒后自动隐藏
+        setTimeout(() => {
+          loadingPanel.style.display = 'none';
+        }, 3000);
+        
         return;
       }
       
-      if (loaded) {
-        // 5. 健康检查
-        const health = StateManager.validate();
-        if (!health.valid) {
-          console.warn('[App] 状态验证警告:', health.issues);
-        }
+      // 加载成功
+      const health = StateManager.validate();
+      const state = StateManager.get();
+      
+      loadingPanel.className = 'cloud-loading-panel success';
+      loadingText.textContent = '✅ 数据加载成功';
+      
+      const recordCount = state.importHistory?.length || 0;
+      const cityCount = state.currentData?.cities?.length || 0;
+      loadingProgress.textContent = `已加载 ${recordCount} 条历史记录，共 ${cityCount} 个城市数据`;
+      
+      // 2秒后自动隐藏
+      setTimeout(() => {
+        loadingPanel.style.display = 'none';
         
-        // 6. 获取状态信息
-        const state = StateManager.get();
-        
-        // 7. 渲染UI
+        // 渲染UI
         renderOverview();
         renderDimension();
         renderTrend();
-        
-        // 8. 显示加载成功
-        const recordCount = state.importHistory?.length || 0;
-        showToast('已加载上次的数据，共' + recordCount + '条记录', 'success');
-        
-        console.log('[App] 初始化完成', StateManager.getSummary());
-      } else {
-        console.log('[App] 无历史数据，等待导入');
-        showToast('欢迎使用财务分析工具，请导入数据', 'info');
-      }
+      }, 2000);
     };
   </script>
 </body>
