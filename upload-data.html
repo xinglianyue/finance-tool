@@ -1555,7 +1555,8 @@
           let content = null;
           
           if (data.content && data.content.trim() !== '') {
-            content = decodeURIComponent(escape(atob(data.content)));
+            const base64Content = data.content.replace(/\n/g, '');
+            content = decodeURIComponent(escape(atob(base64Content)));
           }
           
           if (!content || content.trim() === '') {
@@ -1566,7 +1567,16 @@
             return;
           }
           
-          cloudData = JSON.parse(content);
+          try {
+            cloudData = JSON.parse(content);
+          } catch (parseError) {
+            console.error('[Error] JSON解析失败:', parseError);
+            cloudData = [];
+            historyLoading.style.display = 'none';
+            historyList.classList.remove('hidden');
+            historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>数据格式错误</div><div style="font-size: 13px; margin-top: 4px;">请检查云端数据</div></div>';
+            return;
+          }
           
           if (!Array.isArray(cloudData)) {
             cloudData = [];
