@@ -950,28 +950,36 @@
       if (idx < 0 || idx >= importHistory.length) return;
       
       currentImportIndex = idx;
-      allMerchantData = importHistory[idx].data;
+      const cloudData = importHistory[idx].data;
       currentMerchantType = 'all';
       
-      const merchantResult = allMerchantData[currentMerchantType];
       let totalData = null;
       let citiesData = [];
       
-      merchantResult.cities.forEach(city => {
-        if (city.name === '总商') {
-          totalData = city;
-        } else {
-          citiesData.push(city);
+      if (cloudData.cities && Array.isArray(cloudData.cities)) {
+        cloudData.cities.forEach(city => {
+          if (city.name === '总商') {
+            totalData = city;
+          } else {
+            citiesData.push(city);
+          }
+        });
+        
+        if (!totalData && cloudData.cities.length > 0) {
+          totalData = cloudData.cities[0];
         }
-      });
-      
-      if (!totalData && merchantResult.cities.length > 0) {
-        totalData = merchantResult.cities[0];
       }
       
       currentData = {
-        totals: totalData ? (totalData.modules.all || {}) : {},
+        totals: totalData ? (totalData.modules?.all || {}) : {},
         cities: citiesData
+      };
+      
+      allMerchantData = {
+        all: {
+          label: '全量商家',
+          cities: cloudData.cities || []
+        }
       };
       
       saveToLocalStorage();
@@ -985,7 +993,14 @@
       if (idx < 0 || idx >= importHistory.length) return;
       
       currentImportIndex = idx;
-      allMerchantData = importHistory[idx].data;
+      const cloudData = importHistory[idx].data;
+      
+      allMerchantData = {
+        all: {
+          label: '全量商家',
+          cities: cloudData.cities || []
+        }
+      };
       
       renderDimensionTable();
     }
