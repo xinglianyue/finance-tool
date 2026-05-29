@@ -9,6 +9,21 @@
   <script src="js/chart.umd.min.js"></script>
   <script src="js/data-store.js"></script>
   <script src="js/state-manager.js"></script>
+  <script>
+    // 立即执行：在页面加载前清空本地存储，确保完全与云端同步
+    (function() {
+      console.log('[App] === 预加载阶段 ===');
+      console.log('[App] 清空前 - finance-tool:', localStorage.getItem('finance-tool') ? '存在' : '不存在');
+      console.log('[App] 清空前 - finance-tool-backup:', localStorage.getItem('finance-tool-backup') ? '存在' : '不存在');
+      
+      localStorage.removeItem('finance-tool');
+      localStorage.removeItem('finance-tool-backup');
+      
+      console.log('[App] 清空后 - finance-tool:', localStorage.getItem('finance-tool') ? '存在' : '不存在');
+      console.log('[App] 清空后 - finance-tool-backup:', localStorage.getItem('finance-tool-backup') ? '存在' : '不存在');
+      console.log('[App] === 预加载完成 ===');
+    })();
+  </script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -3008,31 +3023,27 @@
       // 1. 绑定事件
       document.getElementById('fileInput').addEventListener('change', handleFileImport);
       
-      // 2. 加载数据
-      let loaded = loadFromLocalStorage();
+      // 2. 确保本地存储清空，完全依赖云端数据
+      console.log('[App] 从云端加载数据...');
+      DataStore.clear();
       
-      // 3. 检查本地数据是否有效
-      if (loaded) {
-        const state = StateManager.get();
-        const hasValidData = state.importHistory?.length > 0 && 
-                            state.currentData?.cities?.length > 0;
-        
-        if (!hasValidData) {
-          console.log('[App] 本地数据无效，尝试从云端加载...');
-          loaded = await loadFromCloud();
-          if (loaded) {
-            // 重新获取状态
-            StateManager.init(DataStore.load());
-          }
-        }
-      } else {
-        // 4. 如果本地没有数据，尝试从云端加载
-        console.log('[App] 本地无数据，尝试从云端加载...');
-        loaded = await loadFromCloud();
-        if (loaded) {
-          // 重新初始化状态
-          StateManager.init(DataStore.load());
-        }
+      // 3. 从云端加载数据
+      let loaded = await loadFromCloud();
+      
+      // 4. 如果云端加载失败或无数据，显示空状态
+      if (!loaded) {
+        console.log('[App] 云端无数据，显示空状态');
+        StateManager.init(DataStore.load());
+        StateManager.update({
+          hasData: false,
+          historyCount: 0,
+          currentMerchantType: 'all',
+          currentModule: 'all',
+          selectedCities: [],
+          showCityDetail: false,
+          selectedCityIndex: null
+        });
+        return;
       }
       
       if (loaded) {
