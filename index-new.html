@@ -3132,17 +3132,28 @@
       }
       
       // 加载成功
-      StateManager.init(DataStore.load());
+      const loadedData = DataStore.load();
+      StateManager.init(loadedData);
+      
+      // 更新全局变量
+      if (loadedData) {
+        importHistory = loadedData.importHistory || [];
+        currentData = loadedData.currentData || null;
+        allMerchantData = loadedData.allMerchantData || null;
+        currentImportIndex = loadedData.currentImportIndex || 0;
+        currentMerchantType = loadedData.currentMerchantType || 'all';
+      }
+      
       const health = StateManager.validate();
       const state = StateManager.get();
-      
+
       loadingPanel.className = 'cloud-loading-panel success';
       loadingText.textContent = '✅ 数据加载成功';
-      
+
       const recordCount = state.importHistory?.length || 0;
       const cityCount = state.currentData?.cities?.length || 0;
       loadingProgress.textContent = `已加载 ${recordCount} 条历史记录，共 ${cityCount} 个城市数据`;
-      
+
       // 2秒后自动隐藏
       setTimeout(() => {
         loadingPanel.style.display = 'none';
