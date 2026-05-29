@@ -3132,6 +3132,7 @@
       }
       
       // 加载成功
+      StateManager.init(DataStore.load());
       const health = StateManager.validate();
       const state = StateManager.get();
       
