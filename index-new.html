@@ -3158,6 +3158,9 @@
       setTimeout(() => {
         loadingPanel.style.display = 'none';
         
+        console.log('[App] 开始渲染UI，当前currentData:', currentData);
+        console.log('[App] 当前importHistory:', importHistory);
+        
         // 渲染UI
         renderOverview();
         renderDimension();
