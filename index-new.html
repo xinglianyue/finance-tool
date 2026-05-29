@@ -1063,18 +1063,18 @@
         const latestRecord = cloudData[0];
         
         if (latestRecord.currentData && latestRecord.currentData.cities && latestRecord.currentData.cities.length > 0) {
-          const monthLabel = latestRecord.date || '云端数据';
-          
           const totalCity = latestRecord.currentData.cities.find(c => c.name === '总商');
           const totals = totalCity && totalCity.modules && totalCity.modules.all ? totalCity.modules.all : {};
           
+          const allImportHistory = cloudData.map((record, index) => ({
+            monthLabel: record.date || '云端数据',
+            data: record.currentData,
+            importedAt: record.updatedAt || new Date().toISOString()
+          }));
+          
           const dataToSave = {
             version: 2,
-            importHistory: [{
-              monthLabel: monthLabel,
-              data: latestRecord.currentData,
-              importedAt: new Date().toISOString()
-            }],
+            importHistory: allImportHistory,
             currentImportIndex: 0,
             currentData: {
               totals: totals,
@@ -1090,7 +1090,7 @@
           };
           
           DataStore.save(dataToSave);
-          console.log('[App] 云端数据已保存到本地');
+          console.log('[App] 云端数据已保存到本地，共' + allImportHistory.length + '条历史记录');
           return true;
         }
         
