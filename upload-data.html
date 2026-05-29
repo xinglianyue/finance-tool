@@ -1540,23 +1540,40 @@
 
     async function loadHistoryData() {
       try {
+        console.log('[Upload] 开始加载历史记录...');
+        
         // 显示加载状态
         const historyLoading = document.getElementById('historyLoading');
         historyLoading.style.display = 'flex';
         historyList.classList.add('hidden');
         
         const token = localStorage.getItem('finance_tool_github_token');
+        console.log('[Upload] Token状态:', token ? '已保存' : '未保存');
         const headers = token ? { 'Authorization': 'token ' + token } : {};
+        
+        console.log('[Upload] 正在请求:', GITHUB_API);
         const resp = await fetch(GITHUB_API, { headers });
+        console.log('[Upload] 请求状态:', resp.status, resp.statusText);
         
         if (resp.ok) {
           const data = await resp.json();
+          console.log('[Upload] GitHub API响应:', data);
+          console.log('[Upload] SHA:', data.sha);
+          console.log('[Upload] 内容长度:', data.content ? data.content.length : 0);
           
           let content = null;
           
           if (data.content && data.content.trim() !== '') {
-            const base64Content = data.content.replace(/\n/g, '');
-            content = decodeURIComponent(escape(atob(base64Content)));
+            try {
+              const base64Content = data.content.replace(/\n/g, '');
+              console.log('[Upload] Base64内容（去换行后）长度:', base64Content.length);
+              content = decodeURIComponent(escape(atob(base64Content)));
+              console.log('[Upload] 解码后内容长度:', content.length);
+            } catch (decodeError) {
+              console.error('[Upload] Base64解码失败:', decodeError);
+            }
+          } else {
+            console.log('[Upload] data.content为空或不存在');
           }
           
           if (!content || content.trim() === '') {
@@ -1579,8 +1596,11 @@
           }
           
           if (!Array.isArray(cloudData)) {
+            console.error('[Upload] 云端数据不是数组:', typeof cloudData);
             cloudData = [];
           }
+          
+          console.log('[Upload] 解析后的数据条数:', cloudData.length);
           
           if (cloudData.length === 0) {
             historyLoading.style.display = 'none';
@@ -1589,9 +1609,11 @@
             return;
           }
           
+          console.log('[Upload] 正在渲染历史记录列表...');
           let html = '';
           cloudData.forEach((record, index) => {
             const uploadedAt = new Date(record.updatedAt).toLocaleString('zh-CN');
+            console.log('[Upload] 记录' + index + ':', record.date, record.fileName);
             html += '<div class="history-item">' +
               '<div>' +
                 '<div class="history-date">' + record.date + '</div>' +
@@ -1604,9 +1626,11 @@
             '</div>';
           });
           
+          console.log('[Upload] 生成HTML长度:', html.length);
           historyLoading.style.display = 'none';
           historyList.classList.remove('hidden');
           historyList.innerHTML = html;
+          console.log('[Upload] 历史记录渲染完成！');
         } else {
           historyLoading.style.display = 'none';
           historyList.classList.remove('hidden');

@@ -264,6 +264,12 @@ const DataStore = {
       const current = localStorage.getItem(this.STORAGE_KEY);
       if (!current) return;
       
+      // 检查数据大小，如果太大则跳过备份
+      if (current.length > 2000000) {
+        console.log('[DataStore] 数据太大，跳过备份（大小：' + Math.round(current.length / 1024) + 'KB）');
+        return;
+      }
+      
       const backups = this.getBackups();
       backups.unshift({
         id: Date.now(),
@@ -280,7 +286,18 @@ const DataStore = {
       console.log('[DataStore] 备份成功');
       
     } catch (e) {
-      console.error('[DataStore] 备份失败:', e);
+      // 如果是配额超限错误，清理旧备份后重试
+      if (e.name === 'QuotaExceededError') {
+        console.log('[DataStore] 存储空间不足，清理旧备份...');
+        try {
+          localStorage.removeItem(this.BACKUP_KEY);
+          console.log('[DataStore] 已清理备份存储空间');
+        } catch (cleanupError) {
+          console.error('[DataStore] 清理备份失败:', cleanupError);
+        }
+      } else {
+        console.error('[DataStore] 备份失败:', e);
+      }
     }
   },
   
