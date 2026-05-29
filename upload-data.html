@@ -331,9 +331,9 @@
     <div class="upload-area" id="uploadArea">
       <i>📁</i>
       <span>点击或拖拽Excel文件到此处上传</span>
-      <small>支持 .xlsx, .xls, .csv格式</small>
+      <small>支持 .xlsx, .xls, .csv格式，可一次选择多个文件</small>
     </div>
-    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple>
     
     <div class="progress-container" id="progressContainer">
       <div class="progress-bar" id="progressBar">
@@ -978,6 +978,123 @@
       }
     }
 
+    async function handleMultipleFiles(files) {
+      const validFiles = files.filter(file => file.name.match(/\.(xlsx|xls|csv)$/i));
+      
+      if (validFiles.length === 0) {
+        alert('请选择Excel文件（.xlsx, .xls, .csv格式）');
+        return;
+      }
+      
+      showStatus('info', '批量处理', '正在处理 ' + validFiles.length + ' 个文件...');
+      clearTimeline();
+      addTimelineItem('开始批量处理 ' + validFiles.length + ' 个文件...');
+      showProgress(5, '准备中...');
+      
+      const allParsedData = [];
+      const errors = [];
+      
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        const progress = Math.round(((i + 1) / validFiles.length) * 100);
+        
+        updateTimelineItem(0, 'done');
+        addTimelineItem('处理文件 ' + (i + 1) + '/' + validFiles.length + ': ' + file.name);
+        showProgress(progress, '处理中 ' + (i + 1) + '/' + validFiles.length);
+        
+        try {
+          const reader = new FileReader();
+          
+          await new Promise((resolve, reject) => {
+            reader.onload = resolve;
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+          });
+          
+          const workbook = XLSX.read(reader.result, { type: 'array' });
+          const merchantData = parseWorkbook(workbook);
+          const data = buildOutputData(merchantData);
+          
+          const dateStr = parseDateFromFilename(file.name);
+          
+          allParsedData.push({
+            date: dateStr,
+            updatedAt: new Date().toISOString(),
+            uploadedBy: 'web',
+            fileName: file.name,
+            currentData: data,
+            merchantData: merchantData
+          });
+          
+          updateTimelineItem(timelineItems.length - 1, 'done');
+          
+        } catch (error) {
+          console.error('[Error] 处理文件失败:', file.name, error);
+          errors.push({ file: file.name, error: error.message });
+          updateTimelineItem(timelineItems.length - 1, 'error');
+        }
+      }
+      
+      if (allParsedData.length === 0) {
+        showStatus('error', '处理失败', '所有文件处理失败');
+        hideProgress();
+        return;
+      }
+      
+      parsedData = allParsedData;
+      
+      const totalCities = allParsedData.reduce((sum, d) => sum + d.currentData.cities.length, 0);
+      const totalOrders = allParsedData.reduce((sum, d) => 
+        sum + d.currentData.cities.reduce((s, c) => s + (c.modules.all?.orders || 0), 0), 0);
+      const totalGMV = allParsedData.reduce((sum, d) => 
+        sum + d.currentData.cities.reduce((s, c) => s + (c.modules.all?.gmvAmount || 0), 0), 0);
+      
+      const statsHtml = '<div class="status-stats">' +
+        '<div class="stat-item"><div class="stat-value">' + allParsedData.length + '</div><div class="stat-label">文件数量</div></div>' +
+        '<div class="stat-item"><div class="stat-value">' + totalCities + '</div><div class="stat-label">城市总数</div></div>' +
+        '<div class="stat-item"><div class="stat-value">¥' + (totalGMV / 10000).toFixed(2) + '万</div><div class="stat-label">交易总额</div></div>' +
+        '</div>';
+      
+      let statusMessage = '成功处理 ' + allParsedData.length + ' 个文件';
+      if (errors.length > 0) {
+        statusMessage += '，' + errors.length + ' 个文件失败';
+      }
+      
+      showStatus(allParsedData.length > 0 ? 'success' : 'error', 
+        '批量处理完成', 
+        statusMessage + '<br>' + statsHtml);
+      
+      actions.style.display = 'flex';
+      hideProgress();
+      
+      renderBatchPreview(allParsedData);
+    }
+
+    function renderBatchPreview(dataList) {
+      dataPreview.style.display = 'block';
+      
+      let html = '<table class="data-table"><thead><tr>' +
+        '<th>序号</th><th>日期</th><th>文件名</th><th>城市数</th><th>订单量</th><th>交易额</th>' +
+        '</tr></thead><tbody>';
+      
+      dataList.forEach((item, index) => {
+        const orders = item.currentData.cities.reduce((s, c) => s + (c.modules.all?.orders || 0), 0);
+        const gmv = item.currentData.cities.reduce((s, c) => s + (c.modules.all?.gmvAmount || 0), 0);
+        
+        html += '<tr>' +
+          '<td>' + (index + 1) + '</td>' +
+          '<td>' + item.date + '</td>' +
+          '<td>' + item.fileName + '</td>' +
+          '<td>' + item.currentData.cities.length + '</td>' +
+          '<td>' + orders.toLocaleString() + '</td>' +
+          '<td>¥' + (gmv / 10000).toFixed(2) + '万</td>' +
+          '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      previewTable.innerHTML = html;
+    }
+
     saveLocalBtn.addEventListener('click', function() {
       if (parsedData) {
         const blob = new Blob([JSON.stringify(parsedData, null, 2)], { type: 'application/json' });
@@ -992,7 +1109,20 @@
     });
 
     uploadCloudBtn.addEventListener('click', async function() {
-      if (!parsedData || !parsedData.cities || parsedData.cities.length === 0) {
+      if (!parsedData) {
+        alert('请先上传并解析数据！');
+        return;
+      }
+      
+      const isBatch = Array.isArray(parsedData);
+      const dataCount = isBatch ? parsedData.length : 1;
+      
+      if (isBatch && parsedData.length === 0) {
+        alert('没有有效的数据可上传！');
+        return;
+      }
+      
+      if (!isBatch && (!parsedData.cities || parsedData.cities.length === 0)) {
         alert('请先上传并解析数据！');
         return;
       }
@@ -1001,7 +1131,7 @@
       uploadCloudBtn.innerHTML = '☁️ 上传中...';
       clearTimeline();
       
-      showStatus('info', '开始上传', '正在将数据上传到云端...');
+      showStatus('info', '开始上传', '正在将 ' + dataCount + ' 条数据上传到云端...');
       addTimelineItem('连接服务器...');
       showProgress(10, '连接中...');
       
@@ -1011,7 +1141,7 @@
         addTimelineItem('读取云端现有数据...');
         showProgress(25, '读取数据中...');
         
-        const success = await uploadToCloud(parsedData, currentFileName);
+        const success = await uploadToCloudBatch(parsedData);
         
         updateTimelineItem(1, 'done');
         addTimelineItem('上传新数据...');
@@ -1032,7 +1162,7 @@
           const successBody = '<div style="text-align: center;">' +
             '<div style="font-size: 48px; margin-bottom: 16px;">🎉</div>' +
             '<div style="font-size: 18px; font-weight: 600;">上传成功！</div>' +
-            '<div style="color: #64748b; margin-top: 8px;">数据已同步到云端，其他用户可以查看最新数据</div>' +
+            '<div style="color: #64748b; margin-top: 8px;">已上传 ' + dataCount + ' 条数据到云端</div>' +
             '</div>';
           showStatus('success', '上传成功', successBody);
           
@@ -1054,6 +1184,106 @@
         uploadCloudBtn.innerHTML = '☁️ 上传到云端';
       }
     });
+
+    async function uploadToCloudBatch(data) {
+      const token = getToken();
+      if (!token || !token.startsWith('ghp_')) {
+        alert('请先输入有效的GitHub Token');
+        return false;
+      }
+      
+      saveToken(token);
+      
+      const headers = {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json'
+      };
+
+      let sha = null;
+      let existingRecords = [];
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 30000);
+        
+        const resp = await fetch(GITHUB_API, { headers: headers, signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (resp.ok) {
+          const githubData = await resp.json();
+          sha = githubData.sha;
+          try {
+            const content = decodeURIComponent(escape(atob(githubData.content)));
+            const decoded = JSON.parse(content);
+            existingRecords = Array.isArray(decoded) ? decoded : [];
+          } catch (e) {
+            existingRecords = [];
+          }
+        }
+      } catch (e) {
+        console.log('[Upload] 无法读取现有数据，可能是首次上传');
+      }
+
+      const isBatch = Array.isArray(data);
+      const recordsToAdd = isBatch ? data : [{
+        date: data.date,
+        updatedAt: new Date().toISOString(),
+        uploadedBy: 'web',
+        fileName: currentFileName,
+        currentData: data
+      }];
+
+      recordsToAdd.forEach(newRecord => {
+        const monthKey = newRecord.date.substring(0, 7);
+        const existingIndex = existingRecords.findIndex(r => r.date && r.date.startsWith(monthKey));
+        
+        if (existingIndex >= 0) {
+          existingRecords[existingIndex] = newRecord;
+        } else {
+          existingRecords.unshift(newRecord);
+        }
+      });
+
+      existingRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(existingRecords, null, 2))));
+      console.log('[Upload] 上传记录数:', existingRecords.length);
+      
+      const body = {
+        message: 'Update financial data: ' + (isBatch ? recordsToAdd.length + ' records' : recordsToAdd[0].date),
+        content: content,
+        branch: 'main'
+      };
+      
+      if (sha) {
+        body.sha = sha;
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 30000);
+        
+        const response = await fetch(GITHUB_API, {
+          method: 'PUT',
+          headers: headers,
+          body: JSON.stringify(body),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log('[Upload] 上传成功');
+          return true;
+        } else {
+          const errorData = await response.json();
+          console.error('[Upload] 上传失败:', errorData);
+          return false;
+        }
+      } catch (e) {
+        console.error('[Upload] 请求失败:', e);
+        return false;
+      }
+    }
 
     async function uploadToCloud(data, fileName) {
       const token = getToken();
@@ -1272,10 +1502,22 @@
       e.preventDefault();
       uploadArea.classList.remove('dragover');
       const files = e.dataTransfer.files;
-      if (files.length > 0) handleFile(files[0]);
+      if (files.length > 0) {
+        if (files.length === 1) {
+          handleFile(files[0]);
+        } else {
+          handleMultipleFiles(Array.from(files));
+        }
+      }
     });
     fileInput.addEventListener('change', function(e) {
-      if (e.target.files.length > 0) handleFile(e.target.files[0]);
+      if (e.target.files.length > 0) {
+        if (e.target.files.length === 1) {
+          handleFile(e.target.files[0]);
+        } else {
+          handleMultipleFiles(Array.from(e.target.files));
+        }
+      }
     });
 
     async function loadHistoryData() {
