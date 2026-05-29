@@ -304,6 +304,69 @@
       opacity: 0.6;
       cursor: not-allowed;
     }
+    
+    /* ==================== 移动端优化 ==================== */
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+      
+      .container {
+        padding: 20px;
+        border-radius: 12px;
+      }
+      
+      h1 {
+        font-size: 20px;
+      }
+      
+      .subtitle {
+        font-size: 13px;
+      }
+      
+      .upload-area {
+        padding: 40px 16px;
+      }
+      
+      .upload-area i {
+        font-size: 40px;
+      }
+      
+      .history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .history-actions {
+        width: 100%;
+        gap: 8px;
+      }
+      
+      .history-btn {
+        flex: 1;
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+      
+      .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+      
+      #githubTokenInput {
+        font-size: 14px;
+      }
+      
+      .status-stats {
+        grid-template-columns: 1fr;
+      }
+      
+      .token-section input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1219,9 +1282,10 @@
         'Accept': 'application/vnd.github.v3+json'
       };
 
-      let sha = null;
-      let existingRecords = [];
-
+      // 步骤1：读取并更新 shared-data.json（完整数据）
+      let fullDataSha = null;
+      let fullExistingRecords = [];
+      
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(function() { controller.abort(); }, 30000);
@@ -1231,17 +1295,24 @@
         
         if (resp.ok) {
           const githubData = await resp.json();
-          sha = githubData.sha;
+          fullDataSha = githubData.sha;
           try {
-            const content = decodeURIComponent(escape(atob(githubData.content)));
-            const decoded = JSON.parse(content);
-            existingRecords = Array.isArray(decoded) ? decoded : [];
+            // 处理大文件：先尝试content，不行用download_url
+            if (githubData.content && githubData.content.trim()) {
+              fullExistingRecords = JSON.parse(decodeURIComponent(escape(atob(githubData.content.replace(/\n/g, '')))));
+            } else if (githubData.download_url) {
+              const downloadResp = await fetch(githubData.download_url);
+              fullExistingRecords = await downloadResp.json();
+            }
+            if (!Array.isArray(fullExistingRecords)) {
+              fullExistingRecords = [];
+            }
           } catch (e) {
-            existingRecords = [];
+            fullExistingRecords = [];
           }
         }
       } catch (e) {
-        console.log('[Upload] 无法读取现有数据，可能是首次上传');
+        console.log('[Upload] 无法读取现有完整数据，可能是首次上传');
       }
 
       const isBatch = Array.isArray(data);
@@ -1254,28 +1325,74 @@
       }];
 
       recordsToAdd.forEach(newRecord => {
-        const existingIndex = existingRecords.findIndex(r => r.date === newRecord.date);
+        const existingIndex = fullExistingRecords.findIndex(r => r.date === newRecord.date);
         
         if (existingIndex >= 0) {
-          existingRecords[existingIndex] = newRecord;
+          fullExistingRecords[existingIndex] = newRecord;
         } else {
-          existingRecords.unshift(newRecord);
+          fullExistingRecords.unshift(newRecord);
         }
       });
 
-      existingRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+      fullExistingRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(existingRecords, null, 2))));
-      console.log('[Upload] 上传记录数:', existingRecords.length);
+      // 步骤2：读取并更新 index.json（轻量级索引）
+      let indexSha = null;
+      let indexRecords = [];
       
-      const body = {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 30000);
+        
+        const resp = await fetch(INDEX_API, { headers: headers, signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (resp.ok) {
+          const githubData = await resp.json();
+          indexSha = githubData.sha;
+          try {
+            const decoded = JSON.parse(decodeURIComponent(escape(atob(githubData.content.replace(/\n/g, '')))));
+            indexRecords = Array.isArray(decoded) ? decoded : [];
+          } catch (e) {
+            indexRecords = [];
+          }
+        }
+      } catch (e) {
+        console.log('[Upload] 无法读取现有索引数据，可能是首次上传');
+      }
+
+      const newIndexRecords = recordsToAdd.map(r => ({
+        date: r.date,
+        updatedAt: r.updatedAt,
+        uploadedBy: r.uploadedBy,
+        fileName: r.fileName
+      }));
+
+      newIndexRecords.forEach(newRecord => {
+        const existingIndexIndex = indexRecords.findIndex(r => r.date === newRecord.date);
+        
+        if (existingIndexIndex >= 0) {
+          indexRecords[existingIndexIndex] = newRecord;
+        } else {
+          indexRecords.unshift(newRecord);
+        }
+      });
+
+      indexRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // 步骤3：同时上传两个文件
+      let allSuccess = true;
+
+      // 3.1 上传 shared-data.json
+      const fullContent = btoa(unescape(encodeURIComponent(JSON.stringify(fullExistingRecords, null, 2))));
+      const fullBody = {
         message: 'Update financial data: ' + (isBatch ? recordsToAdd.length + ' records' : recordsToAdd[0].date),
-        content: content,
+        content: fullContent,
         branch: 'main'
       };
       
-      if (sha) {
-        body.sha = sha;
+      if (fullDataSha) {
+        fullBody.sha = fullDataSha;
       }
 
       try {
@@ -1285,23 +1402,54 @@
         const response = await fetch(GITHUB_API, {
           method: 'PUT',
           headers: headers,
-          body: JSON.stringify(body),
+          body: JSON.stringify(fullBody),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
         
-        if (response.ok) {
-          console.log('[Upload] 上传成功');
-          return true;
-        } else {
-          const errorData = await response.json();
-          console.error('[Upload] 上传失败:', errorData);
-          return false;
+        if (!response.ok) {
+          console.error('[Upload] shared-data.json上传失败:', response.status);
+          allSuccess = false;
         }
       } catch (e) {
-        console.error('[Upload] 请求失败:', e);
-        return false;
+        console.error('[Upload] shared-data.json上传异常:', e);
+        allSuccess = false;
       }
+
+      // 3.2 上传 index.json
+      const indexContent = btoa(unescape(encodeURIComponent(JSON.stringify(indexRecords, null, 2))));
+      const indexBody = {
+        message: 'Update index: ' + (isBatch ? recordsToAdd.length + ' records' : recordsToAdd[0].date),
+        content: indexContent,
+        branch: 'main'
+      };
+      
+      if (indexSha) {
+        indexBody.sha = indexSha;
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function() { controller.abort(); }, 30000);
+        
+        const response = await fetch(INDEX_API, {
+          method: 'PUT',
+          headers: headers,
+          body: JSON.stringify(indexBody),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          console.error('[Upload] index.json上传失败:', response.status);
+          allSuccess = false;
+        }
+      } catch (e) {
+        console.error('[Upload] index.json上传异常:', e);
+        allSuccess = false;
+      }
+
+      return allSuccess;
     }
 
     // ===== 云端数据管理 =====
