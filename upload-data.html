@@ -1558,22 +1558,41 @@
         if (resp.ok) {
           const data = await resp.json();
           console.log('[Upload] GitHub API响应:', data);
+          console.log('[Upload] 文件大小:', data.size, '字节');
           console.log('[Upload] SHA:', data.sha);
           console.log('[Upload] 内容长度:', data.content ? data.content.length : 0);
           
           let content = null;
+          let contentSource = '';
           
+          // 如果content字段为空（文件大于1MB），使用download_url下载
           if (data.content && data.content.trim() !== '') {
             try {
               const base64Content = data.content.replace(/\n/g, '');
               console.log('[Upload] Base64内容（去换行后）长度:', base64Content.length);
               content = decodeURIComponent(escape(atob(base64Content)));
               console.log('[Upload] 解码后内容长度:', content.length);
+              contentSource = 'API';
             } catch (decodeError) {
               console.error('[Upload] Base64解码失败:', decodeError);
             }
+          } else if (data.download_url) {
+            // 文件太大，使用download_url下载
+            console.log('[Upload] 文件太大（' + Math.round(data.size / 1024 / 1024) + 'MB），使用下载链接...');
+            try {
+              const downloadResp = await fetch(data.download_url);
+              if (downloadResp.ok) {
+                content = await downloadResp.text();
+                console.log('[Upload] 下载内容长度:', content.length);
+                contentSource = 'download';
+              } else {
+                console.error('[Upload] 下载失败:', downloadResp.status, downloadResp.statusText);
+              }
+            } catch (downloadError) {
+              console.error('[Upload] 下载出错:', downloadError);
+            }
           } else {
-            console.log('[Upload] data.content为空或不存在');
+            console.log('[Upload] data.content和download_url都为空');
           }
           
           if (!content || content.trim() === '') {
