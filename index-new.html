@@ -332,11 +332,232 @@
       cursor: pointer;
     }
 
+    /* ==================== 移动端优化 ==================== */
+    
+    /* 平板端（768px以下） */
     @media (max-width: 768px) {
-      .health-dashboard { grid-template-columns: 1fr; }
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-      .charts-grid { grid-template-columns: 1fr; }
-      .selectors { flex-direction: column; }
+      .app-container {
+        padding: 12px;
+      }
+      
+      .header {
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      
+      .header h1 {
+        font-size: 20px;
+      }
+      
+      .header p {
+        font-size: 12px;
+        display: none; /* 手机上隐藏副标题 */
+      }
+      
+      .header-actions {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      
+      .header-actions .btn {
+        flex: 1 1 calc(50% - 8px);
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      
+      .tabs-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 4px;
+        padding: 4px;
+      }
+      
+      .tab-btn {
+        padding: 10px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      
+      .card {
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      
+      .card-title {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+      
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      
+      .kpi-value {
+        font-size: 24px;
+      }
+      
+      .kpi-label {
+        font-size: 12px;
+      }
+      
+      .selectors {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .selector-group {
+        width: 100%;
+      }
+      
+      .selector-group select,
+      .selector-group input {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      table {
+        font-size: 12px;
+      }
+      
+      table th,
+      table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+      }
+    }
+    
+    /* 手机端（480px以下） */
+    @media (max-width: 480px) {
+      .app-container {
+        padding: 8px;
+      }
+      
+      .header {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      
+      .header h1 {
+        font-size: 18px;
+      }
+      
+      .header-actions .btn {
+        flex: 1 1 100%;
+        padding: 10px;
+        font-size: 13px;
+      }
+      
+      .tab-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      
+      .card {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      
+      .card-title {
+        font-size: 14px;
+      }
+      
+      .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      
+      .kpi-card {
+        padding: 12px;
+      }
+      
+      .kpi-value {
+        font-size: 20px;
+      }
+      
+      .selectors {
+        gap: 8px;
+      }
+      
+      .selector-label {
+        font-size: 12px;
+        min-width: 70px;
+      }
+      
+      table {
+        font-size: 11px;
+      }
+      
+      table th,
+      table td {
+        padding: 6px 4px;
+      }
+      
+      .checkbox-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .checkbox-group label {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+    }
+    
+    /* 图表容器优化 */
+    @media (max-width: 768px) {
+      .chart-container {
+        height: 300px !important;
+        margin-bottom: 16px;
+      }
+      
+      canvas {
+        max-width: 100%;
+        height: auto !important;
+      }
+      
+      #trendDetailTable {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+    
+    /* 敏感性分析页面优化 */
+    @media (max-width: 768px) {
+      #tab-sensitivity > .card {
+        grid-template-columns: 1fr !important;
+      }
+      
+      #sensitivityParams > div {
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
+    
+    /* 空状态优化 */
+    @media (max-width: 480px) {
+      .empty-state {
+        padding: 32px 16px;
+      }
+      
+      .empty-icon {
+        font-size: 48px;
+      }
+      
+      .empty-state h2 {
+        font-size: 18px;
+      }
+      
+      .empty-state p {
+        font-size: 13px;
+      }
     }
 
     .cloud-loading-panel {
