@@ -188,6 +188,22 @@
     .history-btn.view:hover { background: #e5e7eb; }
     .history-btn.delete { background: #fee2e2; color: #dc2626; }
     .history-btn.delete:hover { background: #fecaca; }
+    .history-loading {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .history-loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e5e7eb;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
     .status-panel {
       margin-top: 20px;
       padding: 20px;
@@ -367,6 +383,10 @@
     
     <div class="history-section" id="historySection">
       <h3>📋 上传历史记录 <button class="btn btn-outline" style="margin-left: auto; padding: 6px 16px; font-size: 13px;" onclick="refreshHistory()">🔄 刷新列表</button></h3>
+      <div class="history-loading" id="historyLoading" style="display: none;">
+        <div class="history-loading-spinner"></div>
+        <span style="margin-left: 8px; color: #64748b;">正在从云端加载历史记录...</span>
+      </div>
       <div class="history-list" id="historyList">
         <div class="empty-state" id="emptyState">
           <i>📭</i>
@@ -1522,7 +1542,12 @@
 
     async function loadHistoryData() {
       try {
-        const token = localStorage.getItem('GITHUB_TOKEN');
+        // 显示加载状态
+        const historyLoading = document.getElementById('historyLoading');
+        historyLoading.style.display = 'flex';
+        historyList.classList.add('hidden');
+        
+        const token = localStorage.getItem('finance_tool_github_token');
         const headers = token ? { 'Authorization': 'token ' + token } : {};
         const resp = await fetch(GITHUB_API, { headers });
         
@@ -1537,6 +1562,8 @@
           
           if (!content || content.trim() === '') {
             cloudData = [];
+            historyLoading.style.display = 'none';
+            historyList.classList.remove('hidden');
             historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>暂无上传记录</div><div style="font-size: 13px; margin-top: 4px;">上传数据后会显示在这里</div></div>';
             return;
           }
@@ -1548,16 +1575,19 @@
           }
           
           if (cloudData.length === 0) {
+            historyLoading.style.display = 'none';
+            historyList.classList.remove('hidden');
             historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>暂无上传记录</div><div style="font-size: 13px; margin-top: 4px;">上传数据后会显示在这里</div></div>';
             return;
           }
           
           let html = '';
           cloudData.forEach((record, index) => {
+            const uploadedAt = new Date(record.updatedAt).toLocaleString('zh-CN');
             html += '<div class="history-item">' +
               '<div>' +
                 '<div class="history-date">' + record.date + '</div>' +
-                '<div class="history-info">文件: ' + (record.fileName || '未知') + ' | 上传者: ' + (record.uploadedBy || '未知') + '</div>' +
+                '<div class="history-info">文件: ' + (record.fileName || '未知') + ' | 上传时间: ' + uploadedAt + '</div>' +
               '</div>' +
               '<div class="history-actions">' +
                 '<button class="history-btn view" onclick="viewRecord(' + index + ')">查看</button>' +
@@ -1566,12 +1596,19 @@
             '</div>';
           });
           
+          historyLoading.style.display = 'none';
+          historyList.classList.remove('hidden');
           historyList.innerHTML = html;
         } else {
+          historyLoading.style.display = 'none';
+          historyList.classList.remove('hidden');
           historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>无法加载历史记录</div><div style="font-size: 13px; margin-top: 4px;">请检查网络连接</div></div>';
         }
       } catch (e) {
         console.error('[Error] 加载历史记录失败:', e);
+        const historyLoading = document.getElementById('historyLoading');
+        historyLoading.style.display = 'none';
+        historyList.classList.remove('hidden');
         historyList.innerHTML = '<div class="empty-state"><i>📭</i><div>历史记录加载失败</div><div style="font-size: 13px; margin-top: 4px;">将创建新的数据集</div></div>';
         cloudData = [];
       }
