@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260530"></script>
-  <script src="js/chart.umd.min.js?v=20260530"></script>
-  <script src="js/data-store.js?v=20260530"></script>
-  <script src="js/state-manager.js?v=20260530"></script>
+  <script src="js/xlsx.full.min.js?v=20260530.1"></script>
+  <script src="js/chart.umd.min.js?v=20260530.1"></script>
+  <script src="js/data-store.js?v=20260530.1"></script>
+  <script src="js/state-manager.js?v=20260530.1"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -751,7 +751,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.1</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📁 导入数据</button>
         <button class="btn btn-secondary" onclick="loadDemoData()">📋 加载示例</button>
@@ -2283,10 +2283,10 @@
       const ueStats = getQuartiles(cities.map(c => c.ue));
       const profitStats = getQuartiles(cities.map(c => c.profitRate));
 
-      const ueDangerThreshold = ueStats.q1;
-      const ueWarningThreshold = ueStats.q3;
-      const profitDangerThreshold = profitStats.q1;
-      const profitWarningThreshold = profitStats.q3;
+      const ueDangerThreshold = ueStats.q1 || 0.1;
+      const ueWarningThreshold = ueStats.q3 || 0.5;
+      const profitDangerThreshold = profitStats.q1 || 0.1;
+      const profitWarningThreshold = profitStats.q3 || 0.2;
 
       const sortedCities = [...cities].sort((a, b) => b.ue - a.ue);
 
@@ -2340,8 +2340,8 @@
       
       html += '<tfoot><tr><td colspan="10" style="padding: 12px; font-size: 11px; color: #64748b; background: #f8fafc; border-top: 1px solid #e2e8f0;">';
       html += '<strong>动态阈值说明：</strong> ';
-      html += 'UE阈值：危险&lt;' + ueDangerThreshold.toFixed(3) + '，预警&lt;' + ueWarningThreshold.toFixed(3) + '，健康≥' + ueWarningThreshold.toFixed(3) + '；';
-      html += '毛利率阈值：危险&lt;' + formatPercent(profitDangerThreshold) + '，预警&lt;' + formatPercent(profitWarningThreshold) + '，健康≥' + formatPercent(profitWarningThreshold);
+      html += 'UE阈值：危险<' + ueDangerThreshold.toFixed(3) + '，预警<' + ueWarningThreshold.toFixed(3) + '，健康≥' + ueWarningThreshold.toFixed(3) + '；';
+      html += '毛利率阈值：危险<' + formatPercent(profitDangerThreshold) + '，预警<' + formatPercent(profitWarningThreshold) + '，健康≥' + formatPercent(profitWarningThreshold);
       html += '</td></tr></tfoot>';
 
       document.getElementById('cityRankTable').innerHTML = html;
