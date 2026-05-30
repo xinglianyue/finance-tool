@@ -10,17 +10,13 @@
   <script src="js/data-store.js"></script>
   <script src="js/state-manager.js"></script>
   <script>
-    // 立即执行：在页面加载前清空本地存储，确保完全与云端同步
+    // 预加载阶段：检查本地缓存状态
     (function() {
       console.log('[App] === 预加载阶段 ===');
-      console.log('[App] 清空前 - finance-tool:', localStorage.getItem('finance-tool') ? '存在' : '不存在');
-      console.log('[App] 清空前 - finance-tool-backup:', localStorage.getItem('finance-tool-backup') ? '存在' : '不存在');
-      
-      localStorage.removeItem('finance-tool');
-      localStorage.removeItem('finance-tool-backup');
-      
-      console.log('[App] 清空后 - finance-tool:', localStorage.getItem('finance-tool') ? '存在' : '不存在');
-      console.log('[App] 清空后 - finance-tool-backup:', localStorage.getItem('finance-tool-backup') ? '存在' : '不存在');
+      const hasLocalData = !!localStorage.getItem('finance-tool');
+      const hasBackup = !!localStorage.getItem('finance-tool-backup');
+      console.log('[App] 本地缓存状态 - finance-tool:', hasLocalData ? '存在' : '不存在');
+      console.log('[App] 备份缓存状态 - finance-tool-backup:', hasBackup ? '存在' : '不存在');
       console.log('[App] === 预加载完成 ===');
     })();
   </script>
@@ -98,6 +94,85 @@
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+
+    .diagnostic-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 400px;
+      max-width: calc(100vw - 40px);
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 10000;
+      font-size: 13px;
+      overflow: hidden;
+    }
+    
+    .diagnostic-header {
+      background: var(--danger);
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .diagnostic-close {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 0;
+      line-height: 1;
+    }
+    
+    .diagnostic-body {
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .diagnostic-log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-bottom: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .diagnostic-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .diagnostic-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    
+    .diagnostic-btn:hover { opacity: 0.9; }
+    .diagnostic-btn.copy { background: var(--primary); color: white; }
+    .diagnostic-btn.retry { background: var(--success); color: white; }
+    .diagnostic-btn.dismiss { background: #6b7280; color: white; }
+    
+    .copy-success {
+      background: var(--success) !important;
+    }
 
     .card {
       background: var(--bg-secondary);
@@ -332,7 +407,7 @@
       cursor: pointer;
     }
 
-    /* ==================== 移动端优化 ==================== */
+    /* ==================== 移动端优化（增强版） ==================== */
     
     /* 平板端（768px以下） */
     @media (max-width: 768px) {
@@ -361,8 +436,9 @@
       
       .header-actions .btn {
         flex: 1 1 calc(50% - 8px);
-        padding: 8px 12px;
-        font-size: 12px;
+        padding: 12px 16px;
+        font-size: 14px;
+        min-height: 44px; /* 触摸目标最小尺寸 */
       }
       
       .tabs-container {
@@ -370,12 +446,18 @@
         -webkit-overflow-scrolling: touch;
         gap: 4px;
         padding: 4px;
+        scrollbar-width: none; /* Firefox隐藏滚动条 */
+      }
+      
+      .tabs-container::-webkit-scrollbar {
+        display: none; /* Chrome/Safari隐藏滚动条 */
       }
       
       .tab-btn {
-        padding: 10px 16px;
-        font-size: 13px;
+        padding: 12px 18px;
+        font-size: 14px;
         white-space: nowrap;
+        min-height: 44px;
       }
       
       .card {
@@ -414,11 +496,95 @@
       .selector-group input {
         flex: 1;
         min-width: 0;
+        min-height: 44px; /* 触摸目标 */
+        font-size: 16px; /* 防止iOS缩放 */
       }
       
       .table-container {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+      }
+      
+      table {
+        font-size: 13px;
+      }
+      
+      table th,
+      table td {
+        padding: 10px 8px;
+        white-space: nowrap;
+      }
+      
+      /* 增强按钮触摸反馈 */
+      .btn {
+        min-height: 44px;
+        touch-action: manipulation;
+      }
+      
+      .btn:active {
+        transform: scale(0.98);
+      }
+    }
+    
+    /* 手机端（480px以下） */
+    @media (max-width: 480px) {
+      .app-container {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 14px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+      }
+      
+      .header h1 {
+        font-size: 18px;
+      }
+      
+      .header-actions .btn {
+        flex: 1 1 100%;
+        padding: 14px;
+        font-size: 15px;
+      }
+      
+      .tab-btn {
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+      
+      .card {
+        padding: 14px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+      }
+      
+      .card-title {
+        font-size: 15px;
+      }
+      
+      .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      
+      .kpi-card {
+        padding: 14px;
+      }
+      
+      .kpi-value {
+        font-size: 22px;
+      }
+      
+      .selectors {
+        gap: 10px;
+      }
+      
+      .selector-label {
+        font-size: 13px;
+        min-width: auto;
+        margin-bottom: 4px;
       }
       
       table {
@@ -428,76 +594,6 @@
       table th,
       table td {
         padding: 8px 6px;
-        white-space: nowrap;
-      }
-    }
-    
-    /* 手机端（480px以下） */
-    @media (max-width: 480px) {
-      .app-container {
-        padding: 8px;
-      }
-      
-      .header {
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-      }
-      
-      .header h1 {
-        font-size: 18px;
-      }
-      
-      .header-actions .btn {
-        flex: 1 1 100%;
-        padding: 10px;
-        font-size: 13px;
-      }
-      
-      .tab-btn {
-        padding: 8px 12px;
-        font-size: 12px;
-      }
-      
-      .card {
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-      }
-      
-      .card-title {
-        font-size: 14px;
-      }
-      
-      .kpi-grid {
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
-      
-      .kpi-card {
-        padding: 12px;
-      }
-      
-      .kpi-value {
-        font-size: 20px;
-      }
-      
-      .selectors {
-        gap: 8px;
-      }
-      
-      .selector-label {
-        font-size: 12px;
-        min-width: 70px;
-      }
-      
-      table {
-        font-size: 11px;
-      }
-      
-      table th,
-      table td {
-        padding: 6px 4px;
       }
       
       .checkbox-group {
@@ -506,15 +602,17 @@
       }
       
       .checkbox-group label {
-        font-size: 12px;
-        margin-bottom: 4px;
+        font-size: 13px;
+        margin-bottom: 6px;
+        padding: 8px 0;
+        min-height: 44px;
       }
     }
     
     /* 图表容器优化 */
     @media (max-width: 768px) {
       .chart-container {
-        height: 300px !important;
+        height: 280px !important;
         margin-bottom: 16px;
       }
       
@@ -537,26 +635,36 @@
       
       #sensitivityParams > div {
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
       }
     }
     
     /* 空状态优化 */
     @media (max-width: 480px) {
       .empty-state {
-        padding: 32px 16px;
+        padding: 40px 20px;
       }
       
       .empty-icon {
-        font-size: 48px;
+        font-size: 56px;
+        margin-bottom: 16px;
       }
       
       .empty-state h2 {
         font-size: 18px;
+        margin-bottom: 8px;
       }
       
       .empty-state p {
-        font-size: 13px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+    }
+    
+    /* 防止iOS点击高亮 */
+    @media (hover: none) and (pointer: coarse) {
+      * {
+        -webkit-tap-highlight-color: transparent;
       }
     }
 
@@ -620,6 +728,22 @@
   </style>
 </head>
 <body>
+  <div class="diagnostic-panel" id="diagnosticPanel" style="display: none;">
+    <div class="diagnostic-header">
+      <span>🔧 加载诊断信息</span>
+      <button class="diagnostic-close" onclick="hideDiagnostic()">×</button>
+    </div>
+    <div class="diagnostic-body">
+      <p style="margin-bottom: 8px; color: #666;">请复制以下信息发送给开发者：</p>
+      <div class="diagnostic-log" id="diagnosticLog"></div>
+      <div class="diagnostic-actions">
+        <button class="diagnostic-btn copy" id="copyBtn" onclick="copyDiagnostic()">📋 复制信息</button>
+        <button class="diagnostic-btn retry" onclick="retryLoad()">🔄 重试</button>
+        <button class="diagnostic-btn dismiss" onclick="hideDiagnostic()">关闭</button>
+      </div>
+    </div>
+  </div>
+  
   <div class="app-container">
     <div class="header">
       <h1>📊 财务分析工具</h1>
@@ -850,6 +974,93 @@
     function formatPercent(num) {
       if (num == null || isNaN(num)) return '-';
       return (num * 100).toFixed(2) + '%';
+    }
+
+    let diagnosticLogs = [];
+    
+    function collectDiagnosticLogs() {
+      const logs = [];
+      const now = new Date().toISOString();
+      
+      logs.push('=== 财务分析工具 诊断报告 ===');
+      logs.push(`时间: ${now}`);
+      logs.push(`页面URL: ${window.location.href}`);
+      logs.push('');
+      logs.push('--- 环境信息 ---');
+      logs.push(`浏览器: ${navigator.userAgent}`);
+      logs.push(`屏幕: ${window.screen.width}x${window.screen.height}`);
+      logs.push(`视口: ${window.innerWidth}x${window.innerHeight}`);
+      logs.push(`语言: ${navigator.language}`);
+      logs.push('');
+      logs.push('--- 本地存储状态 ---');
+      logs.push(`finance-tool: ${localStorage.getItem('finance-tool') ? '存在' : '不存在'}`);
+      logs.push(`finance-tool-backup: ${localStorage.getItem('finance-tool-backup') ? '存在' : '不存在'}`);
+      logs.push(`localStorage大小: 约 ${(JSON.stringify(localStorage).length / 1024).toFixed(2)} KB`);
+      logs.push('');
+      logs.push('--- 云端数据状态 ---');
+      
+      const apiUrls = [
+        'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json',
+        'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json'
+      ];
+      
+      apiUrls.forEach(url => {
+        logs.push(`URL: ${url}`);
+      });
+      logs.push('');
+      logs.push('--- 页面状态 ---');
+      logs.push(`当前商户类型: ${currentMerchantType || '未设置'}`);
+      logs.push(`当前导入索引: ${currentImportIndex ?? '未设置'}`);
+      logs.push(`导入历史记录数: ${importHistory?.length || 0}`);
+      logs.push(`城市数据数量: ${currentData?.cities?.length || 0}`);
+      logs.push('');
+      logs.push('--- 控制台日志 (最近20条) ---');
+      
+      return logs;
+    }
+    
+    function showDiagnostic(logs) {
+      diagnosticLogs = logs || [];
+      const panel = document.getElementById('diagnosticPanel');
+      const logDiv = document.getElementById('diagnosticLog');
+      const copyBtn = document.getElementById('copyBtn');
+      
+      logDiv.textContent = logs.join('\n');
+      panel.style.display = 'block';
+      copyBtn.textContent = '📋 复制信息';
+      copyBtn.classList.remove('copy-success');
+    }
+    
+    function hideDiagnostic() {
+      document.getElementById('diagnosticPanel').style.display = 'none';
+    }
+    
+    function copyDiagnostic() {
+      const logDiv = document.getElementById('diagnosticLog');
+      const copyBtn = document.getElementById('copyBtn');
+      
+      navigator.clipboard.writeText(logDiv.textContent).then(() => {
+        copyBtn.textContent = '✅ 已复制';
+        copyBtn.classList.add('copy-success');
+        setTimeout(() => {
+          copyBtn.textContent = '📋 复制信息';
+          copyBtn.classList.remove('copy-success');
+        }, 2000);
+      }).catch(() => {
+        logDiv.select();
+        document.execCommand('copy');
+        copyBtn.textContent = '✅ 已复制';
+        copyBtn.classList.add('copy-success');
+        setTimeout(() => {
+          copyBtn.textContent = '📋 复制信息';
+          copyBtn.classList.remove('copy-success');
+        }, 2000);
+      });
+    }
+    
+    function retryLoad() {
+      hideDiagnostic();
+      location.reload();
     }
 
     function showToast(message, type = 'info') {
@@ -1171,37 +1382,35 @@
       if (idx < 0 || idx >= importHistory.length) return;
       
       currentImportIndex = idx;
-      const cloudData = importHistory[idx].data;
+      const merchantData = importHistory[idx].data;  // 这就是allMerchantData的格式
+      
       currentMerchantType = 'all';
       
+      // 从merchantData.all.cities中提取总商和城市数据
+      const allCitiesData = merchantData.all?.cities || [];
       let totalData = null;
       let citiesData = [];
       
-      if (cloudData.cities && Array.isArray(cloudData.cities)) {
-        cloudData.cities.forEach(city => {
-          if (city.name === '总商') {
-            totalData = city;
-          } else {
-            citiesData.push(city);
-          }
-        });
-        
-        if (!totalData && cloudData.cities.length > 0) {
-          totalData = cloudData.cities[0];
+      allCitiesData.forEach(city => {
+        if (city.name === '总商') {
+          totalData = city;
+        } else {
+          citiesData.push(city);
         }
+      });
+      
+      // 如果没有总商但有数据，使用第一个
+      if (!totalData && allCitiesData.length > 0) {
+        totalData = allCitiesData[0];
       }
       
       currentData = {
-        totals: totalData ? (totalData.modules?.all || {}) : {},
+        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
         cities: citiesData
       };
       
-      allMerchantData = {
-        all: {
-          label: '全量商家',
-          cities: cloudData.cities || []
-        }
-      };
+      // 更新allMerchantData为当前选择的merchantData
+      allMerchantData = merchantData;
       
       saveToLocalStorage();
       showToast(`已切换到${importHistory[idx].monthLabel}数据`, 'success');
@@ -1214,14 +1423,10 @@
       if (idx < 0 || idx >= importHistory.length) return;
       
       currentImportIndex = idx;
-      const cloudData = importHistory[idx].data;
+      const merchantData = importHistory[idx].data;
       
-      allMerchantData = {
-        all: {
-          label: '全量商家',
-          cities: cloudData.cities || []
-        }
-      };
+      // 更新allMerchantData为当前选择的merchantData
+      allMerchantData = merchantData;
       
       renderDimensionTable();
     }
@@ -1245,31 +1450,38 @@
     }
 
     function switchMerchantType(type) {
-      if (!allMerchantData || !allMerchantData[type]) return;
+      if (!allMerchantData || !allMerchantData[type]) {
+        console.warn('[App] 商家类型不存在:', type, '，可用类型:', Object.keys(allMerchantData || {}));
+        showToast('该商家类型数据不存在', 'warning');
+        return;
+      }
       
       currentMerchantType = type;
       const merchantResult = allMerchantData[type];
       
+      // 从merchantResult.cities中提取总商和城市数据
+      const allCitiesData = merchantResult.cities || [];
       let totalData = null;
       let citiesData = [];
-
-      merchantResult.cities.forEach(city => {
+      
+      allCitiesData.forEach(city => {
         if (city.name === '总商') {
           totalData = city;
         } else {
           citiesData.push(city);
         }
       });
-
-      if (!totalData && merchantResult.cities.length > 0) {
-        totalData = merchantResult.cities[0];
+      
+      // 如果没有总商但有数据，使用第一个
+      if (!totalData && allCitiesData.length > 0) {
+        totalData = allCitiesData[0];
       }
-
+      
       currentData = {
-        totals: totalData ? (totalData.modules.all || {}) : {},
+        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
         cities: citiesData
       };
-
+      
       saveToLocalStorage();
       showToast(`已切换到${merchantResult.label}`, 'success');
       renderOverview();
@@ -1277,25 +1489,63 @@
 
     // ===== 数据存储（使用DataStore模块）=====
     
+    function normalizeDateLabel(dateStr) {
+      if (!dateStr) return '未知日期';
+      
+      const date = String(dateStr).trim();
+      
+      if (/^\d{4}-\d{2}$/.test(date)) {
+        return date;
+      }
+      
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date.substring(0, 7);
+      }
+      
+      const fullDateMatch = date.match(/(\d{4})[年\-_](\d{1,2})/);
+      if (fullDateMatch) {
+        return fullDateMatch[1] + '-' + String(parseInt(fullDateMatch[2])).padStart(2, '0');
+      }
+      
+      return date;
+    }
+
     async function loadFromCloud() {
       try {
         console.log('[App] 正在从云端加载数据...');
         
-        // 使用GitHub API获取数据（支持大文件）
-        const apiUrl = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-          console.log('[App] 云端无数据或加载失败');
-          return false;
-        }
-        
-        const githubData = await response.json();
-        console.log('[App] GitHub API响应，文件大小:', githubData.size, '字节');
-        
         let cloudData = null;
         
-        // 如果content字段为空（文件大于1MB），需要下载
+        // 优先使用直接下载的方式（更稳定，不受 GitHub API 限流影响）
+        const directUrl = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
+        console.log('[App] 尝试直接下载:', directUrl);
+        
+        try {
+          const directResponse = await fetch(directUrl);
+          if (directResponse.ok) {
+            cloudData = await directResponse.json();
+            console.log('[App] 直接下载成功');
+          } else {
+            console.warn('[App] 直接下载失败，尝试 GitHub API');
+          }
+        } catch (directError) {
+          console.warn('[App] 直接下载异常:', directError);
+        }
+        
+        // 如果直接下载失败，尝试用 GitHub API
+        if (!cloudData) {
+          const apiUrl = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
+          const response = await fetch(apiUrl);
+          
+          if (!response.ok) {
+            console.log('[App] GitHub API 请求失败:', response.status);
+            return false;
+          }
+          
+          const githubData = await response.json();
+          console.log('[App] GitHub API响应，文件大小:', githubData.size, '字节');
+        
+          // 如果content字段可用，先尝试解析
         if (githubData.content && githubData.content.trim() !== '') {
           try {
             const base64Content = githubData.content.replace(/\n/g, '');
@@ -1322,6 +1572,7 @@
             console.error('[App] download_url下载失败:', downloadResponse.status);
           }
         }
+        }
         
         if (!cloudData || !Array.isArray(cloudData) || cloudData.length === 0) {
           console.log('[App] 云端数据为空或解析失败');
@@ -1330,47 +1581,181 @@
         
         console.log('[App] 云端数据加载成功，共' + cloudData.length + '条记录');
         
-        const latestRecord = cloudData[0];
-        
-        if (latestRecord.currentData && latestRecord.currentData.cities && latestRecord.currentData.cities.length > 0) {
-          const totalCity = latestRecord.currentData.cities.find(c => c.name === '总商');
-          const totals = totalCity && totalCity.modules && totalCity.modules.all ? totalCity.modules.all : {};
+        const allImportHistory = cloudData.map((record, index) => {
+          // 兼容两种数据格式：record.merchantData（上传页面格式）或 record.currentData（兼容格式）
+          const merchantData = record.merchantData || record.currentData?.merchantData;
+          const normalizedDate = normalizeDateLabel(record.date);
           
-          const allImportHistory = cloudData.map((record, index) => ({
-            monthLabel: record.date || '云端数据',
-            data: record.currentData,
-            importedAt: record.updatedAt || new Date().toISOString()
-          }));
+          console.log('[App] 解析记录', index, '原始日期:', record.date, '-> 标准化为:', normalizedDate, 'merchantDataKeys:', Object.keys(merchantData || {}));
           
-          const dataToSave = {
-            version: 2,
-            importHistory: allImportHistory,
-            currentImportIndex: 0,
-            currentData: {
-              totals: totals,
-              cities: latestRecord.currentData.cities || []
-            },
-            allMerchantData: latestRecord.merchantData || {
-              all: {
-                label: '全量商家',
-                cities: latestRecord.currentData.cities || []
-              }
-            },
-            currentMerchantType: latestRecord.currentMerchant || 'all'
+          return {
+            monthLabel: normalizedDate || '云端数据',
+            data: merchantData || {},  // 使用merchantData作为data
+            importedAt: record.updatedAt || new Date().toISOString(),
+            fileName: record.fileName || ''
           };
-          
-          DataStore.save(dataToSave);
-          console.log('[App] 云端数据已保存到本地，共' + allImportHistory.length + '条历史记录');
-          return true;
+        });
+        
+        // 按日期排序（最新的在前）
+        allImportHistory.sort((a, b) => b.monthLabel.localeCompare(a.monthLabel));
+        
+        // 使用最新的数据构建allMerchantData
+        const latestRecord = cloudData[0];
+        const latestMerchantData = latestRecord.merchantData || latestRecord.currentData?.merchantData || {};
+        
+        // 构建currentData - 从merchantData.all.cities中提取总商和城市数据
+        const allCitiesData = latestMerchantData.all?.cities || [];
+        let totalData = null;
+        let citiesData = [];
+        
+        allCitiesData.forEach(city => {
+          if (city.name === '总商') {
+            totalData = city;
+          } else {
+            citiesData.push(city);
+          }
+        });
+        
+        // 如果没有总商但有数据，使用第一个城市作为总商
+        if (!totalData && allCitiesData.length > 0) {
+          totalData = allCitiesData[0];
         }
         
-        return false;
+        const currentData = {
+          totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
+          cities: citiesData
+        };
+        
+        console.log('[App] currentData构建完成:', {
+          totalsKeys: Object.keys(currentData.totals),
+          citiesCount: currentData.cities.length,
+          hasAllMerchantTypes: {
+            hasAll: !!latestMerchantData.all,
+            hasKa: !!latestMerchantData.ka,
+            hasCity: !!latestMerchantData.city
+          }
+        });
+        
+        const dataToSave = {
+          version: 2,
+          importHistory: allImportHistory,
+          currentImportIndex: 0,
+          currentData: currentData,
+          allMerchantData: latestMerchantData,  // 完整的merchantData
+          currentMerchantType: 'all'
+        };
+        
+        DataStore.save(dataToSave);
+        console.log('[App] 云端数据已保存到本地，共' + allImportHistory.length + '条历史记录');
+        return true;
+        
       } catch (e) {
         console.error('[App] 云端数据加载失败:', e);
         return false;
       }
     }
     
+    /**
+     * 检查云端是否有新数据
+     * @param {Object} localData - 本地数据
+     * @returns {Promise<boolean>} - 是否有新数据
+     */
+    async function checkCloudForUpdates(localData) {
+      try {
+        console.log('[App] 检查云端更新...');
+        
+        let cloudData = null;
+        
+        // 优先使用直接下载的方式（更稳定，不受 GitHub API 限流影响）
+        const directUrl = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
+        try {
+          const directResponse = await fetch(directUrl);
+          if (directResponse.ok) {
+            cloudData = await directResponse.json();
+            console.log('[App] 从直接下载获取云端数据成功');
+          }
+        } catch (directError) {
+          console.warn('[App] 直接下载失败，尝试 GitHub API');
+        }
+        
+        // 如果直接下载失败，尝试用 GitHub API
+        if (!cloudData) {
+          const apiUrl = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
+          const response = await fetch(apiUrl);
+          
+          if (!response.ok) {
+            console.log('[App] 无法连接云端');
+            return false;
+          }
+          
+          const githubData = await response.json();
+          
+          if (githubData.content &amp;&amp; githubData.content.trim() !== '') {
+            try {
+              const base64Content = githubData.content.replace(/\n/g, '');
+              const decodedContent = decodeURIComponent(escape(atob(base64Content)));
+              cloudData = JSON.parse(decodedContent);
+              console.log('[App] 从API content解析云端数据成功');
+            } catch (parseError) {
+              console.log('[App] 尝试download_url...');
+            }
+          }
+          
+          if (!cloudData &amp;&amp; githubData.download_url) {
+            const downloadResponse = await fetch(githubData.download_url);
+            if (downloadResponse.ok) {
+              cloudData = await downloadResponse.json();
+              console.log('[App] 从download_url下载云端数据成功');
+            }
+          }
+        }
+        
+        if (!cloudData || !Array.isArray(cloudData) || cloudData.length === 0) {
+          console.log('[App] 云端数据为空');
+          return false;
+        }
+        
+        // 对比本地和云端的日期列表
+        const localDates = (localData.importHistory || []).map(r =&gt; r.monthLabel);
+        const cloudDates = cloudData.map(r =&gt; normalizeDateLabel(r.date));
+        const cloudRecordsNormalized = cloudData.map(r =&gt; ({
+          ...r,
+          normalizedDate: normalizeDateLabel(r.date)
+        }));
+        
+        console.log('[App] 本地日期:', localDates);
+        console.log('[App] 云端日期 (原始):', cloudData.map(r =&gt; r.date));
+        console.log('[App] 云端日期 (标准化):', cloudDates);
+        
+        // 检查是否有新的日期
+        const newDates = cloudDates.filter(d =&gt; !localDates.includes(d));
+        if (newDates.length &gt; 0) {
+          console.log('[App] 发现新日期:', newDates);
+          return true;
+        }
+        
+        // 检查相同日期的更新时间是否变化
+        for (const localRecord of localData.importHistory || []) {
+          const cloudRecord = cloudRecordsNormalized.find(c =&gt; c.normalizedDate === localRecord.monthLabel);
+          if (cloudRecord &amp;&amp; cloudRecord.updatedAt &amp;&amp; localRecord.importedAt) {
+            const cloudTime = new Date(cloudRecord.updatedAt);
+            const localTime = new Date(localRecord.importedAt);
+            if (cloudTime &gt; localTime) {
+              console.log('[App] 发现已有记录更新:', localRecord.monthLabel);
+              return true;
+            }
+          }
+        }
+        
+        console.log('[App] 云端数据未更新');
+        return false;
+        
+      } catch (e) {
+        console.error('[App] 检查更新失败:', e);
+        return false;
+      }
+    }
+
     function saveToLocalStorage() {
       const data = StateManager.getDataToSave();
       const success = DataStore.save(data);
@@ -1747,9 +2132,9 @@
       if (!totalData && merchantResult.cities.length > 0) {
         totalData = merchantResult.cities[0];
       }
-
+      
       currentData = {
-        totals: totalData ? (totalData.modules.all || {}) : {},
+        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
         cities: citiesData
       };
 
@@ -2606,16 +2991,20 @@
     }
 
     function getDataForCityAndMerchant(cityName, merchantType, module) {
-      const merchantData = allMerchantData[merchantType];
-      if (!merchantData) return {};
+      // 容错处理：当商家类型不存在时返回空数据
+      const merchantData = allMerchantData && allMerchantData[merchantType];
+      if (!merchantData || !merchantData.cities) {
+        console.log('[App] 商家类型不存在或无城市数据:', merchantType);
+        return {};
+      }
       
       if (cityName === '总商') {
         const totalCity = merchantData.cities.find(c => c.name === '总商');
-        return totalCity ? (totalCity.modules[module] || {}) : {};
+        return totalCity && totalCity.modules ? (totalCity.modules[module] || totalCity.modules.all || {}) : {};
       }
       
       const cityData = merchantData.cities.find(c => c.name === cityName);
-      return cityData ? (cityData.modules[module] || {}) : {};
+      return cityData && cityData.modules ? (cityData.modules[module] || cityData.modules.all || {}) : {};
     }
 
     function formatValue(value, format) {
@@ -2640,44 +3029,60 @@
       document.getElementById('trendEmpty').classList.add('hidden');
       document.getElementById('trendData').classList.remove('hidden');
 
-      // 更新基准月份选择器（按时间正序排列，最早的在前）
+      // 更新时间选择器（按时间倒序排列，最新的在前，与维度下钻保持一致）
       const baseMonthSelect = document.getElementById('trendBaseMonthSelect');
-      // 保存当前选择
       const currentBaseValue = baseMonthSelect.value;
       let optionsHtml = '';
-      // 先按时间正序排序导入历史
-      const sortedHistory = [...importHistory].sort((a, b) => a.monthLabel.localeCompare(b.monthLabel));
+      
+      // 使用逆序（最新的在前），与维度下钻的时间顺序保持一致
+      const sortedHistory = [...importHistory].sort((a, b) => b.monthLabel.localeCompare(a.monthLabel));
+      
       sortedHistory.forEach((record, idx) => {
-        // 找到原始索引
         const originalIdx = importHistory.findIndex(h => h.monthLabel === record.monthLabel);
         optionsHtml += '<option value="' + originalIdx + '">' + record.monthLabel + '</option>';
       });
       baseMonthSelect.innerHTML = optionsHtml;
-      // 恢复之前的选择
-      if (currentBaseValue) {
+      
+      // 恢复之前的选择，如果不存在则默认选择第一个（最新的）
+      if (currentBaseValue && optionsHtml.includes('value="' + currentBaseValue + '"')) {
         baseMonthSelect.value = currentBaseValue;
+      } else if (sortedHistory.length > 0) {
+        const latestIdx = importHistory.findIndex(h => h.monthLabel === sortedHistory[0].monthLabel);
+        baseMonthSelect.value = latestIdx;
       }
 
-      // 更新城市选择器
+      // 更新城市选择器 - 使用当前选中的日期对应的数据
       const trendCitySelect = document.getElementById('trendCitySelect');
-      // 保存当前选择
       const currentCityValue = trendCitySelect.value;
       const citySelectHtml = [];
       
-      // 使用第一个导入记录来获取城市列表
-      const firstImport = importHistory[0];
+      // 使用当前选中的日期记录来获取城市列表
+      const selectedIdx = parseInt(baseMonthSelect.value) || 0;
+      const selectedRecord = importHistory[selectedIdx] || importHistory[0];
       const firstMerchantType = document.getElementById('trendMerchantSelect').value;
-      if (firstImport && firstImport.data[firstMerchantType]) {
+      
+      const merchantData = selectedRecord && selectedRecord.data;
+      if (merchantData && merchantData[firstMerchantType]) {
         citySelectHtml.push('<option value="总商">总商</option>');
-        firstImport.data[firstMerchantType].cities.forEach(city => {
+        const citiesData = merchantData[firstMerchantType].cities || [];
+        citiesData.forEach(city => {
           if (city.name !== '总商') {
-            citySelectHtml.push('<option value="' + city.name + '">' + city.displayName + '</option>');
+            citySelectHtml.push('<option value="' + city.name + '">' + (city.displayName || city.name) + '</option>');
+          }
+        });
+      } else if (merchantData && merchantData.all) {
+        citySelectHtml.push('<option value="总商">总商</option>');
+        const citiesData = merchantData.all.cities || [];
+        citiesData.forEach(city => {
+          if (city.name !== '总商') {
+            citySelectHtml.push('<option value="' + city.name + '">' + (city.displayName || city.name) + '</option>');
           }
         });
       }
       trendCitySelect.innerHTML = citySelectHtml.join('');
+      
       // 恢复之前的选择
-      if (currentCityValue) {
+      if (currentCityValue && citySelectHtml.some(opt => opt.includes('value="' + currentCityValue + '"'))) {
         trendCitySelect.value = currentCityValue;
       }
 
@@ -2685,7 +3090,7 @@
       const module = document.getElementById('trendModuleSelect').value;
       const selectedCity = trendCitySelect.value || '总商';
 
-      // 按时间正序获取所有可用的月份数据
+      // 按时间倒序获取所有可用的月份数据（最新的在前）
       const trendMonths = sortedHistory.map(record => {
         const originalIdx = importHistory.findIndex(h => h.monthLabel === record.monthLabel);
         return {
@@ -2706,11 +3111,14 @@
       const currentMetricGroups = METRIC_GROUPS_BY_MODULE[module] || METRIC_GROUPS_BY_MODULE.all;
       
       // 获取每个月份的指定城市数据
+      // tm.data是merchantData格式 { all: { cities: [...] }, ka: { cities: [...] }, ... }
       const monthlyData = trendMonths.map(tm => {
-        const merchantData = tm.data[merchantType];
-        if (!merchantData) return null;
+        const merchantData = tm.data && tm.data[merchantType];
+        if (!merchantData || !merchantData.cities) return null;
         const city = merchantData.cities.find(c => c.name === cityName);
-        return city ? city.modules[module] : null;
+        if (!city || !city.modules) return null;
+        // 优先使用指定模块，如果没有则使用all模块
+        return city.modules[module] || city.modules.all || null;
       });
 
       // 计算R平方和趋势强度
@@ -2767,9 +3175,9 @@
         html += '<tr style="background: #f8fafc;">';
         html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: #64748b; width: 120px;">指标</th>';
         
-        // 添加月份标题（最新的月份标黄）
+        // 添加月份标题（最新的月份标黄，现在最新的在左边第一位）
         trendMonths.forEach((tm, idx) => {
-          const isLatest = idx === trendMonths.length - 1;
+          const isLatest = idx === 0;  // 最新的是第一个（倒序排列）
           html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: #64748b; ' + (isLatest ? 'background: #fef3c7;' : '') + '">' + tm.label + '</th>';
         });
         
@@ -3366,14 +3774,85 @@
       
       loadingPanel.style.display = 'block';
       loadingPanel.className = 'cloud-loading-panel';
+      loadingText.textContent = '正在检查本地数据...';
+      loadingProgress.textContent = '读取本地缓存...';
+      
+      // 1. 先尝试从本地加载
+      const localData = DataStore.load();
+      
+      if (localData) {
+        console.log('[App] 检测到本地数据，快速加载...');
+        loadingText.textContent = '使用本地数据加载...';
+        loadingProgress.textContent = '快速渲染中...';
+        
+        // 快速从本地加载并渲染
+        StateManager.init(localData);
+        
+        // 更新全局变量
+        importHistory = localData.importHistory || [];
+        currentData = localData.currentData || null;
+        allMerchantData = localData.allMerchantData || null;
+        currentImportIndex = localData.currentImportIndex || 0;
+        currentMerchantType = localData.currentMerchantType || 'all';
+        
+        // 显示成功状态并快速隐藏加载面板
+        loadingPanel.className = 'cloud-loading-panel success';
+        loadingText.textContent = '✅ 使用本地数据';
+        
+        const recordCount = importHistory?.length || 0;
+        const cityCount = currentData?.cities?.length || 0;
+        loadingProgress.textContent = `已加载 ${recordCount} 条历史记录，共 ${cityCount} 个城市数据`;
+        
+        // 快速隐藏加载面板，立即渲染
+        setTimeout(() => {
+          loadingPanel.style.display = 'none';
+          console.log('[App] 开始渲染UI（本地数据）');
+          renderImportSelector();
+          renderOverview();
+          renderDimension();
+          renderTrend();
+        }, 500);
+        
+        // 2. 后台检查云端是否有更新
+        console.log('[App] 后台检查云端更新...');
+        try {
+          const hasNewData = await checkCloudForUpdates(localData);
+          if (hasNewData) {
+            console.log('[App] 检测到云端有新数据，开始更新...');
+            showToast('发现新数据，正在更新...', 'info');
+            await loadFromCloud();
+            
+            // 更新完成后重新渲染
+            const newData = DataStore.load();
+            if (newData) {
+              StateManager.init(newData);
+              importHistory = newData.importHistory || [];
+              currentData = newData.currentData || null;
+              allMerchantData = newData.allMerchantData || null;
+              currentImportIndex = newData.currentImportIndex || 0;
+              currentMerchantType = newData.currentMerchantType || 'all';
+              
+              renderImportSelector();
+              renderOverview();
+              renderDimension();
+              renderTrend();
+              showToast('数据已更新！', 'success');
+            }
+          } else {
+            console.log('[App] 云端无新数据，保持本地数据');
+          }
+        } catch (updateError) {
+          console.warn('[App] 检查更新失败:', updateError);
+        }
+        
+        return;
+      }
+      
+      // 3. 本地无数据，从云端加载
+      console.log('[App] 本地无数据，从云端加载...');
       loadingText.textContent = '正在从云端加载数据...';
-      loadingProgress.textContent = '准备连接服务器...';
+      loadingProgress.textContent = '连接服务器...';
       
-      // 清空本地存储，确保完全与云端同步
-      DataStore.clear();
-      loadingProgress.textContent = '已清空本地缓存，准备从云端同步...';
-      
-      // 从云端加载数据
       let loaded = false;
       
       try {
@@ -3390,13 +3869,11 @@
         StateManager.init(DataStore.load());
         
         loadingPanel.className = 'cloud-loading-panel error';
-        loadingText.textContent = '⚠️ 暂无数据';
-        loadingProgress.textContent = '云端暂无数据，请先上传数据';
+        loadingText.textContent = '⚠️ 数据加载失败';
+        loadingProgress.textContent = '点击右下角"复制信息"按钮获取诊断数据';
         
-        // 3秒后自动隐藏
-        setTimeout(() => {
-          loadingPanel.style.display = 'none';
-        }, 3000);
+        const logs = collectDiagnosticLogs();
+        showDiagnostic(logs);
         
         return;
       }
@@ -3414,14 +3891,11 @@
         currentMerchantType = loadedData.currentMerchantType || 'all';
       }
       
-      const health = StateManager.validate();
-      const state = StateManager.get();
-
       loadingPanel.className = 'cloud-loading-panel success';
       loadingText.textContent = '✅ 数据加载成功';
 
-      const recordCount = state.importHistory?.length || 0;
-      const cityCount = state.currentData?.cities?.length || 0;
+      const recordCount = importHistory?.length || 0;
+      const cityCount = currentData?.cities?.length || 0;
       loadingProgress.textContent = `已加载 ${recordCount} 条历史记录，共 ${cityCount} 个城市数据`;
 
       // 2秒后自动隐藏
