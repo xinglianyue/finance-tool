@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260530.2"></script>
-  <script src="js/chart.umd.min.js?v=20260530.2"></script>
-  <script src="js/data-store.js?v=20260530.2"></script>
-  <script src="js/state-manager.js?v=20260530.2"></script>
+  <script src="js/xlsx.full.min.js?v=20260530.4"></script>
+  <script src="js/chart.umd.min.js?v=20260530.4"></script>
+  <script src="js/data-store.js?v=20260530.4"></script>
+  <script src="js/state-manager.js?v=20260530.4"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -751,7 +751,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.2</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.4</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📁 导入数据</button>
         <button class="btn btn-secondary" onclick="loadDemoData()">📋 加载示例</button>
@@ -3803,12 +3803,14 @@
         currentImportIndex = localData.currentImportIndex || 0;
         currentMerchantType = localData.currentMerchantType || 'all';
         
-        // 从importHistory构建currentData和allMerchantData
-        if (importHistory.length > 0 && importHistory[currentImportIndex]) {
-          allMerchantData = importHistory[currentImportIndex].data;
+        // 优先使用 localData.allMerchantData（包含商家类型分类）
+        // 如果不存在，再尝试从 importHistory 构建
+        if (localData.allMerchantData && localData.allMerchantData.all) {
+          console.log('[App] 使用 localData.allMerchantData');
+          allMerchantData = localData.allMerchantData;
           
           const merchantData = allMerchantData;
-          const allCitiesData = merchantData.cities || [];
+          const allCitiesData = merchantData.all?.cities || [];
           let totalData = null;
           let citiesData = [];
           
@@ -3828,7 +3830,58 @@
             totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
             cities: citiesData
           };
+        } else if (importHistory.length > 0 && importHistory[currentImportIndex]) {
+          console.log('[App] 从 importHistory 构建数据');
+          allMerchantData = importHistory[currentImportIndex].data;
+          
+          // 兼容旧格式：如果 importHistory.data 是 { date, cities } 格式
+          if (allMerchantData.cities && !allMerchantData.all) {
+            const allCitiesData = allMerchantData.cities || [];
+            let totalData = null;
+            let citiesData = [];
+            
+            allCitiesData.forEach(city => {
+              if (city.name === '总商') {
+                totalData = city;
+              } else {
+                citiesData.push(city);
+              }
+            });
+            
+            if (!totalData && allCitiesData.length > 0) {
+              totalData = allCitiesData[0];
+            }
+            
+            currentData = {
+              totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
+              cities: citiesData
+            };
+          } else {
+            // 如果是商家类型分类格式
+            const merchantData = allMerchantData;
+            const allCitiesData = merchantData.all?.cities || [];
+            let totalData = null;
+            let citiesData = [];
+            
+            allCitiesData.forEach(city => {
+              if (city.name === '总商') {
+                totalData = city;
+              } else {
+                citiesData.push(city);
+              }
+            });
+            
+            if (!totalData && allCitiesData.length > 0) {
+              totalData = allCitiesData[0];
+            }
+            
+            currentData = {
+              totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
+              cities: citiesData
+            };
+          }
         } else {
+          console.log('[App] 使用 localData.currentData');
           currentData = localData.currentData || null;
           allMerchantData = localData.allMerchantData || null;
         }
