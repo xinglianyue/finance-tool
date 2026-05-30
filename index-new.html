@@ -1494,17 +1494,23 @@
       
       const date = String(dateStr).trim();
       
-      if (/^\d{4}-\d{2}$/.test(date)) {
+      // 如果已经是完整的 YYYY-MM-DD 格式，直接返回
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return date;
       }
       
-      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        return date.substring(0, 7);
+      // 如果是 YYYY-MM 格式，添加默认日期
+      if (/^\d{4}-\d{2}$/.test(date)) {
+        return date + '-01';
       }
       
-      const fullDateMatch = date.match(/(\d{4})[年\-_](\d{1,2})/);
+      // 从其他格式中解析出完整日期
+      const fullDateMatch = date.match(/(\d{4})[年\-_](\d{1,2})[月\-_]?(\d{1,2})?/);
       if (fullDateMatch) {
-        return fullDateMatch[1] + '-' + String(parseInt(fullDateMatch[2])).padStart(2, '0');
+        const year = fullDateMatch[1];
+        const month = String(parseInt(fullDateMatch[2])).padStart(2, '0');
+        const day = fullDateMatch[3] ? String(parseInt(fullDateMatch[3])).padStart(2, '0') : '01';
+        return `${year}-${month}-${day}`;
       }
       
       return date;

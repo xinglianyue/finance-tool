@@ -216,19 +216,18 @@ const XLSX = window.XLSX;
   function parseDateFromFilename(filename) {
     // 优先级1: YYYY-MM-DD 或 YYYYMMDD (8位连续数字)
     var p1 = filename.match(/(\d{4})[-_]?(0[1-9]|1[0-2])[-_]?(0[1-9]|[12]\d|3[01])/);
-    if (p1) { return p1[1] + '-' + p1[2]; }
+    if (p1) { return p1[1] + '-' + p1[2] + '-' + p1[3]; }
     // 优先级2: YYYY年MM月DD日
     var p2 = filename.match(/(\d{4})年(\d{1,2})月(\d{1,2})/);
-    if (p2) { return p2[1] + '-' + String(parseInt(p2[2])).padStart(2,'0'); }
+    if (p2) { return p2[1] + '-' + String(parseInt(p2[2])).padStart(2,'0') + '-' + String(parseInt(p2[3])).padStart(2,'0'); }
     // 优先级3: MMDD (4位: 月+日, 如0418=4月18日)
     var p3 = filename.match(/(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?![\d年])/);
     if (p3) {
       var yr = new Date().getFullYear();
-      return yr + '-' + p3[1];
+      return yr + '-' + p3[1] + '-' + p3[2];
     }
-    // 兜底: 用当月
-    var today = new Date();
-    return today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+    // 兜底: 用当天
+    return new Date().toISOString().split('T')[0];
   }
   // ===== v10: CSV Import Support =====
   function parseCSVFile(text) {
