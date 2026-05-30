@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260530.5"></script>
-  <script src="js/chart.umd.min.js?v=20260530.5"></script>
-  <script src="js/data-store.js?v=20260530.5"></script>
-  <script src="js/state-manager.js?v=20260530.5"></script>
+  <script src="js/xlsx.full.min.js?v=20260530.6"></script>
+  <script src="js/chart.umd.min.js?v=20260530.6"></script>
+  <script src="js/data-store.js?v=20260530.6"></script>
+  <script src="js/state-manager.js?v=20260530.6"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -751,7 +751,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.5</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.6</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📁 导入数据</button>
         <button class="btn btn-secondary" onclick="loadDemoData()">📋 加载示例</button>
@@ -3023,10 +3023,9 @@
     }
 
     function getDataForCityAndMerchant(cityName, merchantType, module) {
-      // 容错处理：当商家类型不存在时返回空数据
+      // 容错处理：当商家类型不存在时返回空数据（不输出警告，避免控制台刷屏）
       const merchantData = allMerchantData && allMerchantData[merchantType];
       if (!merchantData || !merchantData.cities) {
-        console.log('[App] 商家类型不存在或无城市数据:', merchantType);
         return {};
       }
       
