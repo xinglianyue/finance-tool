@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260530.6"></script>
-  <script src="js/chart.umd.min.js?v=20260530.6"></script>
-  <script src="js/data-store.js?v=20260530.6"></script>
-  <script src="js/state-manager.js?v=20260530.6"></script>
+  <script src="js/xlsx.full.min.js?v=20260530.7"></script>
+  <script src="js/chart.umd.min.js?v=20260530.7"></script>
+  <script src="js/data-store.js?v=20260530.7"></script>
+  <script src="js/state-manager.js?v=20260530.7"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -751,7 +751,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.6</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.7</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📁 导入数据</button>
         <button class="btn btn-secondary" onclick="loadDemoData()">📋 加载示例</button>
@@ -2901,6 +2901,22 @@
         return;
       }
 
+      // 获取实际存在的商家类型
+      const availableMerchantTypes = Object.keys(allMerchantData);
+      console.log('[App] 实际可用的商家类型:', availableMerchantTypes);
+
+      // 给每个商家类型一个背景色
+      const typeStyles = {
+        all: { bg: '#e0e7ff', label: '全量' },
+        ka: { bg: '#dcfce7', label: 'KA' },
+        city: { bg: '#fef3c7', label: '城市' }
+      };
+      
+      // 如果是未知类型，给默认样式
+      const getTypeStyle = (type) => {
+        return typeStyles[type] || { bg: '#f1f5f9', label: type };
+      };
+
       const checkboxes = document.querySelectorAll('#cityCheckboxes input[type="checkbox"]:checked');
       const selectedCities = Array.from(checkboxes).map(cb => cb.value);
       
@@ -2929,7 +2945,7 @@
         html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: #64748b; width: 150px;">指标</th>';
         
         selectedCities.forEach(city => {
-          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: #64748b;" colspan="3">' + city + '</th>';
+          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: #64748b;" colspan="' + availableMerchantTypes.length + '">' + city + '</th>';
         });
         
         html += '</tr>';
@@ -2937,9 +2953,10 @@
         html += '<th style="padding: 6px 8px; text-align: left; font-weight: 500; font-size: 11px; color: #94a3b8;"></th>';
         
         selectedCities.forEach(() => {
-          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 500; font-size: 10px; color: #94a3b8; background: #e0e7ff;">全量</th>';
-          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 500; font-size: 10px; color: #94a3b8; background: #dcfce7;">KA</th>';
-          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 500; font-size: 10px; color: #94a3b8; background: #fef3c7;">城市</th>';
+          availableMerchantTypes.forEach(type => {
+            const style = getTypeStyle(type);
+            html += '<th style="padding: 6px 8px; text-align: center; font-weight: 500; font-size: 10px; color: #94a3b8; background: ' + style.bg + ';">' + style.label + '</th>';
+          });
         });
         
         html += '</tr>';
@@ -2958,57 +2975,27 @@
           html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600;">' + metric.label + '</td>';
           
           selectedCities.forEach(city => {
-            const allData = getDataForCityAndMerchant(city, 'all', module);
-            const kaData = getDataForCityAndMerchant(city, 'ka', module);
-            const cityData = getDataForCityAndMerchant(city, 'city', module);
-            
-            // 全量
-            let cellAll = '';
-            const valAll = allData[metric.key] || 0;
-            const ordersAll = allData.orders || 1;
-            const gmvAll = allData.gmvAmount || 1;
-            cellAll += '<div style="text-align: right; font-size: 11px; color: #000;">' + formatValue(valAll, metric.format) + '</div>';
-            if (showPerOrder && ordersAll > 0) {
-              const perOrderVal = valAll / ordersAll;
-              cellAll += '<div style="text-align: right; font-size: 10px; color: #4f46e5;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
-            }
-            if (showRatio && gmvAll > 0) {
-              const ratioVal = valAll / gmvAll;
-              cellAll += '<div style="text-align: right; font-size: 10px; color: #f59e0b;">' + formatPercent(ratioVal) + '</div>';
-            }
-            html += '<td style="padding: 4px 6px; background: #f0f4ff;">' + cellAll + '</td>';
-            
-            // KA
-            let cellKa = '';
-            const valKa = kaData[metric.key] || 0;
-            const ordersKa = kaData.orders || 1;
-            const gmvKa = kaData.gmvAmount || 1;
-            cellKa += '<div style="text-align: right; font-size: 11px; color: #000;">' + formatValue(valKa, metric.format) + '</div>';
-            if (showPerOrder && ordersKa > 0) {
-              const perOrderVal = valKa / ordersKa;
-              cellKa += '<div style="text-align: right; font-size: 10px; color: #4f46e5;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
-            }
-            if (showRatio && gmvKa > 0) {
-              const ratioVal = valKa / gmvKa;
-              cellKa += '<div style="text-align: right; font-size: 10px; color: #f59e0b;">' + formatPercent(ratioVal) + '</div>';
-            }
-            html += '<td style="padding: 4px 6px; background: #f0fdf4;">' + cellKa + '</td>';
-            
-            // 城市
-            let cellCity = '';
-            const valCity = cityData[metric.key] || 0;
-            const ordersCity = cityData.orders || 1;
-            const gmvCity = cityData.gmvAmount || 1;
-            cellCity += '<div style="text-align: right; font-size: 11px; color: #000;">' + formatValue(valCity, metric.format) + '</div>';
-            if (showPerOrder && ordersCity > 0) {
-              const perOrderVal = valCity / ordersCity;
-              cellCity += '<div style="text-align: right; font-size: 10px; color: #4f46e5;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
-            }
-            if (showRatio && gmvCity > 0) {
-              const ratioVal = valCity / gmvCity;
-              cellCity += '<div style="text-align: right; font-size: 10px; color: #f59e0b;">' + formatPercent(ratioVal) + '</div>';
-            }
-            html += '<td style="padding: 4px 6px; background: #fffbeb;">' + cellCity + '</td>';
+            // 遍历实际存在的商家类型
+            availableMerchantTypes.forEach(type => {
+              const data = getDataForCityAndMerchant(city, type, module);
+              const style = getTypeStyle(type);
+              
+              let cellHtml = '';
+              const val = data[metric.key] || 0;
+              const orders = data.orders || 1;
+              const gmvAmount = data.gmvAmount || 1;
+              
+              cellHtml += '<div style="text-align: right; font-size: 11px; color: #000;">' + formatValue(val, metric.format) + '</div>';
+              if (showPerOrder && orders > 0) {
+                const perOrderVal = val / orders;
+                cellHtml += '<div style="text-align: right; font-size: 10px; color: #4f46e5;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+              }
+              if (showRatio && gmvAmount > 0) {
+                const ratioVal = val / gmvAmount;
+                cellHtml += '<div style="text-align: right; font-size: 10px; color: #f59e0b;">' + formatPercent(ratioVal) + '</div>';
+              }
+              html += '<td style="padding: 4px 6px; background: ' + style.bg + ';">' + cellHtml + '</td>';
+            });
           });
           
           html += '</tr>';
