@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-财务工具 - MySQL 数据库同步脚本
-=================================
+财务工具 - MySQL 数据库同步脚本 (稳定版)
+=========================================
+版本: 1.0.0
+最后更新: 2026-06-01
+状态: 稳定版（锁定）
+
 功能：从运营中心 MySQL 数据库导出账单数据，转换为前端 JSON 格式，推送到 GitHub。
+
+【重要说明】
+本脚本为稳定版本，已锁定。
+- 数据获取逻辑已固定
+- 如需调整数据展示格式，请在前端 (index-new.html) 修改
+- 本脚本只需运行一次，后续无需修改
 
 使用方式（3步）：
   1. pip install pymysql requests
@@ -366,8 +376,9 @@ def push_to_github(date, current_data, merchant_data, current_merchant, token):
     if not found:
         existing_records.append(new_record)
 
+    # 将 JSON 数据编码为 Base64（用于 GitHub API）
     payload_json = json.dumps(existing_records, ensure_ascii=False)
-    payload_b64 = base64.b64decode(payload_json.encode("utf-8")).decode("ascii")
+    payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
 
     body = {
         "message": f"CloudData sync: {format_date(date)} (auto)",

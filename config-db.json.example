@@ -1,0 +1,13 @@
+{
+  "db": {
+    "host": "192.168.0.12",
+    "port": 3306,
+    "user": "在这里填入数据库用户名",
+    "password": "在这里填入数据库密码",
+    "database": "ruo_yi"
+  },
+  "github": {
+    "token": "在这里填入你的GitHub Token",
+    "repo": "xinglianyue/finance-tool"
+  }
+}
