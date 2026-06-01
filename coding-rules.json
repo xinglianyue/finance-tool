@@ -1,0 +1,305 @@
+{
+  "version": "2026-06-01",
+  "name": "财务分析工具 - 编码规范",
+  "description": "基于项目经验和教训制定的编码规范，确保代码质量和维护性",
+  
+  "forbidden_actions": [
+    {
+      "id": "ps_batch_replace",
+      "name": "禁止使用PowerShell批量替换",
+      "severity": "critical",
+      "description": "使用PowerShell的(Get-Content -Raw) -replace会破坏UTF-8编码，导致页面空白或崩溃",
+      "incident_count": 2,
+      "incident_date": "2026-05-30",
+      "alternatives": [
+        "使用Edit工具进行小范围精确修改",
+        "使用Python脚本处理UTF-8编码",
+        "使用Git先恢复正确版本再修改"
+      ]
+    },
+    {
+      "id": "assume_data_structure",
+      "name": "禁止假设数据结构",
+      "severity": "high",
+      "description": "不能盲目假设数据结构，必须先调试确认",
+      "incident_count": 1,
+      "incident_date": "2026-05-30",
+      "alternatives": [
+        "先加console.log打印实际数据结构",
+        "确认路径后再修改代码",
+        "添加数据格式检测和转换逻辑"
+      ]
+    },
+    {
+      "id": "no_backup_modify",
+      "name": "禁止无备份修改",
+      "severity": "high",
+      "description": "修改文件前必须检查Git历史，确保可以快速回退",
+      "incident_count": 1,
+      "incident_date": "2026-05-30",
+      "alternatives": [
+        "git log --oneline -10 查看最近提交",
+        "git show <commit> 查看具体修改",
+        "复制备份文件"
+      ]
+    },
+    {
+      "id": "ignore_cache",
+      "name": "禁止忽视浏览器缓存",
+      "severity": "high",
+      "description": "测试修复时必须清除浏览器缓存，否则测试结果不准确",
+      "incident_count": 3,
+      "incident_date": "2026-05-30",
+      "alternatives": [
+        "Ctrl+Shift+R 强制刷新",
+        "Ctrl+Shift+Delete 清除缓存",
+        "使用版本号参数 script.js?v=20260601"
+      ]
+    },
+    {
+      "id": "ignore_cors",
+      "name": "禁止忽视CORS问题",
+      "severity": "critical",
+      "description": "GitHub Pages无法通过fetch访问raw.githubusercontent.com，导致数据加载失败",
+      "incident_count": 1,
+      "incident_date": "2026-06-01",
+      "alternatives": [
+        "将数据文件放在同一域名下",
+        "使用相对路径加载",
+        "配置CORS代理"
+      ]
+    },
+    {
+      "id": "ignore_format_compat",
+      "name": "禁止忽视数据格式兼容性",
+      "severity": "high",
+      "description": "必须处理新旧数据格式的兼容性",
+      "incident_count": 1,
+      "incident_date": "2026-06-01",
+      "alternatives": [
+        "添加格式检测逻辑",
+        "自动转换旧格式为新格式",
+        "保持向后兼容性"
+      ]
+    }
+  ],
+  
+  "mandatory_practices": [
+    {
+      "id": "git_check_before",
+      "name": "修改前检查Git",
+      "severity": "required",
+      "description": "每次修改前必须查看Git历史确认最后正确版本",
+      "steps": [
+        "git log --oneline -10",
+        "git show <commit>",
+        "确认工作目录干净"
+      ]
+    },
+    {
+      "id": "local_test_before_deploy",
+      "name": "本地测试后再部署",
+      "severity": "required",
+      "description": "每次修复后必须先在本地完全测试",
+      "steps": [
+        "修改代码",
+        "打开本地文件测试",
+        "清除浏览器缓存",
+        "确认功能正常",
+        "检查控制台无错误",
+        "提交和推送"
+      ]
+    },
+    {
+      "id": "version_management",
+      "name": "版本号管理",
+      "severity": "required",
+      "description": "每次修改必须更新版本号",
+      "format": "YYYY-MM-DD.N",
+      "update_locations": [
+        "页面显示版本号",
+        "JS文件版本参数",
+        "文档版本记录"
+      ]
+    },
+    {
+      "id": "data_validation",
+      "name": "数据验证",
+      "severity": "required",
+      "description": "所有数据输入必须验证",
+      "checks": [
+        "空值检查",
+        "类型检查",
+        "长度检查",
+        "格式检查"
+      ]
+    },
+    {
+      "id": "error_handling",
+      "name": "错误处理",
+      "severity": "required",
+      "description": "所有异步操作必须有try-catch",
+      "requirements": [
+        "async函数必须有try-catch",
+        "Promise必须有.catch()",
+        "错误必须记录日志",
+        "用户友好的错误提示"
+      ]
+    },
+    {
+      "id": "defensive_coding",
+      "name": "防御性编程",
+      "severity": "required",
+      "description": "所有数据访问必须有空值保护",
+      "patterns": [
+        "使用?.可选链操作符",
+        "使用||或??设置默认值",
+        "数据格式检测",
+        "边界检查"
+      ]
+    }
+  ],
+  
+  "code_quality_rules": [
+    {
+      "id": "jsdoc_required",
+      "name": "JSDoc注释",
+      "severity": "required",
+      "description": "每个函数必须有JSDoc注释",
+      "required_tags": [
+        "@param",
+        "@returns",
+        "@description"
+      ]
+    },
+    {
+      "id": "no_hardcoded_secrets",
+      "name": "禁止硬编码凭证",
+      "severity": "critical",
+      "description": "禁止在代码中硬编码密码、API Key、Token",
+      "alternatives": [
+        "使用环境变量",
+        "使用配置文件",
+        "使用密钥管理服务"
+      ]
+    },
+    {
+      "id": "no_var",
+      "name": "禁止使用var",
+      "severity": "required",
+      "description": "必须使用let或const",
+      "reason": "var存在变量提升问题，容易导致bug"
+    },
+    {
+      "id": "no_alert",
+      "name": "禁止使用alert",
+      "severity": "required",
+      "description": "必须使用showToast或自定义提示",
+      "reason": "alert会阻塞UI，影响用户体验"
+    },
+    {
+      "id": "file_size_limit",
+      "name": "文件大小限制",
+      "severity": "warning",
+      "description": "单文件不超过300行",
+      "limit": 300,
+      "reason": "过大的文件难以维护和调试"
+    },
+    {
+      "id": "xss_protection",
+      "name": "XSS防护",
+      "severity": "critical",
+      "description": "HTML输出必须转义",
+      "methods": [
+        "使用textContent而非innerHTML",
+        "对用户输入进行转义",
+        "使用模板字符串时注意转义"
+      ]
+    }
+  ],
+  
+  "maintenance_guidelines": [
+    {
+      "id": "clean_temp_files",
+      "name": "清理临时文件",
+      "description": "定期清理未跟踪的临时脚本和测试文件",
+      "frequency": "每周"
+    },
+    {
+      "id": "update_docs",
+      "name": "更新文档",
+      "description": "保持文档与代码同步",
+      "frequency": "每月"
+    },
+    {
+      "id": "backup_verify",
+      "name": "备份验证",
+      "description": "确认数据备份完整",
+      "frequency": "每月"
+    },
+    {
+      "id": "performance_monitor",
+      "name": "性能监控",
+      "description": "检查页面加载速度和内存使用",
+      "frequency": "按需"
+    }
+  ],
+  
+  "deployment_rules": [
+    {
+      "id": "branch_management",
+      "name": "分支管理",
+      "description": "使用main分支作为主分支，gh-pages作为部署分支",
+      "branches": {
+        "main": "源代码主分支",
+        "gh-pages": "GitHub Pages部署分支"
+      }
+    },
+    {
+      "id": "sync_data_files",
+      "name": "数据文件同步",
+      "description": "确保shared-data.json同步到gh-pages分支",
+      "files": ["shared-data.json"]
+    },
+    {
+      "id": "version_increment",
+      "name": "版本递增",
+      "description": "每次部署必须递增版本号",
+      "format": "YYYY-MM-DD.N"
+    }
+  ],
+  
+  "debugging_guidelines": [
+    {
+      "id": "log_strategy",
+      "name": "日志策略",
+      "description": "使用统一的日志管理",
+      "levels": {
+        "log": "正常业务日志",
+        "warn": "警告信息",
+        "error": "错误信息"
+      }
+    },
+    {
+      "id": "diagnostic_panel",
+      "name": "诊断面板",
+      "description": "使用内置诊断面板收集调试信息",
+      "data_points": [
+        "浏览器信息",
+        "本地存储状态",
+        "云端数据状态",
+        "控制台日志"
+      ]
+    },
+    {
+      "id": "data_inspection",
+      "name": "数据检查",
+      "description": "调试时先检查数据结构",
+      "methods": [
+        "console.log(JSON.stringify(data, null, 2))",
+        "使用typeof检查类型",
+        "检查数组长度"
+      ]
+    }
+  ]
+}
