@@ -2,16 +2,16 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260601.5"></script>
-  <script src="js/chart.umd.min.js?v=20260601.5"></script>
-  <script src="js/data-store.js?v=20260601.5"></script>
-  <script src="js/state-manager.js?v=20260601.5"></script>
+  <script src="js/xlsx.full.min.js?v=20260601.6"></script>
+  <script src="js/chart.umd.min.js?v=20260601.6"></script>
+  <script src="js/data-store.js?v=20260601.6"></script>
+  <script src="js/state-manager.js?v=20260601.6"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -668,6 +668,134 @@
     @media (hover: none) and (pointer: coarse) {
       * {
         -webkit-tap-highlight-color: transparent;
+        tap-highlight-color: transparent;
+      }
+      
+      /* 触摸优化 */
+      .btn, .tab-btn, .checkbox-label, select {
+        min-height: 48px;
+        touch-action: manipulation;
+        cursor: pointer;
+      }
+      
+      /* 按钮点击反馈 */
+      .btn:active, .tab-btn:active, .checkbox-label:active {
+        opacity: 0.85;
+        transform: scale(0.98);
+        transition: all 0.1s ease;
+      }
+    }
+
+    /* 移动端字体优化 */
+    @media (max-width: 768px) {
+      body {
+        font-size: 16px; /* 防止iOS自动缩放 */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* 输入框优化 */
+      input, select, textarea {
+        font-size: 16px !important; /* 防止iOS自动缩放 */
+        min-height: 44px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+      }
+      
+      /* 卡片内边距优化 */
+      .card {
+        padding: 16px;
+      }
+      
+      /* 响应式表格优化 */
+      .table-container {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+      }
+      
+      table {
+        min-width: 100%;
+      }
+      
+      table th {
+        background: #f8fafc;
+        font-weight: 600;
+        font-size: 13px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      
+      /* 滚动条样式 */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+    }
+
+    /* 小屏手机优化（360px以下） */
+    @media (max-width: 360px) {
+      .app-container {
+        padding: 8px !important;
+      }
+      
+      .header {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+      }
+      
+      .header h1 {
+        font-size: 16px !important;
+      }
+      
+      .tab-btn {
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+      }
+      
+      .card {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+      }
+      
+      .kpi-card {
+        padding: 12px !important;
+      }
+      
+      table {
+        font-size: 11px !important;
+      }
+      
+      table th,
+      table td {
+        padding: 6px 4px !important;
+      }
+    }
+
+    /* 大屏幕优化（平板横屏） */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .app-container {
+        padding: 16px;
+      }
+      
+      .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
       }
     }
 
@@ -751,7 +879,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-01.5</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-01.6</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
       </div>
