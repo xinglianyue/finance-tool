@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260601.4"></script>
-  <script src="js/chart.umd.min.js?v=20260601.4"></script>
-  <script src="js/data-store.js?v=20260601.4"></script>
-  <script src="js/state-manager.js?v=20260601.4"></script>
+  <script src="js/xlsx.full.min.js?v=20260601.5"></script>
+  <script src="js/chart.umd.min.js?v=20260601.5"></script>
+  <script src="js/data-store.js?v=20260601.5"></script>
+  <script src="js/state-manager.js?v=20260601.5"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -751,7 +751,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-01.4</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-01.5</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
       </div>
@@ -1540,20 +1540,38 @@
         
         let cloudData = null;
         
-        // 优先使用直接下载的方式（更稳定，不受 GitHub API 限流影响）
-        const directUrl = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
-        console.log('[App] 尝试直接下载:', directUrl);
+        // 优先使用相对路径加载（同一域名，无 CORS 问题）
+        const localUrl = './shared-data.json';
+        console.log('[App] 尝试从相对路径加载:', localUrl);
         
         try {
-          const directResponse = await fetch(directUrl);
-          if (directResponse.ok) {
-            cloudData = await directResponse.json();
-            console.log('[App] 直接下载成功');
+          const localResponse = await fetch(localUrl);
+          if (localResponse.ok) {
+            cloudData = await localResponse.json();
+            console.log('[App] 从相对路径加载成功');
           } else {
-            console.warn('[App] 直接下载失败，尝试 GitHub API');
+            console.warn('[App] 相对路径加载失败，尝试直接下载');
           }
-        } catch (directError) {
-          console.warn('[App] 直接下载异常:', directError);
+        } catch (localError) {
+          console.warn('[App] 相对路径加载异常:', localError);
+        }
+        
+        // 如果相对路径加载失败，尝试直接下载的方式
+        if (!cloudData) {
+          const directUrl = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
+          console.log('[App] 尝试直接下载:', directUrl);
+          
+          try {
+            const directResponse = await fetch(directUrl);
+            if (directResponse.ok) {
+              cloudData = await directResponse.json();
+              console.log('[App] 直接下载成功');
+            } else {
+              console.warn('[App] 直接下载失败，尝试 GitHub API');
+            }
+          } catch (directError) {
+            console.warn('[App] 直接下载异常:', directError);
+          }
         }
         
         // 如果直接下载失败，尝试用 GitHub API
