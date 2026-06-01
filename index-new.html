@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260530.7"></script>
-  <script src="js/chart.umd.min.js?v=20260530.7"></script>
-  <script src="js/data-store.js?v=20260530.7"></script>
-  <script src="js/state-manager.js?v=20260530.7"></script>
+  <script src="js/xlsx.full.min.js?v=20260530.8"></script>
+  <script src="js/chart.umd.min.js?v=20260530.8"></script>
+  <script src="js/data-store.js?v=20260530.8"></script>
+  <script src="js/state-manager.js?v=20260530.8"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -751,7 +751,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.7</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-05-30.8</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📁 导入数据</button>
         <button class="btn btn-secondary" onclick="loadDemoData()">📋 加载示例</button>
@@ -3079,7 +3079,19 @@
       const selectedRecord = importHistory[selectedIdx] || importHistory[0];
       const firstMerchantType = document.getElementById('trendMerchantSelect').value;
       
-      const merchantData = selectedRecord && selectedRecord.data;
+      let merchantData = selectedRecord && selectedRecord.data;
+      
+      // 检测数据格式，如果是旧格式 { date, cities, fileName }，需要包装成新格式
+      if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
+        console.log('[App] renderTrend 检测到旧格式数据，正在转换为新格式');
+        merchantData = {
+          all: {
+            label: '全部',
+            cities: merchantData.cities
+          }
+        };
+      }
+      
       if (merchantData && merchantData[firstMerchantType]) {
         citySelectHtml.push('<option value="总商">总商</option>');
         const citiesData = merchantData[firstMerchantType].cities || [];
@@ -3097,6 +3109,7 @@
           }
         });
       }
+      console.log('[App] renderTrend 可用的商家类型:', Object.keys(merchantData || {}));
       trendCitySelect.innerHTML = citySelectHtml.join('');
       
       // 恢复之前的选择
@@ -3109,15 +3122,30 @@
       const selectedCity = trendCitySelect.value || '总商';
 
       // 按时间倒序获取所有可用的月份数据（最新的在前）
+      // 同时转换旧格式数据
       const trendMonths = sortedHistory.map(record => {
         const originalIdx = importHistory.findIndex(h => h.monthLabel === record.monthLabel);
+        let tmData = record.data;
+        
+        // 检测并转换旧格式
+        if (tmData && !tmData.all && !tmData.city && !tmData.ka && tmData.cities) {
+          tmData = {
+            all: {
+              label: '全部',
+              cities: tmData.cities
+            }
+          };
+        }
+        
         return {
           idx: originalIdx,
           label: record.monthLabel,
           date: record.importDate,
-          data: record.data
+          data: tmData
         };
       });
+      
+      console.log('[App] trendMonths[0].data keys:', Object.keys(trendMonths[0].data || {}));
       
       renderTrendDetailTable(trendMonths, merchantType, module, selectedCity);
     }
