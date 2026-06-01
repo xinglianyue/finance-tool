@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260601.1"></script>
-  <script src="js/chart.umd.min.js?v=20260601.1"></script>
-  <script src="js/data-store.js?v=20260601.1"></script>
-  <script src="js/state-manager.js?v=20260601.1"></script>
+  <script src="js/xlsx.full.min.js?v=20260601.3"></script>
+  <script src="js/chart.umd.min.js?v=20260601.3"></script>
+  <script src="js/data-store.js?v=20260601.3"></script>
+  <script src="js/state-manager.js?v=20260601.3"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -751,14 +751,10 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-01.1</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-01.3</p>
       <div class="header-actions">
-        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📁 导入数据</button>
-        <button class="btn btn-secondary" onclick="loadDemoData()">📋 加载示例</button>
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
-        <button class="btn btn-secondary" onclick="clearStorage()">🗑️ 清除数据</button>
       </div>
-      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
     </div>
 
     <div class="cloud-loading-panel" id="cloudLoadingPanel" style="display: none;">
@@ -779,13 +775,9 @@
     <!-- Tab1: 概览 -->
     <div class="tab-content active" id="tab-overview">
       <div id="overviewEmpty" class="empty-state">
-        <div class="empty-icon">📊</div>
-        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-          <div class="upload-icon">📁</div>
-          <div style="font-size: 16px; margin-bottom: 8px;">点击或拖拽上传Excel文件</div>
-          <div style="font-size: 14px; color: var(--text-secondary);">支持 .xlsx, .xls 格式</div>
-        </div>
-        <button class="btn btn-primary" style="margin-top: 16px;" onclick="loadDemoData()">📋 或加载示例数据</button>
+        <div class="empty-icon">⏳</div>
+        <div style="font-size: 16px; margin-bottom: 8px;">正在从云端加载数据...</div>
+        <div style="font-size: 14px; color: var(--text-secondary);">数据由运营中心统一维护</div>
       </div>
       <div id="overviewData" class="hidden">
         <div class="card" style="margin-bottom: 16px;">
@@ -3809,9 +3801,7 @@
 
     window.onload = async function() {
       console.log('[App] 开始初始化...');
-      
-      // 绑定事件
-      document.getElementById('fileInput').addEventListener('change', handleFileImport);
+      console.log('[App] 强制从云端加载模式');
       
       // 显示加载状态面板
       const loadingPanel = document.getElementById('cloudLoadingPanel');
@@ -3820,165 +3810,11 @@
       
       loadingPanel.style.display = 'block';
       loadingPanel.className = 'cloud-loading-panel';
-      loadingText.textContent = '正在检查本地数据...';
-      loadingProgress.textContent = '读取本地缓存...';
-      
-      // 1. 先尝试从本地加载
-      const localData = DataStore.load();
-      
-      if (localData) {
-        console.log('[App] 检测到本地数据，快速加载...');
-        loadingText.textContent = '使用本地数据加载...';
-        loadingProgress.textContent = '快速渲染中...';
-        
-        // 快速从本地加载并渲染
-        StateManager.init(localData);
-        
-        // 更新全局变量
-        importHistory = localData.importHistory || [];
-        currentImportIndex = localData.currentImportIndex || 0;
-        currentMerchantType = localData.currentMerchantType || 'all';
-        
-        // 优先使用 localData.allMerchantData（包含商家类型分类）
-        // 如果不存在，再尝试从 importHistory 构建
-        if (localData.allMerchantData && localData.allMerchantData.all) {
-          console.log('[App] 使用 localData.allMerchantData');
-          allMerchantData = localData.allMerchantData;
-          
-          const merchantData = allMerchantData;
-          const allCitiesData = merchantData.all?.cities || [];
-          let totalData = null;
-          let citiesData = [];
-          
-          allCitiesData.forEach(city => {
-            if (city.name === '总商') {
-              totalData = city;
-            } else {
-              citiesData.push(city);
-            }
-          });
-          
-          if (!totalData && allCitiesData.length > 0) {
-            totalData = allCitiesData[0];
-          }
-          
-          currentData = {
-            totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-            cities: citiesData
-          };
-        } else if (importHistory.length > 0 && importHistory[currentImportIndex]) {
-          console.log('[App] 从 importHistory 构建数据');
-          allMerchantData = importHistory[currentImportIndex].data;
-          
-          // 兼容旧格式：如果 importHistory.data 是 { date, cities } 格式
-          if (allMerchantData.cities && !allMerchantData.all) {
-            const allCitiesData = allMerchantData.cities || [];
-            let totalData = null;
-            let citiesData = [];
-            
-            allCitiesData.forEach(city => {
-              if (city.name === '总商') {
-                totalData = city;
-              } else {
-                citiesData.push(city);
-              }
-            });
-            
-            if (!totalData && allCitiesData.length > 0) {
-              totalData = allCitiesData[0];
-            }
-            
-            currentData = {
-              totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-              cities: citiesData
-            };
-          } else {
-            // 如果是商家类型分类格式
-            const merchantData = allMerchantData;
-            const allCitiesData = merchantData.all?.cities || [];
-            let totalData = null;
-            let citiesData = [];
-            
-            allCitiesData.forEach(city => {
-              if (city.name === '总商') {
-                totalData = city;
-              } else {
-                citiesData.push(city);
-              }
-            });
-            
-            if (!totalData && allCitiesData.length > 0) {
-              totalData = allCitiesData[0];
-            }
-            
-            currentData = {
-              totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-              cities: citiesData
-            };
-          }
-        } else {
-          console.log('[App] 使用 localData.currentData');
-          currentData = localData.currentData || null;
-          allMerchantData = localData.allMerchantData || null;
-        }
-        
-        // 显示成功状态并快速隐藏加载面板
-        loadingPanel.className = 'cloud-loading-panel success';
-        loadingText.textContent = '✅ 使用本地数据';
-        
-        const recordCount = importHistory?.length || 0;
-        const cityCount = currentData?.cities?.length || 0;
-        loadingProgress.textContent = `已加载 ${recordCount} 条历史记录，共 ${cityCount} 个城市数据`;
-        
-        // 快速隐藏加载面板，立即渲染
-        setTimeout(() => {
-          loadingPanel.style.display = 'none';
-          console.log('[App] 开始渲染UI（本地数据）');
-          renderImportSelector();
-          renderOverview();
-          renderDimension();
-          renderTrend();
-        }, 500);
-        
-        // 2. 后台检查云端是否有更新
-        console.log('[App] 后台检查云端更新...');
-        try {
-          const hasNewData = await checkCloudForUpdates(localData);
-          if (hasNewData) {
-            console.log('[App] 检测到云端有新数据，开始更新...');
-            showToast('发现新数据，正在更新...', 'info');
-            await loadFromCloud();
-            
-            // 更新完成后重新渲染
-            const newData = DataStore.load();
-            if (newData) {
-              StateManager.init(newData);
-              importHistory = newData.importHistory || [];
-              currentData = newData.currentData || null;
-              allMerchantData = newData.allMerchantData || null;
-              currentImportIndex = newData.currentImportIndex || 0;
-              currentMerchantType = newData.currentMerchantType || 'all';
-              
-              renderImportSelector();
-              renderOverview();
-              renderDimension();
-              renderTrend();
-              showToast('数据已更新！', 'success');
-            }
-          } else {
-            console.log('[App] 云端无新数据，保持本地数据');
-          }
-        } catch (updateError) {
-          console.warn('[App] 检查更新失败:', updateError);
-        }
-        
-        return;
-      }
-      
-      // 3. 本地无数据，从云端加载
-      console.log('[App] 本地无数据，从云端加载...');
       loadingText.textContent = '正在从云端加载数据...';
       loadingProgress.textContent = '连接服务器...';
+      
+      // 强制从云端加载
+      console.log('[App] 开始从云端加载...');
       
       let loaded = false;
       
