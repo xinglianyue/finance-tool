@@ -879,7 +879,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-01.6</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-02.1</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
       </div>
@@ -1803,7 +1803,49 @@
         let totalData = null;
         let citiesData = [];
         
+        // 自动计算毛利的函数
+        function calculateProfit(data) {
+          if (!data || typeof data !== 'object') return;
+          
+          Object.keys(data).forEach(key => {
+            const module = data[key];
+            if (module && typeof module === 'object') {
+              const onlineRevenue = module.onlineRevenue || 0;
+              const totalExpense = module.totalExpense || 0;
+              const existingProfit = module.profit || 0;
+              
+              // 如果没有毛利数据或毛利为0，自动计算
+              if (!existingProfit || existingProfit === 0) {
+                module.profit = onlineRevenue - totalExpense;
+                console.log('[App] 自动计算毛利:', module.profit);
+              }
+              
+              // 重新计算相关比率
+              const o = module.orders || 0;
+              const profit = module.profit;
+              const gmv = module.gmvAmount || 0;
+              
+              if (o > 0) {
+                module.ue = profit / o;
+                module.avgRevenuePerOrder = onlineRevenue / o;
+                module.avgCostPerOrder = totalExpense / o;
+              }
+              if (onlineRevenue > 0) {
+                module.profitRate = profit / onlineRevenue;
+              }
+              if (gmv > 0) {
+                module.subsidyRatio = (module.subsidyTotal || 0) / gmv;
+              }
+            }
+          });
+        }
+        
         allCitiesData.forEach(city => {
+          // 对每个城市的数据自动计算毛利
+          if (city.modules) {
+            calculateProfit(city.modules);
+          }
+          
           if (city.name === '总商') {
             totalData = city;
           } else {
@@ -1811,9 +1853,39 @@
           }
         });
         
-        // 如果没有总商但有数据，使用第一个城市作为总商
+        // 如果没有总商但有数据，创建一个总商数据（汇总所有城市）
         if (!totalData && allCitiesData.length > 0) {
-          totalData = allCitiesData[0];
+          console.log('[App] 未找到总商数据，自动汇总创建...');
+          const totalModules = {};
+          
+          allCitiesData.forEach(city => {
+            if (city.modules) {
+              Object.keys(city.modules).forEach(modKey => {
+                if (!totalModules[modKey]) {
+                  totalModules[modKey] = {};
+                }
+                Object.keys(city.modules[modKey]).forEach(field => {
+                  const value = city.modules[modKey][field];
+                  if (typeof value === 'number' && !isNaN(value)) {
+                    if (field in totalModules[modKey]) {
+                      totalModules[modKey][field] += value;
+                    } else {
+                      totalModules[modKey][field] = value;
+                    }
+                  }
+                });
+              });
+            }
+          });
+          
+          // 对总商数据自动计算毛利
+          calculateProfit(totalModules);
+          
+          totalData = {
+            name: '总商',
+            displayName: '总商',
+            modules: totalModules
+          };
         }
         
         const currentData = {
