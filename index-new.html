@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260601.6"></script>
-  <script src="js/chart.umd.min.js?v=20260601.6"></script>
-  <script src="js/data-store.js?v=20260601.6"></script>
-  <script src="js/state-manager.js?v=20260601.6"></script>
+  <script src="js/xlsx.full.min.js?v=20260602.2"></script>
+  <script src="js/chart.umd.min.js?v=20260602.2"></script>
+  <script src="js/data-store.js?v=20260602.2"></script>
+  <script src="js/state-manager.js?v=20260602.2"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -879,7 +879,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-02.1</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-02.2</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
       </div>
@@ -1798,11 +1798,6 @@
           };
         }
         
-        // 构建currentData - 从merchantData.all.cities中提取总商和城市数据
-        const allCitiesData = latestMerchantData.all?.cities || [];
-        let totalData = null;
-        let citiesData = [];
-        
         // 自动计算毛利的函数
         function calculateProfit(data) {
           if (!data || typeof data !== 'object') return;
@@ -1840,53 +1835,72 @@
           });
         }
         
-        allCitiesData.forEach(city => {
-          // 对每个城市的数据自动计算毛利
-          if (city.modules) {
-            calculateProfit(city.modules);
-          }
+        // 对所有商家类型的数据进行毛利自动计算
+        function processAllMerchantTypes(merchantData) {
+          if (!merchantData || typeof merchantData !== 'object') return;
           
+          Object.keys(merchantData).forEach(typeKey => {
+            const typeData = merchantData[typeKey];
+            if (typeData && typeData.cities && Array.isArray(typeData.cities)) {
+              typeData.cities.forEach(city => {
+                if (city.modules) {
+                  calculateProfit(city.modules);
+                }
+              });
+              
+              // 检查是否有总商数据，如果没有则自动创建
+              const hasTotalCity = typeData.cities.some(city => city.name === '总商');
+              if (!hasTotalCity && typeData.cities.length > 0) {
+                console.log('[App] ' + typeData.label + ' 未找到总商数据，自动汇总创建...');
+                const totalModules = {};
+                
+                typeData.cities.forEach(city => {
+                  if (city.modules) {
+                    Object.keys(city.modules).forEach(modKey => {
+                      if (!totalModules[modKey]) {
+                        totalModules[modKey] = {};
+                      }
+                      Object.keys(city.modules[modKey]).forEach(field => {
+                        const value = city.modules[modKey][field];
+                        if (typeof value === 'number' && !isNaN(value)) {
+                          if (field in totalModules[modKey]) {
+                            totalModules[modKey][field] += value;
+                          } else {
+                            totalModules[modKey][field] = value;
+                          }
+                        }
+                      });
+                    });
+                  }
+                });
+                
+                calculateProfit(totalModules);
+                
+                typeData.cities.unshift({
+                  name: '总商',
+                  displayName: '总商',
+                  modules: totalModules
+                });
+              }
+            }
+          });
+        }
+        
+        // 处理所有商家类型的数据
+        processAllMerchantTypes(latestMerchantData);
+        
+        // 构建currentData - 从merchantData.all.cities中提取总商和城市数据
+        const allCitiesData = latestMerchantData.all?.cities || [];
+        let totalData = null;
+        let citiesData = [];
+        
+        allCitiesData.forEach(city => {
           if (city.name === '总商') {
             totalData = city;
           } else {
             citiesData.push(city);
           }
         });
-        
-        // 如果没有总商但有数据，创建一个总商数据（汇总所有城市）
-        if (!totalData && allCitiesData.length > 0) {
-          console.log('[App] 未找到总商数据，自动汇总创建...');
-          const totalModules = {};
-          
-          allCitiesData.forEach(city => {
-            if (city.modules) {
-              Object.keys(city.modules).forEach(modKey => {
-                if (!totalModules[modKey]) {
-                  totalModules[modKey] = {};
-                }
-                Object.keys(city.modules[modKey]).forEach(field => {
-                  const value = city.modules[modKey][field];
-                  if (typeof value === 'number' && !isNaN(value)) {
-                    if (field in totalModules[modKey]) {
-                      totalModules[modKey][field] += value;
-                    } else {
-                      totalModules[modKey][field] = value;
-                    }
-                  }
-                });
-              });
-            }
-          });
-          
-          // 对总商数据自动计算毛利
-          calculateProfit(totalModules);
-          
-          totalData = {
-            name: '总商',
-            displayName: '总商',
-            modules: totalModules
-          };
-        }
         
         const currentData = {
           totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
