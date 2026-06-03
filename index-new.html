@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260602.2"></script>
-  <script src="js/chart.umd.min.js?v=20260602.2"></script>
-  <script src="js/data-store.js?v=20260602.2"></script>
-  <script src="js/state-manager.js?v=20260602.2"></script>
+  <script src="js/xlsx.full.min.js?v=20260602.3"></script>
+  <script src="js/chart.umd.min.js?v=20260602.3"></script>
+  <script src="js/data-store.js?v=20260602.3"></script>
+  <script src="js/state-manager.js?v=20260602.3"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1800,6 +1800,7 @@
         
         // 自动计算毛利的函数
         function calculateProfit(data) {
+          console.log('[App] calculateProfit 开始执行，data keys:', Object.keys(data || {}));
           if (!data || typeof data !== 'object') return;
           
           Object.keys(data).forEach(key => {
@@ -1809,10 +1810,12 @@
               const totalExpense = module.totalExpense || 0;
               const existingProfit = module.profit || 0;
               
+              console.log('[App] 模块 ' + key + ': onlineRevenue=' + onlineRevenue + ', totalExpense=' + totalExpense + ', 现有profit=' + existingProfit);
+              
               // 如果没有毛利数据或毛利为0，自动计算
               if (!existingProfit || existingProfit === 0) {
                 module.profit = onlineRevenue - totalExpense;
-                console.log('[App] 自动计算毛利:', module.profit);
+                console.log('[App] 模块 ' + key + ' 自动计算毛利: ' + onlineRevenue + ' - ' + totalExpense + ' = ' + module.profit);
               }
               
               // 重新计算相关比率
@@ -1837,21 +1840,26 @@
         
         // 对所有商家类型的数据进行毛利自动计算
         function processAllMerchantTypes(merchantData) {
+          console.log('[App] processAllMerchantTypes 开始执行，merchantData keys:', Object.keys(merchantData || {}));
           if (!merchantData || typeof merchantData !== 'object') return;
           
           Object.keys(merchantData).forEach(typeKey => {
+            console.log('[App] 处理商家类型:', typeKey);
             const typeData = merchantData[typeKey];
             if (typeData && typeData.cities && Array.isArray(typeData.cities)) {
+              console.log('[App] ' + typeKey + ' 有 ' + typeData.cities.length + ' 个城市');
               typeData.cities.forEach(city => {
                 if (city.modules) {
+                  console.log('[App] 计算 ' + city.name + ' 的毛利');
                   calculateProfit(city.modules);
                 }
               });
               
               // 检查是否有总商数据，如果没有则自动创建
               const hasTotalCity = typeData.cities.some(city => city.name === '总商');
+              console.log('[App] ' + typeKey + ' 是否有总商数据:', hasTotalCity);
               if (!hasTotalCity && typeData.cities.length > 0) {
-                console.log('[App] ' + typeData.label + ' 未找到总商数据，自动汇总创建...');
+                console.log('[App] ' + typeKey + ' 未找到总商数据，自动汇总创建...');
                 const totalModules = {};
                 
                 typeData.cities.forEach(city => {
@@ -1886,8 +1894,11 @@
           });
         }
         
+        console.log('[App] === 开始处理毛利数据 ===');
+        console.log('[App] latestMerchantData keys:', Object.keys(latestMerchantData));
         // 处理所有商家类型的数据
         processAllMerchantTypes(latestMerchantData);
+        console.log('[App] === 毛利数据处理完成 ===');
         
         // 构建currentData - 从merchantData.all.cities中提取总商和城市数据
         const allCitiesData = latestMerchantData.all?.cities || [];
