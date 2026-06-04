@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260602.3"></script>
-  <script src="js/chart.umd.min.js?v=20260602.3"></script>
-  <script src="js/data-store.js?v=20260602.3"></script>
-  <script src="js/state-manager.js?v=20260602.3"></script>
+  <script src="js/xlsx.full.min.js?v=20260605.1"></script>
+  <script src="js/chart.umd.min.js?v=20260605.1"></script>
+  <script src="js/data-store.js?v=20260605.1"></script>
+  <script src="js/state-manager.js?v=20260605.1"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1801,97 +1801,148 @@
         // 自动计算毛利的函数
         function calculateProfit(data) {
           console.log('[App] calculateProfit 开始执行，data keys:', Object.keys(data || {}));
-          if (!data || typeof data !== 'object') return;
+          if (!data || typeof data !== 'object') {
+            console.log('[App] calculateProfit: data为空或不是对象');
+            return;
+          }
           
-          Object.keys(data).forEach(key => {
+          const moduleKeys = Object.keys(data);
+          console.log('[App] calculateProfit: 共有 ' + moduleKeys.length + ' 个模块需要处理');
+          
+          moduleKeys.forEach(key => {
             const module = data[key];
-            if (module && typeof module === 'object') {
-              const onlineRevenue = module.onlineRevenue || 0;
-              const totalExpense = module.totalExpense || 0;
-              const existingProfit = module.profit || 0;
-              
-              console.log('[App] 模块 ' + key + ': onlineRevenue=' + onlineRevenue + ', totalExpense=' + totalExpense + ', 现有profit=' + existingProfit);
-              
-              // 如果没有毛利数据或毛利为0，自动计算
-              if (!existingProfit || existingProfit === 0) {
-                module.profit = onlineRevenue - totalExpense;
-                console.log('[App] 模块 ' + key + ' 自动计算毛利: ' + onlineRevenue + ' - ' + totalExpense + ' = ' + module.profit);
-              }
-              
-              // 重新计算相关比率
-              const o = module.orders || 0;
-              const profit = module.profit;
-              const gmv = module.gmvAmount || 0;
-              
-              if (o > 0) {
-                module.ue = profit / o;
-                module.avgRevenuePerOrder = onlineRevenue / o;
-                module.avgCostPerOrder = totalExpense / o;
-              }
-              if (onlineRevenue > 0) {
-                module.profitRate = profit / onlineRevenue;
-              }
-              if (gmv > 0) {
-                module.subsidyRatio = (module.subsidyTotal || 0) / gmv;
-              }
+            if (!module || typeof module !== 'object') {
+              console.log('[App] calculateProfit: 模块 ' + key + ' 不是有效对象，跳过');
+              return;
+            }
+            
+            const onlineRevenue = module.onlineRevenue || 0;
+            const totalExpense = module.totalExpense || 0;
+            const existingProfit = module.profit || 0;
+            
+            console.log('[App] 模块 ' + key + ': onlineRevenue=' + onlineRevenue.toLocaleString() + ', totalExpense=' + totalExpense.toLocaleString() + ', 现有profit=' + existingProfit.toLocaleString());
+            
+            // 强制重新计算毛利（不再依赖原有值）
+            const calculatedProfit = onlineRevenue - totalExpense;
+            console.log('[App] 模块 ' + key + ' 重新计算毛利: ' + onlineRevenue.toLocaleString() + ' - ' + totalExpense.toLocaleString() + ' = ' + calculatedProfit.toLocaleString());
+            module.profit = calculatedProfit;
+            
+            // 重新计算相关比率
+            const o = module.orders || 0;
+            const profit = module.profit;
+            const gmv = module.gmvAmount || 0;
+            
+            console.log('[App] 模块 ' + key + ': orders=' + o + ', gmv=' + gmv.toLocaleString());
+            
+            if (o > 0) {
+              module.ue = profit / o;
+              module.avgRevenuePerOrder = onlineRevenue / o;
+              module.avgCostPerOrder = totalExpense / o;
+              console.log('[App] 模块 ' + key + ': ue=' + module.ue.toFixed(4) + ', avgRevenuePerOrder=' + module.avgRevenuePerOrder.toFixed(2) + ', avgCostPerOrder=' + module.avgCostPerOrder.toFixed(2));
+            }
+            if (onlineRevenue > 0) {
+              module.profitRate = profit / onlineRevenue;
+              console.log('[App] 模块 ' + key + ': profitRate=' + (module.profitRate * 100).toFixed(2) + '%');
+            }
+            if (gmv > 0) {
+              module.subsidyRatio = (module.subsidyTotal || 0) / gmv;
             }
           });
+          
+          console.log('[App] calculateProfit 执行完成');
         }
         
         // 对所有商家类型的数据进行毛利自动计算
         function processAllMerchantTypes(merchantData) {
-          console.log('[App] processAllMerchantTypes 开始执行，merchantData keys:', Object.keys(merchantData || {}));
-          if (!merchantData || typeof merchantData !== 'object') return;
+          console.log('[App] processAllMerchantTypes 开始执行');
+          console.log('[App] merchantData:', merchantData ? '存在' : '不存在');
+          console.log('[App] merchantData keys:', merchantData ? Object.keys(merchantData) : 'N/A');
           
-          Object.keys(merchantData).forEach(typeKey => {
-            console.log('[App] 处理商家类型:', typeKey);
+          if (!merchantData || typeof merchantData !== 'object') {
+            console.log('[App] processAllMerchantTypes: merchantData为空或不是对象，退出');
+            return;
+          }
+          
+          const typeKeys = Object.keys(merchantData);
+          console.log('[App] processAllMerchantTypes: 共有 ' + typeKeys.length + ' 种商家类型');
+          
+          typeKeys.forEach(typeKey => {
+            console.log('[App] ========== 处理商家类型: ' + typeKey + ' ==========');
             const typeData = merchantData[typeKey];
-            if (typeData && typeData.cities && Array.isArray(typeData.cities)) {
-              console.log('[App] ' + typeKey + ' 有 ' + typeData.cities.length + ' 个城市');
+            
+            if (!typeData || typeof typeData !== 'object') {
+              console.log('[App] 商家类型 ' + typeKey + ' 的数据不是有效对象，跳过');
+              return;
+            }
+            
+            console.log('[App] 商家类型 ' + typeKey + ' 的数据结构:', Object.keys(typeData));
+            
+            if (!typeData.cities || !Array.isArray(typeData.cities)) {
+              console.log('[App] 商家类型 ' + typeKey + ' 没有有效的cities数组，跳过');
+              return;
+            }
+            
+            console.log('[App] 商家类型 ' + typeKey + ' 有 ' + typeData.cities.length + ' 个城市');
+            
+            typeData.cities.forEach(city => {
+              if (!city || typeof city !== 'object') {
+                console.log('[App] 无效的城市数据，跳过');
+                return;
+              }
+              
+              console.log('[App] ------ 处理城市: ' + (city.name || city.displayName || '未知') + ' ------');
+              
+              if (!city.modules) {
+                console.log('[App] 城市 ' + city.name + ' 没有modules数据，跳过');
+                return;
+              }
+              
+              console.log('[App] 计算城市 ' + city.name + ' 的毛利数据');
+              calculateProfit(city.modules);
+            });
+            
+            // 检查是否有总商数据，如果没有则自动创建
+            const hasTotalCity = typeData.cities.some(city => city.name === '总商');
+            console.log('[App] 商家类型 ' + typeKey + ' 是否有总商数据:', hasTotalCity);
+            
+            if (!hasTotalCity && typeData.cities.length > 0) {
+              console.log('[App] 商家类型 ' + typeKey + ' 未找到总商数据，自动汇总创建...');
+              const totalModules = {};
+              
               typeData.cities.forEach(city => {
                 if (city.modules) {
-                  console.log('[App] 计算 ' + city.name + ' 的毛利');
-                  calculateProfit(city.modules);
+                  Object.keys(city.modules).forEach(modKey => {
+                    if (!totalModules[modKey]) {
+                      totalModules[modKey] = {};
+                    }
+                    Object.keys(city.modules[modKey]).forEach(field => {
+                      const value = city.modules[modKey][field];
+                      if (typeof value === 'number' && !isNaN(value)) {
+                        if (field in totalModules[modKey]) {
+                          totalModules[modKey][field] += value;
+                        } else {
+                          totalModules[modKey][field] = value;
+                        }
+                      }
+                    });
+                  });
                 }
               });
               
-              // 检查是否有总商数据，如果没有则自动创建
-              const hasTotalCity = typeData.cities.some(city => city.name === '总商');
-              console.log('[App] ' + typeKey + ' 是否有总商数据:', hasTotalCity);
-              if (!hasTotalCity && typeData.cities.length > 0) {
-                console.log('[App] ' + typeKey + ' 未找到总商数据，自动汇总创建...');
-                const totalModules = {};
-                
-                typeData.cities.forEach(city => {
-                  if (city.modules) {
-                    Object.keys(city.modules).forEach(modKey => {
-                      if (!totalModules[modKey]) {
-                        totalModules[modKey] = {};
-                      }
-                      Object.keys(city.modules[modKey]).forEach(field => {
-                        const value = city.modules[modKey][field];
-                        if (typeof value === 'number' && !isNaN(value)) {
-                          if (field in totalModules[modKey]) {
-                            totalModules[modKey][field] += value;
-                          } else {
-                            totalModules[modKey][field] = value;
-                          }
-                        }
-                      });
-                    });
-                  }
-                });
-                
-                calculateProfit(totalModules);
-                
-                typeData.cities.unshift({
-                  name: '总商',
-                  displayName: '总商',
-                  modules: totalModules
-                });
-              }
+              console.log('[App] 总商汇总完成，正在计算毛利...');
+              calculateProfit(totalModules);
+              
+              typeData.cities.unshift({
+                name: '总商',
+                displayName: '总商',
+                modules: totalModules
+              });
+              
+              console.log('[App] 总商数据已添加到商家类型 ' + typeKey);
             }
           });
+          
+          console.log('[App] processAllMerchantTypes 执行完成');
         }
         
         console.log('[App] === 开始处理毛利数据 ===');
