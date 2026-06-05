@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-财务工具数据库同步脚本 v1.1.0 (修复版)
+财务工具数据库同步脚本
+版本: v1.1.1 (版本历史机制修复版)
 功能：从MySQL数据库同步数据到GitHub
+更新记录:
+  v1.0.0 - 初始版本
+  v1.1.0 - 修复数据覆盖问题，添加版本历史机制
+  v1.1.1 - 增加版本号显示和参数验证
 """
 
 import pymysql
@@ -12,6 +17,10 @@ import base64
 import os
 import sys
 from datetime import datetime, timedelta
+
+# 版本号常量
+VERSION = "v1.1.1"
+VERSION_DESCRIPTION = "版本历史机制修复版"
 
 CONFIG_FILE = "config-db.json"
 
@@ -423,15 +432,27 @@ def push_to_github(date_str, current_data, merchant_data, current_merchant, toke
 
 
 def main():
+    print(f"═══════════════════════════════════════════")
+    print(f"  财务工具数据库同步脚本 {VERSION}")
+    print(f"  {VERSION_DESCRIPTION}")
+    print(f"═══════════════════════════════════════════")
+    print()
+
     if len(sys.argv) < 2:
         print("用法: python db-sync.py <日期>")
         print("示例: python db-sync.py 202605")
         print("示例: python db-sync.py 20260528")
+        print()
+        print("版本历史:")
+        print("  v1.0.0 - 初始版本")
+        print("  v1.1.0 - 修复数据覆盖问题，添加版本历史机制")
+        print("  v1.1.1 - 增加版本号显示和参数验证")
         sys.exit(1)
 
     date_str = sys.argv[1]
     print(f"开始同步 {date_str} 的数据 ...")
     print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"脚本版本: {VERSION}")
     print()
 
     if not os.path.exists(CONFIG_FILE):
@@ -458,9 +479,12 @@ def main():
 
         if success:
             print()
+            print("═══════════════════════════════════════════")
             print("同步完成! 数据已推送到 GitHub")
+            print(f"脚本版本: {VERSION}")
             print("前端访问: https://xinglianyue.github.io/finance-tool/")
             print("(约1分钟后数据自动生效)")
+            print("═══════════════════════════════════════════")
         else:
             print()
             print("同步失败! 请检查错误信息")
