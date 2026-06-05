@@ -1464,8 +1464,30 @@
         const existingIndex = fullExistingRecords.findIndex(r => r.date === newRecord.date);
         
         if (existingIndex >= 0) {
+          // 添加版本历史机制：保留历史版本，创建新记录
+          const existingRecord = fullExistingRecords[existingIndex];
+          
+          // 如果存在历史记录，标记为历史版本
+          if (existingRecord) {
+            existingRecord.isHistorical = true;
+            existingRecord.historicalAt = new Date().toISOString();
+            existingRecord.historicalVersion = existingRecord.version || 1;
+          }
+          
+          // 创建新记录，版本号递增
+          newRecord.version = (existingRecord?.version || 1) + 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
+          
+          // 替换旧记录
           fullExistingRecords[existingIndex] = newRecord;
+          
+          console.log('[Upload] 版本控制: date=' + newRecord.date + ', 旧版本=' + (existingRecord?.version || 1) + ', 新版本=' + newRecord.version);
         } else {
+          // 新增记录
+          newRecord.version = 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
           fullExistingRecords.unshift(newRecord);
         }
       });
@@ -1508,8 +1530,24 @@
         const existingIndexIndex = indexRecords.findIndex(r => r.date === newRecord.date);
         
         if (existingIndexIndex >= 0) {
+          // index.json 也添加版本控制
+          const existingRecord = indexRecords[existingIndexIndex];
+          
+          if (existingRecord) {
+            existingRecord.isHistorical = true;
+            existingRecord.historicalAt = new Date().toISOString();
+            existingRecord.historicalVersion = existingRecord.version || 1;
+          }
+          
+          newRecord.version = (existingRecord?.version || 1) + 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
+          
           indexRecords[existingIndexIndex] = newRecord;
         } else {
+          newRecord.version = 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
           indexRecords.unshift(newRecord);
         }
       });

@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260605.1"></script>
-  <script src="js/chart.umd.min.js?v=20260605.1"></script>
-  <script src="js/data-store.js?v=20260605.1"></script>
-  <script src="js/state-manager.js?v=20260605.1"></script>
+  <script src="js/xlsx.full.min.js?v=20260605.2"></script>
+  <script src="js/chart.umd.min.js?v=20260605.2"></script>
+  <script src="js/data-store.js?v=20260605.2"></script>
+  <script src="js/state-manager.js?v=20260605.2"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1784,7 +1784,10 @@
         allImportHistory.sort((a, b) => b.monthLabel.localeCompare(a.monthLabel));
         
         // 使用最新的数据构建allMerchantData
-        const latestRecord = cloudData[0];
+        // 优先使用 isLatest 标记，否则按日期排序取第一条
+        let latestRecord = cloudData.find(r => r.isLatest === true) || cloudData[0];
+        console.log('[App] 选中的最新记录: date=' + latestRecord.date + ', isLatest=' + latestRecord.isLatest + ', version=' + (latestRecord.version || 'N/A'));
+        
         let latestMerchantData = latestRecord.merchantData || latestRecord.currentData?.merchantData || {};
         
         // 如果是旧格式（currentData直接包含cities），需要转换为新格式
@@ -1798,7 +1801,7 @@
           };
         }
         
-        // 自动计算毛利的函数
+        // 自动计算毛利的函数（信任原始数据，只在缺失时计算）
         function calculateProfit(data) {
           console.log('[App] calculateProfit 开始执行，data keys:', Object.keys(data || {}));
           if (!data || typeof data !== 'object') {
@@ -1818,16 +1821,20 @@
             
             const onlineRevenue = module.onlineRevenue || 0;
             const totalExpense = module.totalExpense || 0;
-            const existingProfit = module.profit || 0;
+            const existingProfit = module.profit;
             
-            console.log('[App] 模块 ' + key + ': onlineRevenue=' + onlineRevenue.toLocaleString() + ', totalExpense=' + totalExpense.toLocaleString() + ', 现有profit=' + existingProfit.toLocaleString());
+            console.log('[App] 模块 ' + key + ': onlineRevenue=' + onlineRevenue.toLocaleString() + ', totalExpense=' + totalExpense.toLocaleString() + ', 现有profit=' + (existingProfit !== undefined ? existingProfit.toLocaleString() : '不存在'));
             
-            // 强制重新计算毛利（不再依赖原有值）
-            const calculatedProfit = onlineRevenue - totalExpense;
-            console.log('[App] 模块 ' + key + ' 重新计算毛利: ' + onlineRevenue.toLocaleString() + ' - ' + totalExpense.toLocaleString() + ' = ' + calculatedProfit.toLocaleString());
-            module.profit = calculatedProfit;
+            // 信任原始数据，只在 profit 为0或不存在时才计算
+            if (existingProfit === undefined || existingProfit === null || existingProfit === 0) {
+              const calculatedProfit = onlineRevenue - totalExpense;
+              console.log('[App] 模块 ' + key + ' profit缺失或为0，自动计算: ' + onlineRevenue.toLocaleString() + ' - ' + totalExpense.toLocaleString() + ' = ' + calculatedProfit.toLocaleString());
+              module.profit = calculatedProfit;
+            } else {
+              console.log('[App] 模块 ' + key + ' 信任原始profit数据: ' + existingProfit.toLocaleString());
+            }
             
-            // 重新计算相关比率
+            // 确保相关比率存在，如不存在则计算
             const o = module.orders || 0;
             const profit = module.profit;
             const gmv = module.gmvAmount || 0;
@@ -1835,16 +1842,24 @@
             console.log('[App] 模块 ' + key + ': orders=' + o + ', gmv=' + gmv.toLocaleString());
             
             if (o > 0) {
-              module.ue = profit / o;
-              module.avgRevenuePerOrder = onlineRevenue / o;
-              module.avgCostPerOrder = totalExpense / o;
+              if (module.ue === undefined || module.ue === null || module.ue === 0) {
+                module.ue = profit / o;
+              }
+              if (module.avgRevenuePerOrder === undefined || module.avgRevenuePerOrder === null) {
+                module.avgRevenuePerOrder = onlineRevenue / o;
+              }
+              if (module.avgCostPerOrder === undefined || module.avgCostPerOrder === null) {
+                module.avgCostPerOrder = totalExpense / o;
+              }
               console.log('[App] 模块 ' + key + ': ue=' + module.ue.toFixed(4) + ', avgRevenuePerOrder=' + module.avgRevenuePerOrder.toFixed(2) + ', avgCostPerOrder=' + module.avgCostPerOrder.toFixed(2));
             }
             if (onlineRevenue > 0) {
-              module.profitRate = profit / onlineRevenue;
+              if (module.profitRate === undefined || module.profitRate === null || module.profitRate === 0) {
+                module.profitRate = profit / onlineRevenue;
+              }
               console.log('[App] 模块 ' + key + ': profitRate=' + (module.profitRate * 100).toFixed(2) + '%');
             }
-            if (gmv > 0) {
+            if (gmv > 0 && (module.subsidyRatio === undefined || module.subsidyRatio === null)) {
               module.subsidyRatio = (module.subsidyTotal || 0) / gmv;
             }
           });
