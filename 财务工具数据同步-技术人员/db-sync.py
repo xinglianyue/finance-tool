@@ -375,9 +375,26 @@ def push_to_github(date_str, current_data, merchant_data, current_merchant, toke
         else:
             print("       现有数据不存在，将创建新文件")
 
-        existing_data = [r for r in existing_data if r.get("date") != new_record["date"]]
+        existing_data = existing_data.copy()
+        
+        has_existing_same_date = any(r.get("date") == new_record["date"] for r in existing_data)
+        if has_existing_same_date:
+            max_version = 0
+            for r in existing_data:
+                if r.get("date") == new_record["date"]:
+                    r["isHistorical"] = True
+                    r.pop("isLatest", None)
+                    if "version" in r:
+                        max_version = max(max_version, r["version"])
+            
+            new_record["version"] = max_version + 1
+            new_record["isLatest"] = True
+        else:
+            new_record["version"] = 1
+            new_record["isLatest"] = True
+        
         existing_data.append(new_record)
-        existing_data.sort(key=lambda x: x.get("date", ""))
+        existing_data.sort(key=lambda x: x.get("date", ""), reverse=True)
 
         payload_json = json.dumps(existing_data, ensure_ascii=False, indent=2)
         payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
