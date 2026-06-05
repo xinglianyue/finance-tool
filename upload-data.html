@@ -816,65 +816,92 @@
         { sheetName: 'KA商家', key: 'ka', label: 'KA商家' }
       ];
 
+      // 字段映射规则：与 db-sync.py 的 FIELD_MAP 保持一致
+      // 格式：[column_name3, column_name4, field_name, isAccumulate]
       const FIELD_RULES = [
-        ['', '订单量汇总', 'orders'],
-        ['', '加盟订单量', 'franchiseOrders'],
-        ['', '自配订单量', 'selfOrders'],
-        ['', '企客订单量', 'enterpriseOrders'],
-        ['', '加盟原价交易额', 'franchiseGMV'],
-        ['', '自配原价交易额', 'selfGMV'],
-        ['', '原价交易额汇总', 'gmvAmount'],
-        ['', '加盟抽佣金额', 'franchiseCommission'],
-        ['', '自配抽佣金额', 'selfCommission'],
-        ['', '企客商家抽佣金额', 'enterpriseCommission'],
-        ['', '抽佣金额汇总', 'commission'],
-        ['', '加盟配送费', 'franchiseDeliveryFee'],
-        ['', '二次配送费', 'secondDeliveryFee'],
-        ['', '企客配送费', 'enterpriseDeliveryFee'],
-        ['', '一对一急送配送费', 'urgentDeliveryFee'],
-        ['', '配送费汇总', 'deliveryFee'],
-        ['', '其他收入汇总', 'otherRevenue'],
-        ['', 'B端代补金额', 'subsidyB'],
-        ['', 'C端代补金额', 'subsidyC'],
-        ['', '账单-代补差额', 'subsidyDiff'],
-        ['', '代补金额花费汇总', 'subsidyTotal'],
-        ['', '拼单补贴', 'pinDanSubsidy'],
-        ['', '拼好饭补贴', 'pinHaoFanSubsidy'],
-        ['', '专项补贴', 'specialSubsidy'],
-        ['', '众包补贴调账', 'crowdSubsidyAdjust'],
-        ['', '平台抽佣金额', 'platformCommissionCost'],
-        ['', '合作商售后赔付费用', 'afterSaleCost'],
-        ['', '关爱基金', 'careFund'],
-        ['', '保险费用', 'insuranceCost'],
-        ['', '竞价', 'biddingCost'],
-        ['', '罚款', 'penalty'],
-        ['', '平台成本汇总', 'platformCost'],
-        ['', '加盟承接订单量', 'franchiseDeliverOrders'],
-        ['', '加盟单均邮资', 'franchiseAvgPostage'],
-        ['', '加盟活动花费', 'franchiseActivityCost'],
-        ['', '加盟邮资', 'franchiseDelivery'],
-        ['', '普众众包订单量', 'crowdOrders'],
-        ['', '普众众包基础邮资', 'crowdBasePostage'],
-        ['', '普众众包活动花费', 'crowdActivityCost'],
-        ['', '普众众包邮资', 'crowdDelivery'],
-        ['', '悦跑订单量', 'yuepaoOrders'],
-        ['', '悦跑基础邮资', 'yuepaoBasePostage'],
-        ['', '悦跑活动花费', 'yuepaoActivityCost'],
-        ['', '悦跑邮资', 'yuepaoDelivery'],
-        ['', '众包天气补贴', 'weatherSubsidy'],
-        ['', '配送成本汇总', 'deliveryCost'],
-        ['', '办公室房租', 'officeRent'],
-        ['', '业务团队', 'teamCost'],
-        ['', '固定成本汇总', 'fixedCost'],
-        ['', '三方服务费', 'thirdPartyServiceCost'],
-        ['', '社保', 'socialInsurance'],
-        ['', '税', 'taxCost'],
-        ['', '附加成本汇总', 'additionalCost'],
-        ['', '外卖运营增单', 'operationBoostCost'],
-        ['', '水电电话网物料费', 'utilityCost'],
-        ['', '差旅招待', 'travelCost'],
-        ['', '其他成本', 'otherMiscCost'],
-        ['', '其他成本汇总', 'otherCost'],
+        // 体量
+        ['原价交易额', '加盟原价交易额', 'franchiseGMV', false],
+        ['原价交易额', '自配原价交易额', 'selfGMV', false],
+        ['原价交易额', '原价交易额汇总', 'gmvAmount', false],
+        ['订单量', '加盟订单量', 'franchiseOrders', false],
+        ['订单量', '自配订单量', 'selfOrders', false],
+        ['订单量', '企客订单量', 'enterpriseOrders', false],
+        ['订单量', '订单量汇总', 'orders', false],
+        // 收入 - 抽佣
+        ['抽佣金额（收入一）', '加盟抽佣金额', 'franchiseCommission', false],
+        ['抽佣金额（收入一）', '自配抽佣金额', 'selfCommission', false],
+        ['抽佣金额（收入一）', '企客商家抽佣金额', 'enterpriseCommission', false],
+        ['抽佣金额（收入一）', '抽佣金额汇总', 'commission', false],
+        // 收入 - 配送费
+        ['配送费（收入二）', '加盟配送费', 'franchiseDeliveryFee', false],
+        ['配送费（收入二）', '二次配送费', 'secondDeliveryFee', false],
+        ['配送费（收入二）', '企客配送费', 'enterpriseDeliveryFee', false],
+        ['配送费（收入二）', '一对一急送配送费', 'urgentDeliveryFee', false],
+        ['配送费（收入二）', '配送费汇总', 'deliveryFee', false],
+        // 收入 - 其他收入（需要累加）
+        ['其他收入', '合作商运营服务费', 'otherRevenue', true],
+        ['其他收入', '拼单宝激励', 'otherRevenue', true],
+        ['其他收入', '神券包激励', 'otherRevenue', true],
+        ['其他收入', '广告收入', 'otherRevenue', true],
+        ['其他收入', '发展计划调账', 'otherRevenue', true],
+        ['其他收入', '竞价返还调账', 'otherRevenue', true],
+        ['其他收入', '跑腿结算调账', 'otherRevenue', true],
+        ['其他收入', '其他收入汇总', 'otherRevenue', false],
+        ['其他收入', '专项补贴', 'specialSubsidy', false],
+        ['其他收入', '众包补贴调账', 'crowdSubsidyAdjust', false],
+        // 支出 - 代补
+        ['代补金额花费', 'B端代补金额', 'subsidyB', false],
+        ['代补金额花费', 'C端代补金额', 'subsidyC', false],
+        ['代补金额花费', '账单-代补差额', 'subsidyDiff', false],
+        ['代补金额花费', '代补金额花费汇总', 'subsidyTotal', false],
+        ['代补金额花费', '拼单补贴', 'pinDanSubsidy', false],
+        ['代补金额花费', '拼好饭补贴', 'pinHaoFanSubsidy', false],
+        ['代补金额花费', '整体代补金额', 'subsidyTotal', false],
+        // 全量 - 平台成本新增
+        ['平台成本', 'ai外呼费用结算', 'platformCommissionCost', false],
+        // 拼好饭 - 业务数据新增
+        ['抽佣比例', '城市单均保底', 'otherRevenue', true],
+        ['抽佣比例', '城市商家单均保底', 'otherRevenue', true],
+        ['抽佣比例', 'KA商家单均保底', 'otherRevenue', true],
+        // 支出 - 平台成本
+        ['平台成本', '平台抽佣金额', 'platformCommissionCost', false],
+        ['平台成本', '合作商售后赔付费用', 'afterSaleCost', false],
+        ['平台成本', '关爱基金', 'careFund', false],
+        ['平台成本', '保险费用', 'insuranceCost', false],
+        ['平台成本', '竞价', 'biddingCost', false],
+        ['平台成本', '罚款', 'penalty', false],
+        ['平台成本', '平台成本汇总', 'platformCost', false],
+        // 支出 - 配送成本
+        ['配送成本', '加盟承接订单量', 'franchiseDeliverOrders', false],
+        ['配送成本', '加盟单均邮资', 'franchiseAvgPostage', false],
+        ['配送成本', '加盟活动花费', 'franchiseActivityCost', false],
+        ['配送成本', '加盟邮资', 'franchiseDelivery', false],
+        ['配送成本', '普众众包订单量', 'crowdOrders', false],
+        ['配送成本', '普众众包基础邮资', 'crowdBasePostage', false],
+        ['配送成本', '普众众包活动花费', 'crowdActivityCost', false],
+        ['配送成本', '普众众包邮资', 'crowdDelivery', false],
+        ['配送成本', '悦跑订单量', 'yuepaoOrders', false],
+        ['配送成本', '悦跑基础邮资', 'yuepaoBasePostage', false],
+        ['配送成本', '悦跑活动花费', 'yuepaoActivityCost', false],
+        ['配送成本', '悦跑邮资', 'yuepaoDelivery', false],
+        ['配送成本', '配送成本汇总', 'deliveryCost', false],
+        ['配送成本', '众包天气补贴', 'weatherSubsidy', false],
+        ['配送成本', '悦跑周激励', 'otherRevenue', true],
+        // 支出 - 固定成本
+        ['固定成本', '办公室房租', 'officeRent', false],
+        ['固定成本', '业务团队', 'teamCost', false],
+        ['固定成本', '固定成本汇总', 'fixedCost', false],
+        // 支出 - 附加成本
+        ['附加成本', '三方服务费', 'thirdPartyServiceCost', false],
+        ['附加成本', '社保', 'socialInsurance', false],
+        ['附加成本', '税', 'taxCost', false],
+        ['附加成本', '附加成本汇总', 'additionalCost', false],
+        // 支出 - 其他成本
+        ['其他成本', '外卖运营增单', 'operationBoostCost', false],
+        ['其他成本', '水电电话网物料费', 'utilityCost', false],
+        ['其他成本', '差旅招待', 'travelCost', false],
+        ['其他成本', '其他成本', 'otherMiscCost', false],
+        ['其他成本', '其他成本汇总', 'otherCost', false],
       ];
 
       const COL2_RULES = { '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense' };
@@ -906,8 +933,21 @@
           if (c3 && c3.includes('财务指标')) break;
           const val = typeof row[colIdx] === 'number' ? row[colIdx] : parseFloat(String(row[colIdx]).replace(/,/g, '')) || 0;
 
-          FIELD_RULES.forEach(([k23, k4, field]) => {
-            if (k4 && c4 === k4 && result[field] === 0 && val !== 0) result[field] = val;
+          // 新的字段映射逻辑：支持 column_name3 + column_name4 匹配
+          FIELD_RULES.forEach(([k3, k4, field, isAccumulate]) => {
+            if ((k3 === '' || c3 === k3) && c4 === k4) {
+              if (isAccumulate) {
+                // 累加字段：累加所有匹配的值
+                if (!isNaN(val) && val !== 0) {
+                  result[field] = (result[field] || 0) + val;
+                }
+              } else {
+                // 非累加字段：只在第一个非零值时赋值
+                if (result[field] === 0 && val !== 0) {
+                  result[field] = val;
+                }
+              }
+            }
           });
           for (const [k2, field] of Object.entries(COL2_RULES)) {
             if (c2 === k2 && result[field] === 0) result[field] = val;
@@ -1464,8 +1504,30 @@
         const existingIndex = fullExistingRecords.findIndex(r => r.date === newRecord.date);
         
         if (existingIndex >= 0) {
+          // 添加版本历史机制：保留历史版本，创建新记录
+          const existingRecord = fullExistingRecords[existingIndex];
+          
+          // 如果存在历史记录，标记为历史版本
+          if (existingRecord) {
+            existingRecord.isHistorical = true;
+            existingRecord.historicalAt = new Date().toISOString();
+            existingRecord.historicalVersion = existingRecord.version || 1;
+          }
+          
+          // 创建新记录，版本号递增
+          newRecord.version = (existingRecord?.version || 1) + 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
+          
+          // 替换旧记录
           fullExistingRecords[existingIndex] = newRecord;
+          
+          console.log('[Upload] 版本控制: date=' + newRecord.date + ', 旧版本=' + (existingRecord?.version || 1) + ', 新版本=' + newRecord.version);
         } else {
+          // 新增记录
+          newRecord.version = 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
           fullExistingRecords.unshift(newRecord);
         }
       });
@@ -1508,8 +1570,24 @@
         const existingIndexIndex = indexRecords.findIndex(r => r.date === newRecord.date);
         
         if (existingIndexIndex >= 0) {
+          // index.json 也添加版本控制
+          const existingRecord = indexRecords[existingIndexIndex];
+          
+          if (existingRecord) {
+            existingRecord.isHistorical = true;
+            existingRecord.historicalAt = new Date().toISOString();
+            existingRecord.historicalVersion = existingRecord.version || 1;
+          }
+          
+          newRecord.version = (existingRecord?.version || 1) + 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
+          
           indexRecords[existingIndexIndex] = newRecord;
         } else {
+          newRecord.version = 1;
+          newRecord.isHistorical = false;
+          newRecord.isLatest = true;
           indexRecords.unshift(newRecord);
         }
       });
