@@ -1751,13 +1751,57 @@
         
         console.log('[App] 云端数据加载成功，共' + cloudData.length + '条记录');
         
-        const allImportHistory = cloudData.map((record, index) => {
+        // 去重逻辑：相同日期只保留最新的（根据 updatedAt 或 version）
+        console.log('[App] 开始去重处理...');
+        const deduplicatedCloudData = [];
+        const dateMap = {}; // date -> {record, updatedAt, version}
+        
+        cloudData.forEach((record, index) => {
+          const recordDate = record.date;
+          const normalizedDate = normalizeDateLabel(recordDate);
+          const updatedAt = record.updatedAt || '';
+          const version = record.version || 1;
+          
+          if (!dateMap[normalizedDate]) {
+            // 第一次见到这个日期，直接添加
+            dateMap[normalizedDate] = {
+              record: record,
+              updatedAt: updatedAt,
+              version: version,
+              index: index
+            };
+            console.log('[App] 添加日期 ' + normalizedDate + ' (记录 ' + index + ')');
+          } else {
+            // 已存在相同日期的记录，比较哪个更新
+            const existing = dateMap[normalizedDate];
+            const isNewer = updatedAt > existing.updatedAt || 
+                           (updatedAt === existing.updatedAt && version > existing.version);
+            
+            if (isNewer) {
+              console.log('[App] 日期 ' + normalizedDate + ': 记录 ' + index + ' 比记录 ' + existing.index + ' 更新，替换');
+              dateMap[normalizedDate] = {
+                record: record,
+                updatedAt: updatedAt,
+                version: version,
+                index: index
+              };
+            } else {
+              console.log('[App] 日期 ' + normalizedDate + ': 记录 ' + index + ' 较旧，跳过');
+            }
+          }
+        });
+        
+        // 从去重后的数据构建 allImportHistory
+        const deduplicatedRecords = Object.values(dateMap).map(item => item.record);
+        console.log('[App] 去重完成，剩余 ' + deduplicatedRecords.length + ' 条记录');
+        
+        const allImportHistory = deduplicatedRecords.map((record, index) => {
           // 兼容两种数据格式：
           // 1. 新格式：record.merchantData（包含 all, ka, city 等商家类型）
           // 2. 旧格式：record.currentData（直接包含 cities 数组）
           let merchantData = record.merchantData || record.currentData?.merchantData;
           
-          // 如果是旧格式（currentData直接包含cities），需要转换为新格式
+          // 如果是旧格式（currentData 直接包含 cities），需要转换为新格式
           if (!merchantData && record.currentData?.cities) {
             console.log('[App] 检测到旧格式数据，进行格式转换...');
             merchantData = {
@@ -1774,7 +1818,7 @@
           
           return {
             monthLabel: normalizedDate || '云端数据',
-            data: merchantData || {},  // 使用merchantData作为data
+            data: merchantData || {},  // 使用 merchantData 作为 data
             importedAt: record.updatedAt || new Date().toISOString(),
             fileName: record.fileName || ''
           };
