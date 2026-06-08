@@ -2192,16 +2192,29 @@
         });
         
         const dataToSave = {
-          version: 2,
+          version: 3,  // 使用 v3 格式，减少存储空间
+          metadata: {
+            lastSyncAt: new Date().toISOString(),
+            cloudVersion: extractVersionFromData(cloudData),
+            availableDates: cloudData.map(r => r.date)
+          },
+          currentData: currentData,
+          cache: {
+            // 只缓存当前选中的数据（约 300KB）
+            [latestRecord.date]: latestMerchantData
+          },
           importHistory: allImportHistory,
           currentImportIndex: 0,
-          currentData: currentData,
-          allMerchantData: latestMerchantData,  // 完整的merchantData
           currentMerchantType: 'all'
+          // 注意：不保存 allMerchantData，从 cache 中动态获取
         };
         
         DataStore.save(dataToSave);
         console.log('[App] 云端数据已保存到本地，共' + allImportHistory.length + '条历史记录');
+        
+        // 初始化应用状态
+        initializeAppState(dataToSave);
+        showToast(`数据加载成功，共${cloudData.length}条记录`, 'success');
         return true;
         
       } catch (e) {
