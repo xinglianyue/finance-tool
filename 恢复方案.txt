@@ -1,0 +1,66 @@
+# 数据恢复完整方案
+
+## 问题现状
+- 本地：8 条历史记录（2026-03-31 到 2026-05-25）✅
+- 线上：1 条记录（2026-05-31），覆盖了历史数据 ❌
+- Git：最新提交只有 8 条历史，没有 5 月 31 日数据 ❌
+
+## 解决方案
+
+### 第一步：获取 5 月 31 日数据
+
+**方法 A：从技术人员获取（推荐）**
+让技术人员发送 5 月 31 日的完整数据文件（shared-data.json 或原始 Excel）
+
+**方法 B：从浏览器缓存获取**
+如果之前访问过页面，浏览器缓存可能有数据
+
+### 第二步：合并数据
+
+运行恢复脚本：
+```bash
+cd c:\Users\xinxi\Desktop\财务工具
+python merge_all_data.py
+```
+
+### 第三步：推送到 GitHub
+
+```bash
+git checkout main
+git add shared-data-merged.json
+git commit -m "恢复完整数据：9 条记录（8 条历史 + 5 月 31 日）"
+git push origin main --force
+```
+
+### 第四步：同步 gh-pages
+
+```bash
+git checkout gh-pages
+git checkout main -- shared-data.json
+git commit -m "同步数据恢复"
+git push origin gh-pages --force
+```
+
+## 验证
+
+访问：https://xinglianyue.github.io/finance-tool/index-new.html
+清除缓存，强制刷新
+
+应该显示 9 条记录
+
+## 未来防护措施
+
+### 脚本层面
+✅ db-sync.py v1.1.1+ 已添加版本历史机制
+✅ 相同日期数据会保留历史版本
+✅ 不同日期数据会自动添加
+
+### 操作层面
+🔒 每次上传前必须检查现有记录数
+🔒 输出必须显示"检测到 X 条现有记录"
+🔒 记录数应该递增，不应该减少
+
+### 验证层面
+✅ 访问页面检查记录数
+✅ 控制台日志确认数据加载
+✅ 版本号确认
