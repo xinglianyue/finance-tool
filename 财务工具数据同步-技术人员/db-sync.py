@@ -376,12 +376,22 @@ def push_to_github(date_str, current_data, merchant_data, current_merchant, toke
         
         if response.status_code == 200:
             try:
-                content = base64.b64decode(response.json()["content"]).decode("utf-8")
-                existing_data = json.loads(content)
+                content_b64 = response.json()["content"]
+                content_str = base64.b64decode(content_b64).decode("utf-8")
+                existing_data = json.loads(content_str)
                 print(f"       检测到 {len(existing_data)} 条现有记录")
-            except:
-                print("       读取现有数据失败，将创建新文件")
+                
+                # 验证数据结构
+                if not isinstance(existing_data, list):
+                    print(f"        错误：现有数据格式不正确（不是列表）")
+                    return False
+                    
+            except Exception as e:
+                print(f"       ❌ 读取现有数据失败：{e}")
+                print(f"       ⚠️ 安全保护：中止同步，避免覆盖数据！")
+                return False
         else:
+            print(f"       GitHub API 返回：{response.status_code}")
             print("       现有数据不存在，将创建新文件")
 
         existing_data = existing_data.copy()
