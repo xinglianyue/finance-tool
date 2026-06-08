@@ -1,50 +1,79 @@
-[
-  {
-    "date": "2026-05-25",
-    "updatedAt": "2026-05-29T12:39:27.782Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260525.xlsx"
-  },
-  {
-    "date": "2026-05-19",
-    "updatedAt": "2026-05-29T12:39:27.741Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260519.xlsx"
-  },
-  {
-    "date": "2026-05-10",
-    "updatedAt": "2026-05-29T12:39:27.697Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260510.xlsx"
-  },
-  {
-    "date": "2026-05-05",
-    "updatedAt": "2026-05-29T12:39:27.655Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260505.xlsx"
-  },
-  {
-    "date": "2026-04-30",
-    "updatedAt": "2026-05-29T12:39:27.615Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260430.xlsx"
-  },
-  {
-    "date": "2026-04-15",
-    "updatedAt": "2026-05-29T12:39:27.540Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260415.xlsx"
-  },
-  {
-    "date": "2026-04-11",
-    "updatedAt": "2026-05-29T12:39:27.487Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260411.xlsx"
-  },
-  {
-    "date": "2026-03-31",
-    "updatedAt": "2026-05-29T12:39:27.420Z",
-    "uploadedBy": "web",
-    "fileName": "外卖账单20260331.xlsx"
-  }
-]
+{
+  "version": "v2",
+  "updatedAt": "2026-06-08T16:54:31.247953",
+  "recordCount": 9,
+  "records": [
+    {
+      "date": "2026-05-31",
+      "fileName": "bill_20260531.json",
+      "uploadedBy": "db-sync",
+      "updatedAt": "2026-06-08T14:49:35.181938Z",
+      "isLatest": true,
+      "version": 2
+    },
+    {
+      "date": "2026-05-25",
+      "fileName": "外卖账单20260525.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.782Z",
+      "isLatest": true,
+      "version": 1
+    },
+    {
+      "date": "2026-05-19",
+      "fileName": "外卖账单20260519.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.741Z",
+      "isLatest": true,
+      "version": 1
+    },
+    {
+      "date": "2026-05-10",
+      "fileName": "外卖账单20260510.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.697Z",
+      "isLatest": true,
+      "version": 1
+    },
+    {
+      "date": "2026-05-05",
+      "fileName": "外卖账单20260505.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.655Z",
+      "isLatest": true,
+      "version": 1
+    },
+    {
+      "date": "2026-04-30",
+      "fileName": "外卖账单20260430.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.615Z",
+      "isLatest": true,
+      "version": 1
+    },
+    {
+      "date": "2026-04-15",
+      "fileName": "外卖账单20260415.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.540Z",
+      "isLatest": true,
+      "version": 1
+    },
+    {
+      "date": "2026-04-11",
+      "fileName": "外卖账单20260411.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.487Z",
+      "isLatest": true,
+      "version": 1
+    },
+    {
+      "date": "2026-03-31",
+      "fileName": "外卖账单20260331.xlsx",
+      "uploadedBy": "web",
+      "updatedAt": "2026-05-29T12:39:27.420Z",
+      "isLatest": true,
+      "version": 1
+    }
+  ]
+}
