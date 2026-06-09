@@ -183,13 +183,27 @@ def format_date(db_date):
 
 
 def query_table(cursor, table_name, date_str):
-    sql = f"""
-        SELECT column_name1, column_name2, column_name3, column_name4,
-               city1, city2, city3, city4, city5, city6, city7, city8, city9, city10, `sum`, type
-        FROM {table_name}
-        WHERE date = %s
-    """
-    cursor.execute(sql, (date_str,))
+    # 判断是月份 (YYYYMM) 还是完整日期 (YYYYMMDD)
+    if len(date_str) == 6:  # 月份格式
+        # 查询该月的所有日期
+        sql = f"""
+            SELECT column_name1, column_name2, column_name3, column_name4,
+                   city1, city2, city3, city4, city5, city6, city7, city8, city9, city10, `sum`, type
+            FROM {table_name}
+            WHERE date LIKE %s
+        """
+        cursor.execute(sql, (date_str + '%',))
+        print(f"       查询条件：date LIKE '{date_str}%' (该月所有日期)")
+    else:  # 完整日期格式
+        sql = f"""
+            SELECT column_name1, column_name2, column_name3, column_name4,
+                   city1, city2, city3, city4, city5, city6, city7, city8, city9, city10, `sum`, type
+            FROM {table_name}
+            WHERE date = %s
+        """
+        cursor.execute(sql, (date_str,))
+        print(f"       查询条件：date = '{date_str}' (特定日期)")
+    
     columns = [desc[0] for desc in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
