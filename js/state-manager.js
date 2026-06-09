@@ -55,6 +55,15 @@ const StateManager = {
       this._state.importHistory = initialData.importHistory || [];
       this._state.currentImportIndex = initialData.currentImportIndex || 0;
       this._state.currentMerchantType = initialData.currentMerchantType || 'all';
+      
+      // 同步到全局变量（兼容性）
+      window.allMerchantData = this._state.allMerchantData;
+      window.currentData = this._state.currentData;
+      window.importHistory = this._state.importHistory;
+      window.currentImportIndex = this._state.currentImportIndex;
+      window.currentMerchantType = this._state.currentMerchantType;
+      
+      console.log('[StateManager] 全局变量已同步，allMerchantData:', !!this._state.allMerchantData);
     }
     
     // 设置默认选中的城市

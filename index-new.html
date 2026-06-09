@@ -1793,6 +1793,8 @@
       window.currentImportIndex = data.currentImportIndex;
       window.currentMerchantType = data.currentMerchantType;
       
+      console.log('[App] 全局变量已设置，allMerchantData:', !!allMerchantData);
+      
       // 初始化状态管理器
       StateManager.init({
         currentData: data.currentData,
@@ -1802,7 +1804,9 @@
         currentMerchantType: data.currentMerchantType
       });
       
-      // 渲染 UI
+      console.log('[App] StateManager 初始化完成，allMerchantData:', !!StateManager.get('allMerchantData'));
+      
+      // 渲染 UI（确保 allMerchantData 已设置）
       renderImportSelector();
       renderOverview();
       renderDimension();
