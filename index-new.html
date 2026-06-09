@@ -2252,6 +2252,12 @@
           }
         });
         
+        // 构建 cache：缓存所有月份的数据（约 300KB × 9 = 2.7MB）
+        const cache = {};
+        cloudData.forEach(record => {
+          cache[record.date] = parseRecord(record);
+        });
+        
         const dataToSave = {
           version: 3,  // 使用 v3 格式，减少存储空间
           metadata: {
@@ -2260,10 +2266,7 @@
             availableDates: cloudData.map(r => r.date)
           },
           currentData: currentData,
-          cache: {
-            // 只缓存当前选中的数据（约 300KB）
-            [latestRecord.date]: latestMerchantData
-          },
+          cache: cache,  // 缓存所有月份的数据
           importHistory: allImportHistory,
           currentImportIndex: 0,
           currentMerchantType: 'all'
