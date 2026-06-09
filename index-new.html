@@ -1068,9 +1068,15 @@
 
     const CONFIG = {
       CITY_DISPLAY_MAP: {
+        // 你负责的 10 个城市 + 总商
         '承德市': '承德', '围场满族蒙古族自治县': '围场', '康保县': '康保', '玉田县': '玉田',
         '安国市': '安国', '安平': '安平', '献县': '献县', '威县': '威县',
-        '晋州': '晋州', '深泽县': '深泽', '总商': '总商'
+        '晋州': '晋州', '深泽县': '深泽',
+        // 其他城市（显示全称）
+        '邯郸': '邯郸', '沧州': '沧州', '唐山': '唐山', '保定': '保定', 
+        '石家庄': '石家庄', '张家口': '张家口', '廊坊': '廊坊', '衡水': '衡水', 
+        '秦皇岛': '秦皇岛',
+        '总商': '总商'
       },
       MODULES: [
         { key: 'all', name: '全品类', searchName: '全品类财务指标' },
@@ -2129,10 +2135,6 @@
             
             // 城市白名单过滤：只保留配置中的城市（支持模糊匹配）
             const originalCityCount = typeData.cities.length;
-            
-            // 调试：打印所有城市名称
-            console.log('[App] 原始城市列表:', typeData.cities.map(c => c.name));
-            
             typeData.cities = typeData.cities.filter(city => {
               if (!city || !city.name) return false;
               if (city.name === '总商') return true; // 总商始终保留
@@ -2150,14 +2152,11 @@
                 }
               }
               
-              // 调试：打印不匹配的城市
-              console.log('[App] 过滤掉的城市:', cityName, '(baseName:', baseName + ')');
               return false;
             });
             const filteredCityCount = typeData.cities.length;
             if (originalCityCount !== filteredCityCount) {
               console.log('[App] 城市白名单过滤：' + typeKey + ' 从 ' + originalCityCount + ' 个城市过滤到 ' + filteredCityCount + ' 个城市');
-              console.log('[App] 保留的城市列表:', typeData.cities.map(c => c.name));
             }
             
             console.log('[App] 商家类型 ' + typeKey + ' 有 ' + typeData.cities.length + ' 个城市');
