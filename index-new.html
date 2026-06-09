@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -1506,7 +1506,45 @@
       if (idx < 0 || idx >= importHistory.length) return;
       
       currentImportIndex = idx;
-      let merchantData = importHistory[idx].data;
+      
+      // v3 格式：优先从 cache 获取数据，如果没有则使用 importHistory 中的元数据
+      const selectedRecord = importHistory[idx];
+      let merchantData = null;
+      
+      // 尝试从 cache 获取
+      if (window.financeToolCache && window.financeToolCache[selectedRecord.monthLabel]) {
+        merchantData = window.financeToolCache[selectedRecord.monthLabel];
+        console.log('[App] switchImportDate: 从 cache 获取 ' + selectedRecord.monthLabel + ' 的数据');
+      } else {
+        // cache 中没有，尝试从 StateManager 获取
+        merchantData = StateManager.get('allMerchantData');
+        console.log('[App] switchImportDate: 从 StateManager 获取数据，merchantData 存在：' + !!merchantData);
+      }
+      
+      // 如果还是没有数据，尝试从全局 cloudData 构建（如果有）
+      if (!merchantData && window.cloudData) {
+        const cloudRecord = window.cloudData.find(r => r.date === selectedRecord.monthLabel);
+        if (cloudRecord) {
+          merchantData = cloudRecord.merchantData || cloudRecord.currentData?.merchantData;
+          // 如果是旧格式，转换为新格式
+          if (!merchantData?.all && cloudRecord.currentData?.cities) {
+            merchantData = {
+              all: {
+                date: cloudRecord.date,
+                cities: cloudRecord.currentData.cities
+              }
+            };
+          }
+          console.log('[App] switchImportDate: 从 cloudData 构建 ' + selectedRecord.monthLabel + ' 的数据');
+        }
+      }
+      
+      // 如果还是没有数据，提示用户重新加载
+      if (!merchantData) {
+        console.error('[App] switchImportDate: 无法获取 ' + selectedRecord.monthLabel + ' 的数据');
+        showToast('该日期数据未缓存，请重新从云端加载', 'warning');
+        return;
+      }
       
       // 检测数据格式，如果是旧格式 { date, cities, fileName }，需要包装成新格式
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
@@ -1521,7 +1559,7 @@
       
       currentMerchantType = 'all';
       
-      // 从merchantData.all.cities中提取总商和城市数据
+      // 从 merchantData.all.cities 中提取总商和城市数据
       const allCitiesData = merchantData.all?.cities || [];
       let totalData = null;
       let citiesData = [];
@@ -1792,6 +1830,7 @@
       window.currentData = data.currentData;
       window.currentImportIndex = data.currentImportIndex;
       window.currentMerchantType = data.currentMerchantType;
+      window.financeToolCache = data.cache || {}; // 保存 cache 到全局变量，供 switchImportDate 使用
       
       // 同时更新外部定义的变量（供内部函数使用）
       allMerchantData = localAllMerchantData;
@@ -2231,6 +2270,9 @@
         
         DataStore.save(dataToSave);
         console.log('[App] 云端数据已保存到本地，共' + allImportHistory.length + '条历史记录');
+        
+        // 保存 cloudData 到全局变量，供 switchImportDate 使用
+        window.cloudData = cloudData;
         
         // 初始化应用状态
         initializeAppState(dataToSave);
