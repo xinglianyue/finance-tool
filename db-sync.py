@@ -297,6 +297,15 @@ def fetch_from_db(db_config, date_str):
 
         current_merchant = "all"
         default_cities = merchant_data.get("all", {}).get("cities", [])
+        
+        # 修复：如果 all 表的城市数据为空，尝试从 city 表补充
+        if not default_cities:
+            city_cities = merchant_data.get("city", {}).get("cities", [])
+            if city_cities:
+                print("       警告：all 表城市数据为空，已从 city 表补充 %d 个城市" % len(city_cities))
+                default_cities = city_cities
+            else:
+                print("       警告：all 表和 city 表城市数据都为空！")
 
         current_data = {
             "date": format_date(date_str),
@@ -362,15 +371,14 @@ def push_to_github(date, current_data, merchant_data, current_merchant, token):
             "cities": val["cities"],
         }
 
-    new_month = format_date(date)[:7]
+    new_date = format_date(date)
     found = False
     for i, rec in enumerate(existing_records):
         rec_date = rec.get("currentData", {}).get("date", "")
-        rec_month = rec_date[:7]
-        if rec_month == new_month:
+        if rec_date == new_date:  # 按日期精确匹配，不是按月份
             existing_records[i] = new_record
             found = True
-            print(f"       已存在 {new_month} 月份数据，已更新为最新")
+            print(f"       已存在 {new_date} 数据，已更新为最新")
             break
 
     if not found:
