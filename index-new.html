@@ -2590,7 +2590,13 @@
         for (let col = 5; col < cityRow.length; col++) {
           const excelName = String(cityRow[col] || '').trim();
           if (!excelName || excelName === '总商') continue;
-          cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] || excelName };
+          
+          // 只保留配置中的城市（白名单过滤）
+          if (CONFIG.CITY_DISPLAY_MAP[excelName]) {
+            cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] };
+          } else {
+            console.log('[parseExcelData] 跳过不在白名单的城市:', excelName);
+          }
         }
 
         let totalCol = -1;
