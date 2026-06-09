@@ -1960,29 +1960,12 @@
         console.log('[App] 去重完成，剩余 ' + deduplicatedRecords.length + ' 条记录');
         
         const allImportHistory = deduplicatedRecords.map((record, index) => {
-          // 兼容两种数据格式：
-          // 1. 新格式：record.merchantData（包含 all, ka, city 等商家类型）
-          // 2. 旧格式：record.currentData（直接包含 cities 数组）
-          let merchantData = record.merchantData || record.currentData?.merchantData;
-          
-          // 如果是旧格式（currentData 直接包含 cities），需要转换为新格式
-          if (!merchantData && record.currentData?.cities) {
-            console.log('[App] 检测到旧格式数据，进行格式转换...');
-            merchantData = {
-              all: {
-                date: record.date,
-                cities: record.currentData.cities
-              }
-            };
-          }
-          
           const normalizedDate = normalizeDateLabel(record.date);
           
-          console.log('[App] 解析记录', index, '原始日期:', record.date, '-> 标准化为:', normalizedDate, 'merchantDataKeys:', Object.keys(merchantData || {}));
-          
+          // v3 格式：importHistory 只保存元数据，不保存完整 data
+          // data 字段只在 cache 中保存最近 3 条记录
           return {
             monthLabel: normalizedDate || '云端数据',
-            data: merchantData || {},  // 使用 merchantData 作为 data
             importedAt: record.updatedAt || new Date().toISOString(),
             fileName: record.fileName || ''
           };
