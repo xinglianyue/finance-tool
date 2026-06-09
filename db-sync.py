@@ -316,10 +316,14 @@ def fetch_from_db(db_config, date_str):
         if not default_cities:
             city_cities = merchant_data.get("city", {}).get("cities", [])
             if city_cities:
-                print("       警告：all 表城市数据为空，已从 city 表补充 %d 个城市" % len(city_cities))
+                print(f"       ⚠️  警告：all 表城市数据为空，已从 city 表补充 {len(city_cities)} 个城市")
                 default_cities = city_cities
             else:
-                print("       警告：all 表和 city 表城市数据都为空！")
+                print("       ⚠️  警告：all 表和 city 表城市数据都为空！")
+                print("       可能原因：")
+                print("       1. 数据库中该日期的城市列 (city1~city10) 为 NULL")
+                print("       2. Excel 上传后解析入库环节有问题")
+                print("       3. 需要检查数据库或重新上传 Excel")
 
         current_data = {
             "date": format_date(date_str),
@@ -327,8 +331,24 @@ def fetch_from_db(db_config, date_str):
             "fileName": f"auto-sync {format_date(date_str)}",
         }
 
-        print(f"[3/4] 数据转换完成：{len(merchant_data)} 个商家类型，"
-              f"全量 {len(default_cities)} 个城市")
+        # 详细输出检测结果
+        print(f"\n[3/4] 数据转换完成：")
+        print(f"       商家类型数量：{len(merchant_data)}")
+        for mtype, mdata in merchant_data.items():
+            city_count = len(mdata.get("cities", []))
+            city_names = [c["name"] for c in mdata.get("cities", [])][:5]
+            if len(mdata.get("cities", [])) > 5:
+                city_names.append("...")
+            print(f"       - {mtype} ({mdata.get("label", "未知")}): {city_count} 个城市")
+            if city_count > 0:
+                print(f"         城市列表：{", ".join(city_names)}")
+        
+        print(f"       最终使用城市数：{len(default_cities)}")
+        if len(default_cities) > 0:
+            city_names = [c["name"] for c in default_cities]
+            print(f"       城市详情：{", ".join(city_names)}")
+        else:
+            print(f"       ⚠️  警告：最终城市数据为空，这将导致前端无法显示城市维度！")
 
         return current_data, merchant_data, current_merchant
 
