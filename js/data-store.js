@@ -3,8 +3,9 @@
  * 负责数据的持久化、验证、迁移和备份恢复
  * 
  * 版本历史：
- * - v1: 初始版本，只保存currentData
- * - v2: 新增importHistory多月份管理
+ * - v1: 初始版本，只保存 currentData
+ * - v2: 新增 importHistory 多月份管理
+ * - v3: 混合存储架构（元数据 + 缓存），减少 localStorage 占用
  */
 
 const DataStore = {
@@ -13,10 +14,13 @@ const DataStore = {
   BACKUP_KEY: 'finance-tool-backup',
   
   // 当前数据版本
-  VERSION: 2,
+  VERSION: 3,
   
   // 最大历史记录数
   MAX_HISTORY: 20,
+  
+  // 最大缓存记录数（LRU 缓存）
+  MAX_CACHE_SIZE: 3,
   
   /**
    * 验证数据结构完整性
@@ -37,36 +41,66 @@ const DataStore = {
       warnings.push('数据无版本号，可能为旧版本数据');
     }
     
-    // 检查必要字段
-    if (!data.importHistory && !data.currentData) {
-      errors.push('数据缺少importHistory或currentData字段');
-    }
-    
-    // 检查importHistory格式
-    if (data.importHistory && Array.isArray(data.importHistory)) {
-      data.importHistory.forEach((record, idx) => {
-        if (!record.monthLabel) {
-          warnings.push(`第${idx + 1}条记录缺少monthLabel`);
+    // v3 格式验证
+    if (data.version === 3) {
+      // v3 需要 metadata 和 currentData
+      if (!data.metadata) {
+        errors.push('v3 数据缺少 metadata 字段');
+      } else {
+        if (!data.metadata.availableDates) {
+          warnings.push('metadata 缺少 availableDates');
         }
-        if (!record.data) {
-          warnings.push(`第${idx + 1}条记录缺少data字段`);
+        if (!data.metadata.cloudVersion) {
+          warnings.push('metadata 缺少 cloudVersion');
         }
-      });
+      }
       
-      // 检查历史记录数量
-      if (data.importHistory.length > this.MAX_HISTORY) {
-        warnings.push(`历史记录数量(${data.importHistory.length})超过限制(${this.MAX_HISTORY})`);
+      if (!data.currentData) {
+        errors.push('v3 数据缺少 currentData 字段');
+      }
+      
+      // cache 是可选的
+      if (data.cache && typeof data.cache !== 'object') {
+        errors.push('cache 格式不正确');
       }
     }
-    
-    // 检查currentData格式
-    if (data.currentData) {
-      if (!data.currentData.totals) {
-        warnings.push('currentData缺少totals字段');
+    // v2 格式验证
+    else if (data.version === 2) {
+      // 检查必要字段
+      if (!data.importHistory && !data.currentData) {
+        errors.push('数据缺少 importHistory 或 currentData 字段');
       }
-      if (!data.currentData.cities) {
-        warnings.push('currentData缺少cities字段');
+      
+      // 检查 importHistory 格式
+      if (data.importHistory && Array.isArray(data.importHistory)) {
+        data.importHistory.forEach((record, idx) => {
+          if (!record.monthLabel) {
+            warnings.push(`第${idx + 1}条记录缺少 monthLabel`);
+          }
+          if (!record.data) {
+            warnings.push(`第${idx + 1}条记录缺少 data 字段`);
+          }
+        });
+        
+        // 检查历史记录数量
+        if (data.importHistory.length > this.MAX_HISTORY) {
+          warnings.push(`历史记录数量 (${data.importHistory.length}) 超过限制 (${this.MAX_HISTORY})`);
+        }
       }
+      
+      // 检查 currentData 格式
+      if (data.currentData) {
+        if (!data.currentData.totals) {
+          warnings.push('currentData 缺少 totals 字段');
+        }
+        if (!data.currentData.cities) {
+          warnings.push('currentData 缺少 cities 字段');
+        }
+      }
+    }
+    // v1 格式验证
+    else if (!data.version && data.currentData) {
+      warnings.push('检测到 v1 格式数据');
     }
     
     return {
@@ -84,25 +118,70 @@ const DataStore = {
   migrate(data) {
     if (!data) return null;
     
-    // 如果是v1格式（旧版本只有currentData）
+    // v1 → v3 迁移
     if (!data.version && data.currentData && !data.importHistory) {
-      console.log('[DataStore] 检测到v1格式数据，开始迁移...');
+      console.log('[DataStore] 检测到 v1 格式数据，迁移到 v3...');
       return {
-        version: this.VERSION,
-        importHistory: [{
-          monthLabel: data.monthLabel || '未标注日期',
-          data: data.allMerchantData || {},
-          importedAt: data.importedAt || new Date().toISOString()
-        }],
-        currentImportIndex: 0,
+        version: 3,
+        metadata: {
+          lastSyncAt: new Date().toISOString(),
+          cloudVersion: 'v1',
+          availableDates: [data.monthLabel || '未知日期']
+        },
         currentData: data.currentData,
-        allMerchantData: data.allMerchantData,
+        cache: {
+          [data.monthLabel || '未知日期']: data.allMerchantData || {}
+        },
+        currentImportIndex: 0,
         currentMerchantType: data.currentMerchantType || 'all',
+        migratedFrom: 'v1'
+      };
+    }
+    
+    // v2 → v3 迁移
+    if (data.version === 2) {
+      console.log('[DataStore] 检测到 v2 格式数据，迁移到 v3...');
+      
+      // 从 importHistory 中提取日期列表
+      const availableDates = (data.importHistory || []).map(r => r.monthLabel);
+      
+      // 构建缓存（当前选中的记录）
+      const currentRecord = data.importHistory?.[data.currentImportIndex] || data.importHistory?.[0];
+      const cache = {};
+      if (currentRecord) {
+        cache[currentRecord.monthLabel] = currentRecord.data;
+      }
+      
+      // 提取云端版本号
+      let cloudVersion = 'v2';
+      if (data.importHistory && data.importHistory.length > 0) {
+        const firstRecord = data.importHistory[0];
+        if (firstRecord.fileName) {
+          // 从文件名提取日期作为版本号
+          const dateMatch = firstRecord.fileName.match(/(\d{8})/);
+          if (dateMatch) {
+            cloudVersion = dateMatch[1];
+          }
+        }
+      }
+      
+      return {
+        version: 3,
+        metadata: {
+          lastSyncAt: data.savedAt || new Date().toISOString(),
+          cloudVersion: cloudVersion,
+          availableDates: availableDates
+        },
+        currentData: data.currentData,
+        cache: cache,
+        currentImportIndex: data.currentImportIndex || 0,
+        currentMerchantType: data.currentMerchantType || 'all',
+        migratedFrom: 'v2',
         migratedAt: new Date().toISOString()
       };
     }
     
-    // 如果是v2格式但版本号不对
+    // v3 格式但版本号不对
     if (data.version && data.version < this.VERSION) {
       console.log(`[DataStore] 数据版本${data.version}低于当前版本${this.VERSION}，无需迁移`);
     }
@@ -397,6 +476,88 @@ const DataStore = {
       backupCount: backups.length,
       lastBackup: backups[0]?.timestamp || null
     };
+  },
+  
+  /**
+   * 从缓存获取指定日期的数据
+   * @param {string} date - 日期（YYYY-MM-DD）
+   * @returns {Object|null} - 缓存的数据或 null
+   */
+  getCache(date) {
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (!saved) return null;
+      
+      const data = JSON.parse(saved);
+      return data.cache?.[date] || null;
+    } catch (e) {
+      console.error('[DataStore] 获取缓存失败:', e);
+      return null;
+    }
+  },
+  
+  /**
+   * 将数据添加到缓存（LRU 策略）
+   * @param {string} date - 日期（YYYY-MM-DD）
+   * @param {Object} merchantData - 商家数据
+   */
+  setCache(date, merchantData) {
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (!saved) return;
+      
+      const data = JSON.parse(saved);
+      
+      // 确保是 v3 格式
+      if (data.version !== 3) {
+        console.warn('[DataStore] 当前数据不是 v3 格式，无法更新缓存');
+        return;
+      }
+      
+      // 初始化 cache
+      if (!data.cache) {
+        data.cache = {};
+      }
+      
+      // 如果缓存已满，删除最久未使用的（第一个）
+      const cacheKeys = Object.keys(data.cache);
+      if (cacheKeys.length >= this.MAX_CACHE_SIZE && !data.cache[date]) {
+        const oldestKey = cacheKeys[0];
+        delete data.cache[oldestKey];
+        console.log(`[DataStore] 缓存已满，删除最旧缓存：${oldestKey}`);
+      }
+      
+      // 添加到缓存
+      data.cache[date] = merchantData;
+      data.metadata.lastSyncAt = new Date().toISOString();
+      
+      // 保存
+      const jsonStr = JSON.stringify(data);
+      localStorage.setItem(this.STORAGE_KEY, jsonStr);
+      console.log(`[DataStore] 缓存已更新：${date}，缓存大小：${Object.keys(data.cache).length}/${this.MAX_CACHE_SIZE}`);
+      
+    } catch (e) {
+      console.error('[DataStore] 更新缓存失败:', e);
+    }
+  },
+  
+  /**
+   * 清空缓存
+   */
+  clearCache() {
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (!saved) return;
+      
+      const data = JSON.parse(saved);
+      if (data.version === 3) {
+        data.cache = {};
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+        console.log('[DataStore] 缓存已清空');
+      }
+    } catch (e) {
+      console.error('[DataStore] 清空缓存失败:', e);
+    }
   }
 };
 

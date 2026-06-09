@@ -1662,6 +1662,159 @@
       return date;
     }
 
+    /**
+     * 从云端记录解析出 merchantData
+     * @param {Object} record - 云端记录
+     * @returns {Object} - 商家数据
+     */
+    function parseRecord(record) {
+      let merchantData = record.merchantData || record.currentData?.merchantData;
+      
+      // 兼容旧格式
+      if (!merchantData && record.currentData?.cities) {
+        merchantData = {
+          all: {
+            date: record.date,
+            cities: record.currentData.cities
+          }
+        };
+      }
+      
+      // 深拷贝，避免修改原始数据
+      merchantData = JSON.parse(JSON.stringify(merchantData));
+      
+      // 计算毛利（信任原始数据，只在缺失时计算）
+      calculateProfit(merchantData);
+      
+      return merchantData;
+    }
+    
+    /**
+     * 从云端数据中提取版本号
+     * @param {Array} cloudData - 云端数据数组
+     * @returns {string} - 版本号
+     */
+    function extractVersionFromData(cloudData) {
+      const latest = cloudData.find(r => r.isLatest === true) || cloudData[0];
+      return latest.version ? `v${latest.version}` : latest.date.replace(/-/g, '');
+    }
+    
+    /**
+     * 构建 v3 格式的数据
+     * @param {Array} cloudData - 云端完整数据
+     * @returns {Object} - v3 格式的数据
+     */
+    function buildV3Data(cloudData) {
+      // 提取元数据
+      const metadata = {
+        lastSyncAt: new Date().toISOString(),
+        cloudVersion: extractVersionFromData(cloudData),
+        availableDates: cloudData.map(r => r.date)
+      };
+      
+      // 构建当前数据（最新的一条）
+      const latestRecord = cloudData[0];
+      const currentData = parseRecord(latestRecord);
+      
+      // 从 currentData 中提取 totals 和 cities
+      const allCitiesData = currentData.all?.cities || [];
+      let totalData = null;
+      let citiesData = [];
+      
+      allCitiesData.forEach(city => {
+        if (city.name === '总商') {
+          totalData = city;
+        } else {
+          citiesData.push(city);
+        }
+      });
+      
+      const formattedCurrentData = {
+        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
+        cities: citiesData
+      };
+      
+      // 构建缓存（最近 3 条）
+      const cache = {};
+      cloudData.slice(0, 3).forEach(record => {
+        cache[record.date] = parseRecord(record);
+      });
+      
+      // 构建导入历史（用于日期选择器）
+      const importHistory = cloudData.map(record => ({
+        monthLabel: record.date,
+        data: null, // 不保存完整数据，从 cache 读取
+        importedAt: record.updatedAt || new Date().toISOString(),
+        fileName: record.fileName || ''
+      }));
+      
+      return {
+        version: 3,
+        metadata,
+        currentData: formattedCurrentData,
+        cache,
+        importHistory,
+        currentImportIndex: 0,
+        currentMerchantType: 'all'
+      };
+    }
+    
+    /**
+     * 初始化应用状态
+     * @param {Object} data - v3 格式的数据
+     */
+    function initializeAppState(data) {
+      // 从 cache 或 importHistory 构建 allMerchantData
+      const currentRecord = data.importHistory[data.currentImportIndex];
+      let allMerchantData = data.cache?.[currentRecord.monthLabel];
+      
+      // 如果 cache 中没有，从 importHistory 读取（兼容旧数据）
+      if (!allMerchantData && currentRecord.data) {
+        allMerchantData = currentRecord.data;
+      }
+      
+      // 如果还是没有，使用当前数据反向构建
+      if (!allMerchantData) {
+        console.warn('[App] 无法从 cache 或 importHistory 获取数据，使用当前数据');
+        allMerchantData = {
+          all: {
+            cities: [
+              { name: '总商', displayName: '总商', modules: { all: data.currentData.totals } },
+              ...data.currentData.cities.map(c => ({ name: c.displayName, displayName: c.displayName, modules: { all: c.modules?.all || {} } }))
+            ]
+          }
+        };
+      }
+      
+      // 更新全局变量
+      window.allMerchantData = allMerchantData;
+      window.importHistory = data.importHistory;
+      window.currentData = data.currentData;
+      window.currentImportIndex = data.currentImportIndex;
+      window.currentMerchantType = data.currentMerchantType;
+      
+      // 初始化状态管理器
+      StateManager.init({
+        currentData: data.currentData,
+        allMerchantData: allMerchantData,
+        importHistory: data.importHistory,
+        currentImportIndex: data.currentImportIndex,
+        currentMerchantType: data.currentMerchantType
+      });
+      
+      // 渲染 UI
+      renderImportSelector();
+      renderOverview();
+      renderDimension();
+      renderTrend();
+      
+      console.log('[App] 应用状态初始化完成', {
+        hasData: !!allMerchantData,
+        historyCount: data.importHistory.length,
+        cacheSize: Object.keys(data.cache || {}).length
+      });
+    }
+
     async function loadFromCloud() {
       try {
         console.log('[App] 正在从云端加载数据...');
@@ -2039,16 +2192,29 @@
         });
         
         const dataToSave = {
-          version: 2,
+          version: 3,  // 使用 v3 格式，减少存储空间
+          metadata: {
+            lastSyncAt: new Date().toISOString(),
+            cloudVersion: extractVersionFromData(cloudData),
+            availableDates: cloudData.map(r => r.date)
+          },
+          currentData: currentData,
+          cache: {
+            // 只缓存当前选中的数据（约 300KB）
+            [latestRecord.date]: latestMerchantData
+          },
           importHistory: allImportHistory,
           currentImportIndex: 0,
-          currentData: currentData,
-          allMerchantData: latestMerchantData,  // 完整的merchantData
           currentMerchantType: 'all'
+          // 注意：不保存 allMerchantData，从 cache 中动态获取
         };
         
         DataStore.save(dataToSave);
         console.log('[App] 云端数据已保存到本地，共' + allImportHistory.length + '条历史记录');
+        
+        // 初始化应用状态
+        initializeAppState(dataToSave);
+        showToast(`数据加载成功，共${cloudData.length}条记录`, 'success');
         return true;
         
       } catch (e) {

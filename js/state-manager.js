@@ -29,14 +29,29 @@ const StateManager = {
   
   /**
    * 初始化状态
-   * @param {Object} initialData - 初始数据（从DataStore加载）
+   * @param {Object} initialData - 初始数据（从 DataStore 加载）
    */
   init(initialData) {
     console.log('[StateManager] 初始化状态...');
     
     if (initialData) {
       this._state.currentData = initialData.currentData || null;
-      this._state.allMerchantData = initialData.allMerchantData || null;
+      
+      // 支持 v3 格式：从 cache 中提取 allMerchantData
+      if (initialData.version === 3) {
+        const currentRecord = initialData.importHistory?.[initialData.currentImportIndex];
+        if (currentRecord && initialData.cache?.[currentRecord.monthLabel]) {
+          this._state.allMerchantData = initialData.cache[currentRecord.monthLabel];
+          console.log('[StateManager] 从 cache 加载 allMerchantData:', currentRecord.monthLabel);
+        } else {
+          console.warn('[StateManager] cache 中无数据，使用空对象');
+          this._state.allMerchantData = {};
+        }
+      } else {
+        // v2 格式：直接使用 allMerchantData
+        this._state.allMerchantData = initialData.allMerchantData || null;
+      }
+      
       this._state.importHistory = initialData.importHistory || [];
       this._state.currentImportIndex = initialData.currentImportIndex || 0;
       this._state.currentMerchantType = initialData.currentMerchantType || 'all';
