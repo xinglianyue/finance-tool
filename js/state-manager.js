@@ -131,10 +131,18 @@ const StateManager = {
    * @returns {Object} - 需要持久化的数据
    */
   getDataToSave() {
+    // v3 格式：importHistory 只保存元数据，不保存完整 data
+    // data 字段只在 cache 中保存
+    const importHistoryMeta = this._state.importHistory.map(record => ({
+      monthLabel: record.monthLabel,
+      importedAt: record.importedAt,
+      fileName: record.fileName
+    }));
+    
     return {
       currentData: this._state.currentData,
       allMerchantData: this._state.allMerchantData,
-      importHistory: this._state.importHistory,
+      importHistory: importHistoryMeta,
       currentImportIndex: this._state.currentImportIndex,
       currentMerchantType: this._state.currentMerchantType
     };
