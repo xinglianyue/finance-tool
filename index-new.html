@@ -2129,6 +2129,10 @@
             
             // 城市白名单过滤：只保留配置中的城市（支持模糊匹配）
             const originalCityCount = typeData.cities.length;
+            
+            // 调试：打印所有城市名称
+            console.log('[App] 原始城市列表:', typeData.cities.map(c => c.name));
+            
             typeData.cities = typeData.cities.filter(city => {
               if (!city || !city.name) return false;
               if (city.name === '总商') return true; // 总商始终保留
@@ -2146,11 +2150,14 @@
                 }
               }
               
+              // 调试：打印不匹配的城市
+              console.log('[App] 过滤掉的城市:', cityName, '(baseName:', baseName + ')');
               return false;
             });
             const filteredCityCount = typeData.cities.length;
             if (originalCityCount !== filteredCityCount) {
               console.log('[App] 城市白名单过滤：' + typeKey + ' 从 ' + originalCityCount + ' 个城市过滤到 ' + filteredCityCount + ' 个城市');
+              console.log('[App] 保留的城市列表:', typeData.cities.map(c => c.name));
             }
             
             console.log('[App] 商家类型 ' + typeKey + ' 有 ' + typeData.cities.length + ' 个城市');
