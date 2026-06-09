@@ -1766,17 +1766,17 @@
     function initializeAppState(data) {
       // 从 cache 或 importHistory 构建 allMerchantData
       const currentRecord = data.importHistory[data.currentImportIndex];
-      let allMerchantData = data.cache?.[currentRecord.monthLabel];
+      let localAllMerchantData = data.cache?.[currentRecord.monthLabel];
       
       // 如果 cache 中没有，从 importHistory 读取（兼容旧数据）
-      if (!allMerchantData && currentRecord.data) {
-        allMerchantData = currentRecord.data;
+      if (!localAllMerchantData && currentRecord.data) {
+        localAllMerchantData = currentRecord.data;
       }
       
       // 如果还是没有，使用当前数据反向构建
-      if (!allMerchantData) {
+      if (!localAllMerchantData) {
         console.warn('[App] 无法从 cache 或 importHistory 获取数据，使用当前数据');
-        allMerchantData = {
+        localAllMerchantData = {
           all: {
             cities: [
               { name: '总商', displayName: '总商', modules: { all: data.currentData.totals } },
@@ -1786,19 +1786,26 @@
         };
       }
       
-      // 更新全局变量
-      window.allMerchantData = allMerchantData;
+      // 更新全局变量和局部变量（使用不同的变量名避免混淆）
+      window.allMerchantData = localAllMerchantData;
       window.importHistory = data.importHistory;
       window.currentData = data.currentData;
       window.currentImportIndex = data.currentImportIndex;
       window.currentMerchantType = data.currentMerchantType;
       
-      console.log('[App] 全局变量已设置，allMerchantData:', !!allMerchantData);
+      // 同时更新外部定义的变量（供内部函数使用）
+      allMerchantData = localAllMerchantData;
+      importHistory = data.importHistory;
+      currentData = data.currentData;
+      currentImportIndex = data.currentImportIndex;
+      currentMerchantType = data.currentMerchantType;
+      
+      console.log('[App] 全局变量和局部变量已设置，allMerchantData:', !!allMerchantData);
       
       // 初始化状态管理器
       StateManager.init({
         currentData: data.currentData,
-        allMerchantData: allMerchantData,
+        allMerchantData: localAllMerchantData,
         importHistory: data.importHistory,
         currentImportIndex: data.currentImportIndex,
         currentMerchantType: data.currentMerchantType
