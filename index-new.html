@@ -2088,12 +2088,26 @@
               return;
             }
             
-            // 城市白名单过滤：只保留配置中的城市
+            // 城市白名单过滤：只保留配置中的城市（支持模糊匹配）
             const originalCityCount = typeData.cities.length;
             typeData.cities = typeData.cities.filter(city => {
               if (!city || !city.name) return false;
               if (city.name === '总商') return true; // 总商始终保留
-              return CONFIG.CITY_DISPLAY_MAP[city.name]; // 只在白名单中的城市保留
+              
+              const cityName = city.name;
+              // 精确匹配
+              if (CONFIG.CITY_DISPLAY_MAP[cityName]) return true;
+              
+              // 模糊匹配：去掉"市"、"县"等后缀再匹配
+              const baseName = cityName.replace(/[市县旗区]$/, '');
+              for (const configuredName of Object.keys(CONFIG.CITY_DISPLAY_MAP)) {
+                const configuredBase = configuredName.replace(/[市县旗区]$/, '');
+                if (baseName === configuredBase) {
+                  return true;
+                }
+              }
+              
+              return false;
             });
             const filteredCityCount = typeData.cities.length;
             if (originalCityCount !== filteredCityCount) {
@@ -2603,9 +2617,29 @@
           const excelName = String(cityRow[col] || '').trim();
           if (!excelName || excelName === '总商') continue;
           
-          // 只保留配置中的城市（白名单过滤）
+          // 只保留配置中的城市（白名单过滤，支持模糊匹配）
+          let matched = false;
+          let displayName = excelName;
+          
+          // 精确匹配
           if (CONFIG.CITY_DISPLAY_MAP[excelName]) {
-            cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] };
+            matched = true;
+            displayName = CONFIG.CITY_DISPLAY_MAP[excelName];
+          } else {
+            // 模糊匹配：去掉"市"、"县"等后缀再匹配
+            const baseName = excelName.replace(/[市县旗区]$/, '');
+            for (const [configuredName, configuredDisplay] of Object.entries(CONFIG.CITY_DISPLAY_MAP)) {
+              const configuredBase = configuredName.replace(/[市县旗区]$/, '');
+              if (baseName === configuredBase) {
+                matched = true;
+                displayName = configuredDisplay;
+                break;
+              }
+            }
+          }
+          
+          if (matched) {
+            cityMap[col] = { excelName, displayName };
           } else {
             console.log('[parseExcelData] 跳过不在白名单的城市:', excelName);
           }
