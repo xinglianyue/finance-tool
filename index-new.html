@@ -2084,8 +2084,20 @@
             console.log('[App] 商家类型 ' + typeKey + ' 的数据结构:', Object.keys(typeData));
             
             if (!typeData.cities || !Array.isArray(typeData.cities)) {
-              console.log('[App] 商家类型 ' + typeKey + ' 没有有效的cities数组，跳过');
+              console.log('[App] 商家类型 ' + typeKey + ' 没有有效的 cities 数组，跳过');
               return;
+            }
+            
+            // 城市白名单过滤：只保留配置中的城市
+            const originalCityCount = typeData.cities.length;
+            typeData.cities = typeData.cities.filter(city => {
+              if (!city || !city.name) return false;
+              if (city.name === '总商') return true; // 总商始终保留
+              return CONFIG.CITY_DISPLAY_MAP[city.name]; // 只在白名单中的城市保留
+            });
+            const filteredCityCount = typeData.cities.length;
+            if (originalCityCount !== filteredCityCount) {
+              console.log('[App] 城市白名单过滤：' + typeKey + ' 从 ' + originalCityCount + ' 个城市过滤到 ' + filteredCityCount + ' 个城市');
             }
             
             console.log('[App] 商家类型 ' + typeKey + ' 有 ' + typeData.cities.length + ' 个城市');
