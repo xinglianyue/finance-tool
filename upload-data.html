@@ -1608,11 +1608,17 @@
               indexRecords = [];
             }
           } catch (e) {
+            console.error('[Upload] index.json解析失败:', e);
             indexRecords = [];
           }
         }
       } catch (e) {
         console.log('[Upload] 无法读取现有索引数据，可能是首次上传');
+      }
+
+      // 安全检查：index.json记录数应与shared-data.json一致
+      if (indexRecords.length > 0 && fullExistingRecords.length > 0 && indexRecords.length < fullExistingRecords.length) {
+        console.warn('[Upload] 警告：index.json记录数(' + indexRecords.length + ')少于shared-data.json记录数(' + fullExistingRecords.length + ')，可能存在数据丢失风险');
       }
 
       const newIndexRecords = recordsToAdd.map(r => ({
@@ -1809,7 +1815,7 @@
           const githubData = await resp.json();
           indexSha = githubData.sha;
           try {
-            const decoded = JSON.parse(atob(githubData.content));
+            const decoded = JSON.parse(decodeURIComponent(escape(atob(githubData.content.replace(/\n/g, '')))));
             if (Array.isArray(decoded)) {
               indexRecords = decoded;
             } else if (decoded && Array.isArray(decoded.records)) {
@@ -1818,11 +1824,17 @@
               indexRecords = [];
             }
           } catch (e) {
+            console.error('[Upload] index.json解析失败:', e);
             indexRecords = [];
           }
         }
       } catch (e) {
         console.log('[Upload] 无法读取现有索引数据，可能是首次上传');
+      }
+
+      // 安全检查：index.json记录数应与shared-data.json一致
+      if (indexRecords.length > 0 && fullExistingRecords.length > 0 && indexRecords.length < fullExistingRecords.length) {
+        console.warn('[Upload] 警告：index.json记录数(' + indexRecords.length + ')少于shared-data.json记录数(' + fullExistingRecords.length + ')，可能存在数据丢失风险');
       }
 
       const newIndexRecord = {
