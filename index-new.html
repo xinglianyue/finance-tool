@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260617.2"></script>
-    <script src="js/chart.umd.min.js?v=20260617.2"></script>
-    <script src="js/data-store.js?v=20260617.2"></script>
-    <script src="js/state-manager.js?v=20260617.2"></script>
+  <script src="js/xlsx.full.min.js?v=20260617.3"></script>
+    <script src="js/chart.umd.min.js?v=20260617.3"></script>
+    <script src="js/data-store.js?v=20260617.3"></script>
+    <script src="js/state-manager.js?v=20260617.3"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -879,7 +879,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-17.2</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-17.3</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
       </div>
@@ -1875,9 +1875,9 @@
      * @param {Object} data - v3 格式的数据
      */
     function initializeAppState(data) {
-      // 从 cache 或 importHistory 构建 allMerchantData
+      // 从 window.financeToolCache（内存）或 data.cache 获取 allMerchantData
       const currentRecord = data.importHistory[data.currentImportIndex];
-      let localAllMerchantData = data.cache?.[currentRecord.monthLabel];
+      let localAllMerchantData = window.financeToolCache?.[currentRecord.monthLabel] || data.cache?.[currentRecord.monthLabel];
       
       // 如果 cache 中没有，从 importHistory 读取（兼容旧数据）
       if (!localAllMerchantData && currentRecord.data) {
@@ -1903,7 +1903,10 @@
       window.currentData = data.currentData;
       window.currentImportIndex = data.currentImportIndex;
       window.currentMerchantType = data.currentMerchantType;
-      window.financeToolCache = data.cache || {}; // 保存 cache 到全局变量，供 switchImportDate 使用
+      // 不覆盖已有的内存缓存（window.financeToolCache 在云端加载时已设置）
+      if (!window.financeToolCache || Object.keys(window.financeToolCache).length === 0) {
+        window.financeToolCache = data.cache || {};
+      }
       
       // 同时更新外部定义的变量（供内部函数使用）
       allMerchantData = localAllMerchantData;
