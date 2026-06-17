@@ -1484,20 +1484,26 @@
               console.log('[Upload] 从Contents API content读取现有数据');
             }
             // 方案B：通过GitHub Blob API读取（绕过1MB限制和CORS）
+            // Contents API返回git_url字段，指向blob端点
             if (!Array.isArray(fullExistingRecords) || fullExistingRecords.length === 0) {
-              if (githubData.git_blob_url) {
+              const blobUrl = githubData.git_url || githubData.git_blob_url;
+              if (blobUrl) {
                 try {
-                  const blobResp = await fetch(githubData.git_blob_url, { headers: headers });
+                  const blobResp = await fetch(blobUrl, { headers: headers });
                   if (blobResp.ok) {
                     const blobData = await blobResp.json();
                     if (blobData.content) {
                       fullExistingRecords = JSON.parse(decodeURIComponent(escape(atob(blobData.content.replace(/\n/g, '')))));
                       console.log('[Upload] 从Blob API读取现有数据，记录数:', Array.isArray(fullExistingRecords) ? fullExistingRecords.length : 0);
                     }
+                  } else {
+                    console.warn('[Upload] Blob API响应失败:', blobResp.status);
                   }
                 } catch (blobErr) {
                   console.warn('[Upload] Blob API读取失败:', blobErr.message);
                 }
+              } else {
+                console.warn('[Upload] 无git_url字段，无法通过Blob API读取');
               }
             }
             // 方案C：通过download_url读取（可能被CORS拦截）
