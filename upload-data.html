@@ -1558,7 +1558,8 @@
         updatedAt: new Date().toISOString(),
         uploadedBy: 'web',
         fileName: currentFileName,
-        currentData: data
+        currentData: data,
+        merchantData: data.merchantData || data.currentData?.merchantData
       }];
 
       recordsToAdd.forEach(newRecord => {
@@ -1853,7 +1854,8 @@
         updatedAt: new Date().toISOString(),
         uploadedBy: 'web',
         fileName: fileName,
-        currentData: data
+        currentData: data,
+        merchantData: data.merchantData || data.currentData?.merchantData
       };
 
       const existingIndex = fullExistingRecords.findIndex(r => r.date === data.date);
