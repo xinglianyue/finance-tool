@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260617.5"></script>
-    <script src="js/chart.umd.min.js?v=20260617.5"></script>
-    <script src="js/data-store.js?v=20260617.5"></script>
-    <script src="js/state-manager.js?v=20260617.5"></script>
+  <script src="js/xlsx.full.min.js?v=20260617.6"></script>
+    <script src="js/chart.umd.min.js?v=20260617.6"></script>
+    <script src="js/data-store.js?v=20260617.6"></script>
+    <script src="js/state-manager.js?v=20260617.6"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -3934,8 +3934,10 @@
           }) : null;
           
           // 收入型指标（越多越好）vs 成本型指标（越少越好）
-          const revenueMetrics = ['gmvAmount', 'onlineRevenue', 'commission', 'deliveryFee', 'otherRevenue', 'grossProfit', 'franchiseGMV', 'selfGMV', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee'];
+          const revenueMetrics = ['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders'];
+          const costMetrics = ['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost'];
           const isRevenueMetric = revenueMetrics.includes(metric.key);
+          const isCostMetric = costMetrics.includes(metric.key);
           
           // 基于线性回归判断趋势状态
           const getTrendStatus = (trend, rsq) => {
@@ -3945,8 +3947,11 @@
             // 趋势阈值：每数据点变化超过2%视为明显趋势
             const threshold = 2;
             
-            const isGoodTrend = isRevenueMetric ? (trend > threshold) : (trend < -threshold);
-            const isBadTrend = isRevenueMetric ? (trend < -threshold) : (trend > threshold);
+            // 收入型指标：上升=向好，下降=恶化
+            // 成本型指标：下降=向好，上升=恶化
+            // 其他指标（利润率等）：上升=向好，下降=恶化
+            const isGoodTrend = isCostMetric ? (trend < -threshold) : (trend > threshold);
+            const isBadTrend = isCostMetric ? (trend > threshold) : (trend < -threshold);
             
             if (isGoodTrend) return { icon: '📈', text: '向好', color: '#16a34a' };
             if (isBadTrend) return { icon: '📉', text: '恶化', color: '#dc2626' };
