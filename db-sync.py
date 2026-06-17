@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-财务工具 - MySQL 数据库同步脚本 (稳定版)
+财务工具 - MySQL 数据库同步脚本 (v1.0.3 修复版)
 =========================================
-版本: 1.0.0
-最后更新: 2026-06-01
-状态: 稳定版（锁定）
+版本: 1.0.3
+最后更新: 2026-06-13
+状态: 修复版 - 大文件本地备份 + 总商汇总 + 防覆盖保护
 
 功能：从运营中心 MySQL 数据库导出账单数据，转换为前端 JSON 格式，推送到 GitHub。
 
@@ -29,6 +29,7 @@ import requests
 import base64
 import sys
 import os
+import subprocess
 from datetime import datetime
 
 # ============================================================
@@ -187,42 +188,93 @@ def query_table(cursor, table_name, date_str):
     if len(date_str) == 6:  # 月份格式
         # 查询该月的所有日期
         sql = f"""
-            SELECT column_name1, column_name2, column_name3, column_name4,
-                   city1, city2, city3, city4, city5, city6, city7, city8, city9, city10, `sum`, type
-            FROM {table_name}
+            SELECT * FROM {table_name}
             WHERE date LIKE %s
         """
         cursor.execute(sql, (date_str + '%',))
         print(f"       查询条件：date LIKE '{date_str}%' (该月所有日期)")
     else:  # 完整日期格式
         sql = f"""
-            SELECT column_name1, column_name2, column_name3, column_name4,
-                   city1, city2, city3, city4, city5, city6, city7, city8, city9, city10, `sum`, type
-            FROM {table_name}
+            SELECT * FROM {table_name}
             WHERE date = %s
         """
         cursor.execute(sql, (date_str,))
         print(f"       查询条件：date = '{date_str}' (特定日期)")
     
     columns = [desc[0] for desc in cursor.description]
-    return [dict(zip(columns, row)) for row in cursor.fetchall()]
+    print(f"       字段列表：{', '.join(columns)}")
+    
+    # 打印第一行数据的关键字段
+    rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    if rows:
+        first = rows[0]
+        # 动态查找 column_name3 和 column_name4 字段
+        cn3_value = "N/A"
+        cn4_value = "N/A"
+        type_value = first.get("type", "N/A")
+        
+        # 尝试多种可能的字段名
+        for key in ["column_name3", "column3", "column_3", "name3"]:
+            if key in first:
+                cn3_value = first[key]
+                break
+        
+        for key in ["column_name4", "column4", "column_4", "name4"]:
+            if key in first:
+                cn4_value = first[key]
+                break
+        
+        print(f"       示例数据：column_name3='{cn3_value}', column_name4='{cn4_value}', type='{type_value}'")
+        print(f"       第一行所有字段值：{json.dumps(first, ensure_ascii=False, indent=2)}")
+    return rows
 
 
 def rows_to_cities(rows, merchant_type="all", merchant_label="全量商家"):
     city_columns = [f"city{i}" for i in range(1, 11)]
     cities_data = {}
+    match_count = 0
+    skip_count = 0
 
     for row in rows:
-        cn3 = row.get("column_name3", "").strip()
-        cn4 = row.get("column_name4", "").strip()
+        # 动态查找 column_name3 和 column_name4 字段
+        cn3 = ""
+        cn4 = ""
+        for key in ["column_name3", "column3", "column_3", "name3"]:
+            if key in row:
+                cn3 = str(row[key] or "").strip()
+                break
+        
+        for key in ["column_name4", "column4", "column_4", "name4"]:
+            if key in row:
+                cn4 = str(row[key] or "").strip()
+                break
+        
         db_type = (row.get("type") or "").strip()
 
         field_key = (cn3, cn4)
         field_name = FIELD_MAP.get(field_key)
         if not field_name:
+            skip_count += 1
+            if skip_count <= 5:  # 只打印前 5 个跳过的行
+                print(f"       ⚠️  跳过：cn3='{cn3}', cn4='{cn4}' (FIELD_MAP 中无此组合)")
             continue
-
+        
+        match_count += 1
         module_key = TYPE_MAP.get(db_type, "all")
+
+        # 处理 sum 列作为"总商"数据（如果 sum 不为 null）
+        sum_value = row.get("sum")
+        if sum_value is not None:
+            if "总商" not in cities_data:
+                cities_data["总商"] = {}
+            if module_key not in cities_data["总商"]:
+                cities_data["总商"][module_key] = {}
+            if field_name in ACCUMULATE_FIELDS:
+                cities_data["总商"][module_key][field_name] = (
+                    cities_data["总商"][module_key].get(field_name, 0) + float(str(sum_value).replace(',', ''))
+                )
+            else:
+                cities_data["总商"][module_key][field_name] = float(str(sum_value).replace(',', ''))
 
         for city_col in city_columns:
             value = row.get(city_col)
@@ -281,6 +333,55 @@ def rows_to_cities(rows, merchant_type="all", merchant_label="全量商家"):
         }
         cities.append(city_obj)
 
+    # 如果没有"总商"数据，从各城市汇总生成
+    if "总商" not in cities_data and cities_data:
+        zongshang = {}
+        for city_name, modules in cities_data.items():
+            for mod_key, fields in modules.items():
+                if mod_key not in zongshang:
+                    zongshang[mod_key] = {}
+                for field_name, value in fields.items():
+                    if field_name in ("ue", "subsidyRatio", "profitRate", "avgRevenuePerOrder",
+                                      "avgCostPerOrder", "deliveryCostRate", "fixedCostRate",
+                                      "subsidyRateB", "subsidyRateC", "enterpriseRatio", "selfRatio"):
+                        continue  # 跳过比率字段，后面重新计算
+                    zongshang[mod_key][field_name] = zongshang[mod_key].get(field_name, 0) + value
+
+        # 计算比率字段
+        for mod_key, fields in zongshang.items():
+            o = fields.get("orders", 0)
+            profit = fields.get("profit", 0)
+            gmv = fields.get("gmvAmount", 0)
+            online_rev = fields.get("onlineRevenue", 0)
+            total_exp = fields.get("totalExpense", 0)
+            delivery_cost = fields.get("deliveryCost", 0)
+            fixed_cost = fields.get("fixedCost", 0)
+            subsidy_b = fields.get("subsidyB", 0)
+            subsidy_c = fields.get("subsidyC", 0)
+            subsidy_total = fields.get("subsidyTotal", 0)
+            enterprise = fields.get("enterpriseOrders", 0)
+            self_orders = fields.get("selfOrders", 0)
+
+            fields["ue"] = profit / o if o > 0 else 0
+            fields["subsidyRatio"] = subsidy_total / gmv if gmv > 0 else 0
+            fields["profitRate"] = profit / online_rev if online_rev > 0 else 0
+            fields["avgRevenuePerOrder"] = online_rev / o if o > 0 else 0
+            fields["avgCostPerOrder"] = total_exp / o if o > 0 else 0
+            fields["deliveryCostRate"] = delivery_cost / online_rev if online_rev > 0 else 0
+            fields["fixedCostRate"] = fixed_cost / online_rev if online_rev > 0 else 0
+            fields["subsidyRateB"] = subsidy_b / gmv if gmv > 0 else 0
+            fields["subsidyRateC"] = subsidy_c / gmv if gmv > 0 else 0
+            fields["enterpriseRatio"] = enterprise / o if o > 0 else 0
+            fields["selfRatio"] = self_orders / o if o > 0 else 0
+
+        cities.insert(0, {
+            "name": "总商",
+            "displayName": "总商",
+            "modules": zongshang,
+        })
+        print(f"       已从各城市汇总生成\"总商\"数据")
+
+    print(f"       字段匹配统计：匹配 {match_count} 行，跳过 {skip_count} 行")
     return cities
 
 
@@ -367,23 +468,67 @@ def push_to_github(date, current_data, merchant_data, current_merchant, token):
 
     sha = None
     existing_records = []
+    fetch_failed = False
 
+    # 第一步：从 Contents API 获取 SHA（不获取内容，因为大文件不返回 content）
     try:
         resp = requests.get(GITHUB_API, headers=headers, timeout=30)
         if resp.status_code == 200:
             data = resp.json()
             sha = data.get("sha")
-            try:
-                decoded = json.loads(base64.b64decode(data["content"]).decode("utf-8"))
-                existing_records = decoded if isinstance(decoded, list) else [decoded]
-            except Exception:
-                pass
+            # 检查是否有 content 字段（小文件才有）
+            if data.get("content"):
+                try:
+                    decoded = json.loads(base64.b64decode(data["content"]).decode("utf-8"))
+                    existing_records = decoded if isinstance(decoded, list) else [decoded]
+                    print(f"       从 API 获取到 {len(existing_records)} 条现有记录")
+                except Exception as e:
+                    print(f"       API 内容解析失败: {e}")
         elif resp.status_code == 404:
             print("       shared-data.json 不存在，将创建新文件")
         else:
-            print(f"       警告: 拉取现有数据失败 (HTTP {resp.status_code})，将尝试覆盖")
+            print(f"       警告: API 请求失败 (HTTP {resp.status_code})")
+            fetch_failed = True
     except Exception as e:
-        print(f"       警告: 拉取现有数据失败 ({e})，将尝试覆盖")
+        print(f"       警告: API 请求失败 ({e})")
+        fetch_failed = True
+
+    # 第二步：如果 API 没有返回内容（大文件），用其他方式下载
+    if not existing_records and sha:
+        # 方案A：先尝试 raw URL（速度快，但国内可能无法访问）
+        print(f"       文件较大，尝试下载现有数据...")
+        try:
+            raw_resp = requests.get(GITHUB_RAW_URL, headers=headers, timeout=60)
+            if raw_resp.status_code == 200:
+                existing_records = raw_resp.json()
+                if not isinstance(existing_records, list):
+                    existing_records = [existing_records]
+                print(f"       从 raw URL 获取到 {len(existing_records)} 条现有记录")
+        except Exception:
+            pass
+
+        # 方案B：从本地文件读取（raw URL 失败时）
+        if not existing_records:
+            local_file = os.path.join(SCRIPT_DIR, "shared-data.json")
+            print(f"       raw URL 不可用，尝试从本地文件读取...")
+            try:
+                if os.path.exists(local_file):
+                    with open(local_file, 'r', encoding='utf-8') as f:
+                        decoded = json.load(f)
+                    existing_records = decoded if isinstance(decoded, list) else [decoded]
+                    print(f"       从本地文件获取到 {len(existing_records)} 条现有记录")
+                else:
+                    print(f"       本地文件不存在: {local_file}")
+                    fetch_failed = True
+            except Exception as e:
+                print(f"       本地文件读取失败 ({e})")
+                fetch_failed = True
+
+    # 保护：如果拉取失败且没有现有数据，中止推送以防止覆盖
+    if not existing_records and (fetch_failed or sha):
+        print("       ❌ 错误：无法拉取现有数据，中止推送以防止历史数据丢失！")
+        print("       请检查网络连接后重试")
+        return False
 
     new_record = {
         "date": format_date(date),
@@ -433,6 +578,14 @@ def push_to_github(date, current_data, merchant_data, current_merchant, token):
 
     if resp.status_code in (200, 201):
         print(f"[4/4] 推送成功! 记录数: {len(existing_records)}")
+        # 推送成功后保存到本地，下次运行时作为备份
+        try:
+            local_file = os.path.join(SCRIPT_DIR, "shared-data.json")
+            with open(local_file, 'w', encoding='utf-8') as f:
+                json.dump(existing_records, f, ensure_ascii=False, indent=2)
+            print(f"       已同步到本地文件")
+        except Exception as e:
+            print(f"       本地文件保存失败 ({e})，不影响线上数据")
         return True
     else:
         print(f"[4/4] 推送失败: HTTP {resp.status_code}")
