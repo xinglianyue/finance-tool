@@ -140,8 +140,10 @@ const StateManager = {
     }));
     
     return {
+      version: 3,
       currentData: this._state.currentData,
       allMerchantData: this._state.allMerchantData,
+      cache: window.financeToolCache || {},
       importHistory: importHistoryMeta,
       currentImportIndex: this._state.currentImportIndex,
       currentMerchantType: this._state.currentMerchantType
