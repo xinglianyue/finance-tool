@@ -1599,7 +1599,14 @@
           indexSha = githubData.sha;
           try {
             const decoded = JSON.parse(decodeURIComponent(escape(atob(githubData.content.replace(/\n/g, '')))));
-            indexRecords = Array.isArray(decoded) ? decoded : [];
+            // 兼容：index.json可能是数组或对象格式（含records字段）
+            if (Array.isArray(decoded)) {
+              indexRecords = decoded;
+            } else if (decoded && Array.isArray(decoded.records)) {
+              indexRecords = decoded.records;
+            } else {
+              indexRecords = [];
+            }
           } catch (e) {
             indexRecords = [];
           }
@@ -1679,8 +1686,14 @@
         allSuccess = false;
       }
 
-      // 3.2 上传 index.json
-      const indexContent = btoa(unescape(encodeURIComponent(JSON.stringify(indexRecords, null, 2))));
+      // 3.2 上传 index.json（保持对象格式）
+      const indexObject = {
+        version: "v2",
+        updatedAt: new Date().toISOString(),
+        recordCount: indexRecords.length,
+        records: indexRecords
+      };
+      const indexContent = btoa(unescape(encodeURIComponent(JSON.stringify(indexObject, null, 2))));
       const indexBody = {
         message: 'Update index: ' + (isBatch ? recordsToAdd.length + ' records' : recordsToAdd[0].date),
         content: indexContent,
@@ -1797,7 +1810,13 @@
           indexSha = githubData.sha;
           try {
             const decoded = JSON.parse(atob(githubData.content));
-            indexRecords = Array.isArray(decoded) ? decoded : [];
+            if (Array.isArray(decoded)) {
+              indexRecords = decoded;
+            } else if (decoded && Array.isArray(decoded.records)) {
+              indexRecords = decoded.records;
+            } else {
+              indexRecords = [];
+            }
           } catch (e) {
             indexRecords = [];
           }
@@ -1857,8 +1876,14 @@
         allSuccess = false;
       }
 
-      // 3.2 上传 index.json
-      const indexContent = btoa(unescape(encodeURIComponent(JSON.stringify(indexRecords, null, 2))));
+      // 3.2 上传 index.json（保持对象格式）
+      const indexObject = {
+        version: "v2",
+        updatedAt: new Date().toISOString(),
+        recordCount: indexRecords.length,
+        records: indexRecords
+      };
+      const indexContent = btoa(unescape(encodeURIComponent(JSON.stringify(indexObject, null, 2))));
       const indexBody = {
         message: 'Update index: ' + data.date,
         content: indexContent,
