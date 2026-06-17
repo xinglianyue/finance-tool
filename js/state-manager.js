@@ -132,7 +132,8 @@ const StateManager = {
    */
   getDataToSave() {
     // v3 格式：importHistory 只保存元数据，不保存完整 data
-    // data 字段只在 cache 中保存
+    // cache 保留在内存(window.financeToolCache)中，不写入localStorage（避免5MB溢出）
+    // 趋势分析从内存读取，页面刷新时从云端重新加载
     const importHistoryMeta = this._state.importHistory.map(record => ({
       monthLabel: record.monthLabel,
       importedAt: record.importedAt,
@@ -143,7 +144,6 @@ const StateManager = {
       version: 3,
       currentData: this._state.currentData,
       allMerchantData: this._state.allMerchantData,
-      cache: window.financeToolCache || {},
       importHistory: importHistoryMeta,
       currentImportIndex: this._state.currentImportIndex,
       currentMerchantType: this._state.currentMerchantType

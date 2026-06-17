@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260617.1"></script>
-    <script src="js/chart.umd.min.js?v=20260617.1"></script>
-    <script src="js/data-store.js?v=20260617.1"></script>
-    <script src="js/state-manager.js?v=20260617.1"></script>
+  <script src="js/xlsx.full.min.js?v=20260617.2"></script>
+    <script src="js/chart.umd.min.js?v=20260617.2"></script>
+    <script src="js/data-store.js?v=20260617.2"></script>
+    <script src="js/state-manager.js?v=20260617.2"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -879,7 +879,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-09.7</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-17.2</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
       </div>
@@ -2257,11 +2257,14 @@
           }
         });
         
-        // 构建 cache：缓存所有月份的数据（约 300KB × 9 = 2.7MB）
+        // 构建 cache：缓存所有月份的数据到内存（不写入localStorage，避免5MB溢出）
         const cache = {};
         cloudData.forEach(record => {
           cache[record.date] = parseRecord(record);
         });
+        
+        // 立即写入内存全局变量，供趋势分析和日期切换使用
+        window.financeToolCache = cache;
         
         const dataToSave = {
           version: 3,  // 使用 v3 格式，减少存储空间
@@ -2271,11 +2274,11 @@
             availableDates: cloudData.map(r => r.date)
           },
           currentData: currentData,
-          cache: cache,  // 缓存所有月份的数据
+          // cache 不写入 localStorage（每条约631KB，9条=5.58MB > 5MB限制）
+          // 趋势分析从 window.financeToolCache 内存变量读取
           importHistory: allImportHistory,
           currentImportIndex: 0,
           currentMerchantType: 'all'
-          // 注意：不保存 allMerchantData，从 cache 中动态获取
         };
         
         DataStore.save(dataToSave);
