@@ -1473,22 +1473,61 @@
           const githubData = await resp.json();
           fullDataSha = githubData.sha;
           try {
-            // 处理大文件：先尝试content，不行用download_url
+            // 处理大文件：三级策略
+            // 方案A：Contents API返回content（小文件）
             if (githubData.content && githubData.content.trim()) {
               fullExistingRecords = JSON.parse(decodeURIComponent(escape(atob(githubData.content.replace(/\n/g, '')))));
-            } else if (githubData.download_url) {
-              const downloadResp = await fetch(githubData.download_url);
-              fullExistingRecords = await downloadResp.json();
+              console.log('[Upload] 从Contents API content读取现有数据');
+            }
+            // 方案B：通过GitHub Blob API读取（绕过1MB限制和CORS）
+            if (!Array.isArray(fullExistingRecords) || fullExistingRecords.length === 0) {
+              if (githubData.git_blob_url) {
+                try {
+                  const blobResp = await fetch(githubData.git_blob_url, { headers: headers });
+                  if (blobResp.ok) {
+                    const blobData = await blobResp.json();
+                    if (blobData.content) {
+                      fullExistingRecords = JSON.parse(decodeURIComponent(escape(atob(blobData.content.replace(/\n/g, '')))));
+                      console.log('[Upload] 从Blob API读取现有数据，记录数:', Array.isArray(fullExistingRecords) ? fullExistingRecords.length : 0);
+                    }
+                  }
+                } catch (blobErr) {
+                  console.warn('[Upload] Blob API读取失败:', blobErr.message);
+                }
+              }
+            }
+            // 方案C：通过download_url读取（可能被CORS拦截）
+            if ((!Array.isArray(fullExistingRecords) || fullExistingRecords.length === 0) && githubData.download_url) {
+              try {
+                const downloadResp = await fetch(githubData.download_url);
+                if (downloadResp.ok) {
+                  fullExistingRecords = await downloadResp.json();
+                  console.log('[Upload] 从download_url读取现有数据');
+                }
+              } catch (downloadErr) {
+                console.warn('[Upload] download_url读取失败（可能CORS）:', downloadErr.message);
+              }
             }
             if (!Array.isArray(fullExistingRecords)) {
               fullExistingRecords = [];
             }
           } catch (e) {
+            console.error('[Upload] 解析现有数据失败:', e);
             fullExistingRecords = [];
           }
         }
       } catch (e) {
         console.log('[Upload] 无法读取现有完整数据，可能是首次上传');
+      }
+      
+      // 防覆盖保护：如果SHA存在但无法读取现有数据，中止上传
+      if (fullDataSha && (!Array.isArray(fullExistingRecords) || fullExistingRecords.length === 0)) {
+        console.error('[Upload] 无法读取现有数据（文件可能过大或网络问题），中止上传以防止数据丢失！');
+        showStatus('error', '上传失败', '无法读取云端现有数据，为防止历史数据丢失，已中止上传。请使用db-sync.py脚本上传，或联系技术人员处理。');
+        hideProgress();
+        uploadCloudBtn.disabled = false;
+        uploadCloudBtn.innerHTML = '☁️ 上传到云端';
+        return false;
       }
 
       const isBatch = Array.isArray(data);
@@ -2037,6 +2076,10 @@
           
           try {
             cloudData = JSON.parse(content);
+            // 兼容：index.json可能是对象格式（含records字段）或数组
+            if (cloudData && !Array.isArray(cloudData) && cloudData.records) {
+              cloudData = cloudData.records;
+            }
           } catch (parseError) {
             console.error('[Error] JSON解析失败:', parseError);
             cloudData = [];
