@@ -37,12 +37,17 @@ const StateManager = {
     if (initialData) {
       this._state.currentData = initialData.currentData || null;
       
-      // 支持 v3 格式：从 cache 中提取 allMerchantData
+      // 支持 v3 格式：从内存缓存或 initialData.cache 中提取 allMerchantData
       if (initialData.version === 3) {
         const currentRecord = initialData.importHistory?.[initialData.currentImportIndex];
-        if (currentRecord && initialData.cache?.[currentRecord.monthLabel]) {
-          this._state.allMerchantData = initialData.cache[currentRecord.monthLabel];
+        // 优先从内存缓存(window.financeToolCache)读取，其次从initialData.cache读取
+        const cacheData = window.financeToolCache?.[currentRecord?.monthLabel] || initialData.cache?.[currentRecord?.monthLabel];
+        if (currentRecord && cacheData) {
+          this._state.allMerchantData = cacheData;
           console.log('[StateManager] 从 cache 加载 allMerchantData:', currentRecord.monthLabel);
+        } else if (initialData.allMerchantData) {
+          this._state.allMerchantData = initialData.allMerchantData;
+          console.log('[StateManager] 从 allMerchantData 字段加载');
         } else {
           console.warn('[StateManager] cache 中无数据，使用空对象');
           this._state.allMerchantData = {};
