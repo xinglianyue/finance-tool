@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260617.6"></script>
-    <script src="js/chart.umd.min.js?v=20260617.6"></script>
-    <script src="js/data-store.js?v=20260617.6"></script>
-    <script src="js/state-manager.js?v=20260617.6"></script>
+  <script src="js/xlsx.full.min.js?v=20260617.7"></script>
+    <script src="js/chart.umd.min.js?v=20260617.7"></script>
+    <script src="js/data-store.js?v=20260617.7"></script>
+    <script src="js/state-manager.js?v=20260617.7"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -2090,8 +2090,9 @@
         allImportHistory.sort((a, b) => b.monthLabel.localeCompare(a.monthLabel));
         
         // 使用最新的数据构建allMerchantData
-        // 优先使用 isLatest 标记，否则按日期排序取第一条
-        let latestRecord = cloudData.find(r => r.isLatest === true) || cloudData[0];
+        // 按日期排序取最新（不依赖isLatest标记，因为db-sync上传的数据可能没有该标记）
+        const sortedByDate = deduplicatedRecords.slice().sort((a, b) => b.date.localeCompare(a.date));
+        let latestRecord = sortedByDate[0];
         console.log('[App] 选中的最新记录: date=' + latestRecord.date + ', isLatest=' + latestRecord.isLatest + ', version=' + (latestRecord.version || 'N/A'));
         
         let latestMerchantData = latestRecord.merchantData || latestRecord.currentData?.merchantData || {};
