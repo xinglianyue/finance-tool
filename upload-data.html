@@ -908,6 +908,8 @@
       const COL3_RULES = {
         '线上收入汇总': 'onlineRevenue', '线上支出汇总': 'onlineExpense', '线下支出汇总': 'offlineExpense',
         '毛利': 'profit', '收入汇总': 'totalRevenue', '支出汇总': 'totalExpense',
+        // 备用匹配：当FIELD_RULES的column_name4不匹配时，仅匹配column_name3
+        '订单量': 'orders', '原价交易额': 'gmvAmount',
       };
 
       const MODULE_DEFS = [
@@ -953,7 +955,9 @@
             if (c2 === k2 && result[field] === 0) result[field] = val;
           }
           for (const [k3, field] of Object.entries(COL3_RULES)) {
-            if (c3 === k3 && c4 === '' && result[field] === 0 && val !== 0) result[field] = val;
+            // 关键字段（orders/gmvAmount）不要求c4为空，作为FIELD_RULES的备用匹配
+            const isKeyField = (field === 'orders' || field === 'gmvAmount');
+            if (c3 === k3 && (isKeyField || c4 === '') && result[field] === 0 && val !== 0) result[field] = val;
           }
         }
 
