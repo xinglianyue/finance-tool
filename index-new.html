@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260617.4"></script>
-    <script src="js/chart.umd.min.js?v=20260617.4"></script>
-    <script src="js/data-store.js?v=20260617.4"></script>
-    <script src="js/state-manager.js?v=20260617.4"></script>
+  <script src="js/xlsx.full.min.js?v=20260617.5"></script>
+    <script src="js/chart.umd.min.js?v=20260617.5"></script>
+    <script src="js/data-store.js?v=20260617.5"></script>
+    <script src="js/state-manager.js?v=20260617.5"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -3724,7 +3724,7 @@
       const selectedRecord = importHistory[selectedIdx] || importHistory[0];
       const firstMerchantType = document.getElementById('trendMerchantSelect').value;
       
-      let merchantData = selectedRecord && selectedRecord.data;
+      let merchantData = selectedRecord && (selectedRecord.data || (window.financeToolCache && window.financeToolCache[selectedRecord.monthLabel]));
       
       // 检测数据格式，如果是旧格式 { date, cities, fileName }，需要包装成新格式
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
