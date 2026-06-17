@@ -1,3 +1,4 @@
+<!-- v2026-06-18.5 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -8,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260617.7"></script>
-    <script src="js/chart.umd.min.js?v=20260617.7"></script>
-    <script src="js/data-store.js?v=20260617.7"></script>
-    <script src="js/state-manager.js?v=20260617.7"></script>
+  <script src="js/xlsx.full.min.js?v=20260618.6"></script>
+    <script src="js/chart.umd.min.js?v=20260618.6"></script>
+    <script src="js/data-store.js?v=20260618.6"></script>
+    <script src="js/state-manager.js?v=20260618.6"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -26,22 +27,38 @@
   <style>
     :root {
       --primary: #4f46e5;
-      --success: #16a34a;
+      --success: #10b981;
       --warning: #f59e0b;
-      --danger: #dc2626;
-      --bg-primary: #f8fafc;
+      --danger: #ef4444;
+      --bg-primary: #f3f4f6;
       --bg-secondary: #ffffff;
       --bg-card: #f1f5f9;
-      --text-primary: #1f2937;
-      --text-secondary: #64748b;
-      --border: #e2e8f0;
+      --bg-stripe: #f9fafb;
+      --bg-hover: #eff6ff;
+      --bg-header: #f0f4ff;
+      --text-primary: rgba(0,0,0,.88);
+      --text-secondary: rgba(0,0,0,.6);
+      --text-tertiary: rgba(0,0,0,.38);
+      --border: rgba(0,0,0,.06);
+      --positive-bg: #ecfdf5;
+      --negative-bg: #fef2f2;
+      --neutral-bg: #f1f5f9;
+      --primary-bg: #eef2ff;
+      --warning-bg: #fffbeb;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+      --ease: cubic-bezier(.4,0,.2,1);
+      --dur: .2s;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      font-family: 'PingFang SC','Hiragino Sans GB','Microsoft YaHei',-apple-system,BlinkMacSystemFont,sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
     }
 
     .app-container { max-width: 1600px; margin: 0 auto; padding: 20px; }
@@ -73,17 +90,18 @@
 
     .tabs-container {
       background: var(--bg-secondary);
-      border-radius: 12px;
+      border-radius: var(--radius);
       padding: 8px;
       margin-bottom: 24px;
       display: flex;
       gap: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
     }
 
     .tab-btn {
       padding: 12px 24px;
       border: none;
+      border-bottom: 2px solid transparent;
       border-radius: 8px;
       font-size: 14px;
       font-weight: 500;
@@ -93,7 +111,7 @@
       transition: all 0.2s;
     }
     .tab-btn:hover { background: var(--bg-card); color: var(--text-primary); }
-    .tab-btn.active { background: var(--primary); color: white; }
+    .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -179,16 +197,16 @@
 
     .card {
       background: var(--bg-secondary);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
     }
 
     .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 20px;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -196,60 +214,80 @@
 
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
     }
 
     .kpi-card {
       background: var(--bg-secondary);
-      border-radius: 12px;
-      padding: 20px;
-      border-left: 4px solid var(--primary);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
     }
 
-    .kpi-card.success { border-left-color: var(--success); }
-    .kpi-card.warning { border-left-color: var(--warning); }
-    .kpi-card.danger { border-left-color: var(--danger); }
+    .kpi-card .accent {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      border-radius: 3px 0 0 3px;
+    }
 
-    .kpi-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-    .kpi-value { font-size: 28px; font-weight: 700; }
-    .kpi-change { font-size: 12px; margin-top: 4px; }
-    .kpi-change.up { color: var(--success); }
-    .kpi-change.down { color: var(--danger); }
+    .kpi-card.success .accent { background: var(--success); }
+    .kpi-card.warning .accent { background: var(--warning); }
+    .kpi-card.danger .accent { background: var(--danger); }
+    .kpi-card:not(.success):not(.warning):not(.danger) .accent { background: var(--primary); }
 
-    .selectors { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-    .selector-group { display: flex; align-items: center; gap: 8px; }
-    .selector-label { font-size: 13px; color: var(--text-secondary); }
+    .kpi-label { font-size: 12px; color: var(--text-tertiary); margin-bottom: 4px; padding-left: 8px; }
+    .kpi-value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; line-height: 1.2; min-height: 36px; display: flex; align-items: flex-end; }
+    .kpi-change { font-size: 11px; margin-top: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; padding: 1px 6px; border-radius: 4px; }
+    .kpi-change.up { color: var(--success); background: var(--positive-bg); }
+    .kpi-change.down { color: var(--danger); background: var(--negative-bg); }
+
+    .selectors { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .selector-group { display: flex; align-items: center; gap: 6px; }
+    .selector-label { font-size: 12px; color: var(--text-secondary); }
     select {
-      padding: 8px 12px;
+      padding: 6px 10px;
       border: 1px solid var(--border);
       border-radius: 6px;
-      font-size: 14px;
-      background: white;
+      font-size: 13px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
     }
 
-    .checkbox-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .checkbox-group { display: flex; gap: 6px; flex-wrap: wrap; }
     .checkbox-label {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: var(--bg-card);
-      border-radius: 6px;
+      gap: 4px;
+      padding: 4px 10px;
+      background: var(--bg-secondary);
+      border-radius: 16px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      transition: all var(--dur) var(--ease);
+      min-height: 32px;
     }
-    .checkbox-label:hover { background: #e2e8f0; }
-    .checkbox-label.checked { background: #eef2ff; color: var(--primary); }
+    .checkbox-label:hover { border-color: var(--primary); color: var(--primary); }
+    .checkbox-label.checked { background: var(--primary-bg); border-color: var(--primary); color: var(--primary); font-weight: 600; }
 
-    .table-container { overflow-x: auto; margin-top: 16px; }
+    .table-container { overflow-x: auto; margin-top: 12px; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: var(--bg-card); font-weight: 600; color: var(--text-secondary); font-size: 12px; }
-    tr:hover { background: var(--bg-card); }
-    .text-right { text-align: right; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { background: var(--bg-header); font-weight: 600; color: var(--text-secondary); font-size: 11px; letter-spacing: .2px; text-transform: none; }
+    th:first-child, td:first-child { position: sticky; left: 0; z-index: 4; min-width: 80px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+    th:first-child { z-index: 5; background: var(--bg-header); }
+    tbody tr:nth-child(even) { background: var(--bg-stripe); }
+    tbody tr:nth-child(even) td:first-child { background: var(--bg-stripe); }
+    tbody tr:hover { background: var(--bg-hover); }
+    tbody tr:hover td:first-child { background: var(--bg-hover); }
+    .text-right { text-align: right; font-variant-numeric: tabular-nums; }
     .text-success { color: var(--success); }
     .text-danger { color: var(--danger); }
     .text-warning { color: var(--warning); }
@@ -270,7 +308,7 @@
       transition: all 0.3s;
       margin-bottom: 24px;
     }
-    .upload-area:hover { border-color: var(--primary); background: #eef2ff; }
+    .upload-area:hover { border-color: var(--primary); background: var(--primary-bg); }
     .upload-icon { font-size: 48px; margin-bottom: 16px; }
 
     .toast {
@@ -356,29 +394,29 @@
     .health-metric-label { font-size: 12px; color: var(--text-secondary); }
 
     .collapsible {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
       background: var(--bg-secondary);
-      border-radius: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
     .collapsible-header {
-      padding: 16px 20px;
-      background: var(--bg-card);
+      padding: 10px 16px;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-weight: 600;
-      font-size: 14px;
+      font-weight: 700;
+      font-size: 13px;
+      transition: background .15s;
     }
 
-    .collapsible-header:hover { background: #e2e8f0; }
+    .collapsible-header:hover { background: var(--bg-hover); }
 
-    .collapsible-content { padding: 16px 20px; }
-
-    .collapsible.collapsed .collapsible-content { display: none; }
+    .collapsible-content { max-height: 0; overflow: hidden; transition: max-height .35s var(--ease); }
+    .collapsible:not(.collapsed) .collapsible-content { max-height: 800px; padding: 0 16px 12px; }
+    .collapsible.collapsed .collapsible-content { max-height: 0; }
 
     .slider-group { margin-bottom: 20px; }
 
@@ -396,7 +434,7 @@
       width: 100%;
       height: 6px;
       border-radius: 3px;
-      background: #e2e8f0;
+      background: var(--border);
       outline: none;
       -webkit-appearance: none;
     }
@@ -409,6 +447,37 @@
       background: var(--primary);
       cursor: pointer;
     }
+
+    /* ==================== 深色模式 ==================== */
+    [data-theme="dark"] {
+      --bg-primary: #0f1117;
+      --bg-secondary: #1a1b23;
+      --bg-card: #1e1f28;
+      --bg-stripe: #1e1f28;
+      --bg-hover: #252733;
+      --bg-header: #1e2040;
+      --text-primary: rgba(255,255,255,.9);
+      --text-secondary: rgba(255,255,255,.55);
+      --text-tertiary: rgba(255,255,255,.3);
+      --border: rgba(255,255,255,.08);
+      --success: #34d399;
+      --positive-bg: rgba(16,185,129,.12);
+      --danger: #f87171;
+      --negative-bg: rgba(239,68,68,.12);
+      --neutral-bg: rgba(255,255,255,.06);
+      --primary: #818cf8;
+      --primary-bg: rgba(79,70,229,.15);
+      --warning: #fbbf24;
+      --warning-bg: rgba(245,158,11,.12);
+    }
+
+    [data-theme="dark"] .diagnostic-panel { background: #1a1b23; }
+    [data-theme="dark"] .diagnostic-log { background: #0f1117; color: #d4d4d4; }
+    [data-theme="dark"] select { background: #1a1b23; color: rgba(255,255,255,.9); border-color: rgba(255,255,255,.08); }
+    [data-theme="dark"] .cloud-loading-panel { background: linear-gradient(135deg, #1a1b23 0%, #1e1f28 100%); border-color: rgba(255,255,255,.08); }
+    [data-theme="dark"] .cloud-loading-panel.success { background: linear-gradient(135deg, rgba(16,185,129,.1) 0%, rgba(16,185,129,.05) 100%); }
+    [data-theme="dark"] .cloud-loading-panel.error { background: linear-gradient(135deg, rgba(239,68,68,.1) 0%, rgba(239,68,68,.05) 100%); }
+    [data-theme="dark"] .cloud-loading-spinner { border-color: rgba(255,255,255,.08); border-top-color: var(--primary); }
 
     /* ==================== 移动端优化（增强版） ==================== */
     
@@ -568,16 +637,16 @@
       }
       
       .kpi-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
       
       .kpi-card {
-        padding: 14px;
+        padding: 12px;
       }
       
       .kpi-value {
-        font-size: 22px;
+        font-size: 20px;
       }
       
       .selectors {
@@ -600,15 +669,18 @@
       }
       
       .checkbox-group {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
       }
       
       .checkbox-group label {
-        font-size: 13px;
-        margin-bottom: 6px;
-        padding: 8px 0;
-        min-height: 44px;
+        font-size: 12px;
+        margin-bottom: 0;
+        padding: 4px 8px;
+        min-height: 32px;
+        flex-shrink: 0;
       }
     }
     
@@ -663,7 +735,40 @@
         line-height: 1.6;
       }
     }
-    
+
+    /* 城市卡片视图 - 移动端替代表格 */
+    @media (max-width: 576px) {
+      .city-cards { display: flex; flex-direction: column; gap: 10px; }
+      .city-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+      }
+      .city-card-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .city-card-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .city-card-item {
+        display: flex;
+        flex-direction: column;
+        padding: 4px 0;
+      }
+      .city-card-item-label { font-size: 10px; color: var(--text-tertiary); }
+      .city-card-item-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .city-card-item-value.positive { color: var(--success); }
+      .city-card-item-value.negative { color: var(--danger); }
+    }
+
     /* 防止iOS点击高亮 */
     @media (hover: none) and (pointer: coarse) {
       * {
@@ -700,18 +805,18 @@
         min-height: 44px;
         padding: 12px 16px;
         border-radius: 8px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
       }
-      
+
       /* 卡片内边距优化 */
       .card {
         padding: 16px;
       }
-      
+
       /* 响应式表格优化 */
       .table-container {
         border-radius: 8px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         overflow: hidden;
       }
       
@@ -720,32 +825,32 @@
       }
       
       table th {
-        background: #f8fafc;
+        background: var(--bg-header);
         font-weight: 600;
         font-size: 13px;
         position: sticky;
         top: 0;
         z-index: 10;
       }
-      
+
       /* 滚动条样式 */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
       }
-      
+
       ::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: var(--bg-card);
         border-radius: 3px;
       }
-      
+
       ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: var(--text-tertiary);
         border-radius: 3px;
       }
       
       ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: var(--text-tertiary);
       }
     }
 
@@ -805,7 +910,7 @@
       padding: 24px;
       margin-bottom: 24px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border);
     }
 
     .cloud-loading-content {
@@ -815,7 +920,7 @@
     .cloud-loading-spinner {
       width: 48px;
       height: 48px;
-      border: 4px solid #e2e8f0;
+      border: 4px solid var(--border);
       border-top-color: var(--primary);
       border-radius: 50%;
       margin: 0 auto 16px;
@@ -824,6 +929,40 @@
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    .skeleton-card {
+      padding: 20px;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .skeleton-card .skeleton-line {
+      height: 14px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+
+    .skeleton-card .skeleton-line.short { width: 60%; }
+    .skeleton-card .skeleton-line.medium { width: 80%; }
+    .skeleton-card .skeleton-value {
+      height: 28px;
+      width: 50%;
+      margin-bottom: 8px;
+      border-radius: 6px;
     }
 
     .cloud-loading-text {
@@ -865,7 +1004,7 @@
       <button class="diagnostic-close" onclick="hideDiagnostic()">×</button>
     </div>
     <div class="diagnostic-body">
-      <p style="margin-bottom: 8px; color: #666;">请复制以下信息发送给开发者：</p>
+      <p style="margin-bottom: 8px; color: var(--text-secondary);">请复制以下信息发送给开发者：</p>
       <div class="diagnostic-log" id="diagnosticLog"></div>
       <div class="diagnostic-actions">
         <button class="diagnostic-btn copy" id="copyBtn" onclick="copyDiagnostic()">📋 复制信息</button>
@@ -879,9 +1018,10 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-17.3</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-18.6</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
+        <button class="btn btn-secondary" onclick="toggleTheme()" style="font-size: 16px; padding: 8px 12px;">🌙</button>
       </div>
     </div>
 
@@ -892,6 +1032,8 @@
         <div class="cloud-loading-progress" id="cloudLoadingProgress"></div>
       </div>
     </div>
+
+    <div id="insightLine" style="padding: 12px 20px; background: var(--primary-bg); border-radius: 8px; font-size: 14px; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"></div>
 
     <div class="tabs-container">
       <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">📊 概览</button>
@@ -913,7 +1055,7 @@
           <div class="selectors">
             <div class="selector-group">
               <span class="selector-label">选择数据：</span>
-              <select id="import-date-select" onchange="switchImportDate(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 14px;">
+              <select id="import-date-select" onchange="switchImportDate(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px;">
               </select>
             </div>
           </div>
@@ -940,7 +1082,7 @@
           <div class="selectors">
             <div class="selector-group">
               <span class="selector-label">选择数据：</span>
-              <select id="import-date-select-dim" onchange="switchImportDateDim(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 14px;">
+              <select id="import-date-select-dim" onchange="switchImportDateDim(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px;">
               </select>
             </div>
             <div class="selector-group">
@@ -1056,6 +1198,17 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    // 深色模式切换
+    function toggleTheme() {
+      const h = document.documentElement;
+      h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('finance-theme', h.dataset.theme);
+    }
+
+    // 恢复主题设置
+    const savedTheme = localStorage.getItem('finance-theme');
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+
     let currentData = null;
     let allMerchantData = null;
     let currentMerchantType = 'all';
@@ -1069,7 +1222,7 @@
     const CONFIG = {
       CITY_DISPLAY_MAP: {
         // 你负责的 10 个城市 + 总商
-        '承德市': '承德', '围场满族蒙古族自治县': '围场', '康保县': '康保', '玉田县': '玉田',
+        '承德市': '承德', '围场满族蒙古族自治县': '围场县', '康保县': '康保', '玉田县': '玉田',
         '安国市': '安国', '安平': '安平', '献县': '献县', '威县': '威县',
         '晋州': '晋州', '深泽县': '深泽',
         '总商': '总商'
@@ -1083,6 +1236,18 @@
       ],
       THRESHOLDS: { UE: { DANGER: 0.1, WARN: 0.5 }, PROFIT_RATE: { DANGER: 0.1, WARN: 0.2 } }
     };
+
+    /** 统一城市显示名映射 */
+    function getCityDisplayName(name) {
+      const map = CONFIG.CITY_DISPLAY_MAP;
+      if (map[name]) return map[name];
+      // 模糊匹配：去掉"市"/"县"等后缀再匹配
+      const short = name.replace(/(市|县|满族蒙古族自治县)$/,'');
+      for (const [key, val] of Object.entries(map)) {
+        if (key.replace(/(市|县|满族蒙古族自治县)$/,'') === short) return val;
+      }
+      return name;
+    }
 
     function formatNumber(num) {
       if (num == null || isNaN(num)) return '-';
@@ -2827,6 +2992,19 @@
       }
     }
 
+    /**
+     * @description 显示KPI骨架屏，数据加载时展示
+     */
+    function showSkeleton() {
+      const kpiCards = document.getElementById('kpiCards');
+      if (!kpiCards) return;
+      let html = '';
+      for (let i = 0; i < 7; i++) {
+        html += '<div class="skeleton-card"><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-value"></div></div>';
+      }
+      kpiCards.innerHTML = html;
+    }
+
     function renderOverview() {
       if (!currentData) return;
 
@@ -2838,42 +3016,84 @@
       const ueLevel = parseFloat(totals.ue) >= 0.5 ? 'success' : parseFloat(totals.ue) >= 0.1 ? 'warning' : 'danger';
       const profitRateLevel = parseFloat(totals.profitRate) >= 0.2 ? 'success' : parseFloat(totals.profitRate) >= 0.1 ? 'warning' : 'danger';
 
+      // UE进度条
+      const ueVal = parseFloat(totals.ue) || 0;
+      const uePct = Math.min(Math.max(ueVal / 1.0 * 100, 0), 100);
+      const ueBarColor = ueVal >= 0.5 ? 'var(--success)' : ueVal >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+
+      // 毛利率进度条
+      const prVal = parseFloat(totals.profitRate) || 0;
+      const prPct = Math.min(Math.max(prVal / 0.3 * 100, 0), 100);
+      const prBarColor = prVal >= 0.2 ? 'var(--success)' : prVal >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+
+      const dotSuccess = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--success);"></span>';
+      const dotWarning = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--warning);"></span>';
+      const dotDanger = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--danger);"></span>';
+      const dotPrimary = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--primary);"></span>';
+
       document.getElementById('kpiCards').innerHTML = `
         <div class="kpi-card">
-          <div class="kpi-label">原价交易额</div>
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}原价交易额</div>
           <div class="kpi-value">${formatMoney(totals.gmvAmount)}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">订单量</div>
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}订单量</div>
           <div class="kpi-value">${formatNumber(totals.orders)}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">单均收入</div>
-          <div class="kpi-value">${(totals.avgRevenuePerOrder || 0).toFixed(2)}</div>
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}单均收入</div>
+          <div class="kpi-value">${(parseFloat(totals.avgRevenuePerOrder) || 0).toFixed(2)}</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">单均支出</div>
-          <div class="kpi-value">${(totals.avgCostPerOrder || 0).toFixed(2)}</div>
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}单均支出</div>
+          <div class="kpi-value">${(parseFloat(totals.avgCostPerOrder) || 0).toFixed(2)}</div>
         </div>
         <div class="kpi-card ${ueLevel}">
-          <div class="kpi-label">单均UE</div>
-          <div class="kpi-value">${(totals.ue || 0).toFixed(2)}</div>
+          <div class="accent"></div>
+          <div class="kpi-label">${ueLevel === 'success' ? dotSuccess : ueLevel === 'warning' ? dotWarning : dotDanger}单均UE</div>
+          <div class="kpi-value">${(parseFloat(totals.ue) || 0).toFixed(2)}</div>
           <div class="kpi-change ${parseFloat(totals.ue) >= 0.5 ? 'up' : 'down'}">
             ${parseFloat(totals.ue) >= 0.5 ? '✅ 健康' : parseFloat(totals.ue) >= 0.1 ? '⚠️ 预警' : '🚨 危险'}
           </div>
+          <div style="margin-top:6px;height:4px;border-radius:2px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:${uePct}%;border-radius:2px;background:${ueBarColor};transition:width .6s var(--ease);"></div></div>
         </div>
         <div class="kpi-card ${profitRateLevel}">
-          <div class="kpi-label">毛利率</div>
+          <div class="accent"></div>
+          <div class="kpi-label">${profitRateLevel === 'success' ? dotSuccess : profitRateLevel === 'warning' ? dotWarning : dotDanger}毛利率</div>
           <div class="kpi-value">${formatPercent(totals.profitRate)}</div>
           <div class="kpi-change ${parseFloat(totals.profitRate) >= 0.2 ? 'up' : 'down'}">
             ${parseFloat(totals.profitRate) >= 0.2 ? '✅ 健康' : parseFloat(totals.profitRate) >= 0.1 ? '⚠️ 预警' : '🚨 危险'}
           </div>
+          <div style="margin-top:6px;height:4px;border-radius:2px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:${prPct}%;border-radius:2px;background:${prBarColor};transition:width .6s var(--ease);"></div></div>
         </div>
         <div class="kpi-card success">
-          <div class="kpi-label">毛利总额</div>
+          <div class="accent"></div>
+          <div class="kpi-label">${dotSuccess}毛利总额</div>
           <div class="kpi-value">${formatMoney(totals.profit)}</div>
         </div>
       `;
+
+      // 生成洞察总结
+      const ueVal2 = parseFloat(totals.ue) || 0;
+      const profitVal = parseFloat(totals.profit) || 0;
+      let insightIcon = '📊';
+      let insightText = '';
+      if (ueVal2 >= 0.5) {
+        insightIcon = '📊';
+        insightText = '整体运营健康，UE达标';
+      } else if (ueVal2 >= 0.1) {
+        insightIcon = '⚠️';
+        insightText = 'UE处于预警区间，建议关注成本优化';
+      } else {
+        insightIcon = '🚨';
+        insightText = 'UE低于安全线，需立即排查成本结构';
+      }
+      insightText += '，' + (profitVal > 0 ? '毛利盈利' : profitVal < 0 ? '毛利亏损' : '毛利持平');
+      document.getElementById('insightLine').innerHTML = insightIcon + ' ' + insightText;
 
       renderCityRankTable();
     }
@@ -2916,13 +3136,13 @@
         const profitRate = parseFloat(mod.profitRate) || 0;
 
         if (ue < 0.1) {
-          html += `<div class="collapsible"><div class="collapsible-header">🚨 ${city.displayName} - UE危险 <span class="text-danger">${ue.toFixed(3)}</span></div><div class="collapsible-content"><p>UE低于0.1元，处于危险区间，建议立即排查成本结构</p></div></div>`;
+          html += `<div class="collapsible"><div class="collapsible-header">🚨 ${getCityDisplayName(city.displayName)} - UE危险 <span class="text-danger">${ue.toFixed(3)}</span></div><div class="collapsible-content"><p>UE低于0.1元，处于危险区间，建议立即排查成本结构</p></div></div>`;
         } else if (ue < 0.5) {
-          html += `<div class="collapsible"><div class="collapsible-header">⚠️ ${city.displayName} - UE预警 <span class="text-warning">${ue.toFixed(3)}</span></div><div class="collapsible-content"><p>UE低于0.5元，建议关注成本优化</p></div></div>`;
+          html += `<div class="collapsible"><div class="collapsible-header">⚠️ ${getCityDisplayName(city.displayName)} - UE预警 <span class="text-warning">${ue.toFixed(3)}</span></div><div class="collapsible-content"><p>UE低于0.5元，建议关注成本优化</p></div></div>`;
         }
 
         if (profitRate < 0.1) {
-          html += `<div class="collapsible"><div class="collapsible-header">🚨 ${city.displayName} - 毛利率危险 <span class="text-danger">${(profitRate * 100).toFixed(1)}%</span></div><div class="collapsible-content"><p>毛利率低于10%，需要重点关注收入和成本结构</p></div></div>`;
+          html += `<div class="collapsible"><div class="collapsible-header">🚨 ${getCityDisplayName(city.displayName)} - 毛利率危险 <span class="text-danger">${(profitRate * 100).toFixed(1)}%</span></div><div class="collapsible-content"><p>毛利率低于10%，需要重点关注收入和成本结构</p></div></div>`;
         }
       });
 
@@ -2958,7 +3178,7 @@
 
       const sortedCities = [...cities].sort((a, b) => b.ue - a.ue);
 
-      let html = '<thead><tr><th>排名</th><th>城市</th><th>订单量</th><th>交易额</th><th>单均收入</th><th>单均支出</th><th>UE</th><th>毛利率</th><th>毛利总额</th><th>健康度</th></tr></thead><tbody>';
+      let html = '<thead><tr><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">排名</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:left;">城市</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">订单量</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">交易额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均收入</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均支出</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">UE</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利率</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利总额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">健康度</th></tr></thead><tbody>';
 
       sortedCities.forEach((item, idx) => {
         const city = item.city;
@@ -2991,22 +3211,22 @@
         const profitClass = profitRate >= profitWarningThreshold ? 'text-success' : profitRate >= profitDangerThreshold ? 'text-warning' : 'text-danger';
 
         html += '<tr>';
-        html += '<td>' + (idx + 1) + '</td>';
-        html += '<td><strong>' + city.displayName + '</strong></td>';
-        html += '<td class="text-right">' + formatNumber(mod.orders) + '</td>';
-        html += '<td class="text-right">' + formatMoney(mod.gmvAmount) + '</td>';
-        html += '<td class="text-right">' + (mod.avgRevenuePerOrder ? mod.avgRevenuePerOrder.toFixed(2) : '-') + '</td>';
-        html += '<td class="text-right">' + (mod.avgCostPerOrder ? mod.avgCostPerOrder.toFixed(2) : '-') + '</td>';
-        html += '<td class="text-right ' + ueClass + '">' + ue.toFixed(3) + '</td>';
-        html += '<td class="text-right ' + profitClass + '">' + formatPercent(profitRate) + '</td>';
-        html += '<td class="text-right">' + formatMoney(mod.profit) + '</td>';
-        html += '<td class="text-center ' + healthClass + '">' + healthIcon + ' ' + healthStatus + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:center;">' + (idx + 1) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;font-weight:600;">' + getCityDisplayName(city.displayName) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + formatNumber(mod.orders) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + formatMoney(mod.gmvAmount) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + (mod.avgRevenuePerOrder ? mod.avgRevenuePerOrder.toFixed(2) : '-') + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + (mod.avgCostPerOrder ? mod.avgCostPerOrder.toFixed(2) : '-') + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;" class="' + ueClass + '">' + ue.toFixed(3) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;" class="' + profitClass + '">' + formatPercent(profitRate) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + formatMoney(mod.profit) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:center;" class="' + healthClass + '">' + healthIcon + ' ' + healthStatus + '</td>';
         html += '</tr>';
       });
 
       html += '</tbody>';
       
-      html += '<tfoot><tr><td colspan="10" style="padding: 12px; font-size: 11px; color: #64748b; background: #f8fafc; border-top: 1px solid #e2e8f0;">';
+      html += '<tfoot><tr><td colspan="10" style="padding: 12px; font-size: 11px; color: var(--text-secondary); background: var(--bg-header); border-top: 1px solid var(--border);">';
       html += '<strong>动态阈值说明：</strong> ';
       html += 'UE阈值：危险<' + ueDangerThreshold.toFixed(3) + '，预警<' + ueWarningThreshold.toFixed(3) + '，健康≥' + ueWarningThreshold.toFixed(3) + '；';
       html += '毛利率阈值：危险<' + formatPercent(profitDangerThreshold) + '，预警<' + formatPercent(profitWarningThreshold) + '，健康≥' + formatPercent(profitWarningThreshold);
@@ -3025,11 +3245,11 @@
       let checkboxHtml = '<label class="checkbox-label checked"><input type="checkbox" value="总商" checked onchange="renderDimensionTable()"> 总商</label>';
       
       currentData.cities.slice(0, 3).forEach(city => {
-        checkboxHtml += `<label class="checkbox-label checked"><input type="checkbox" value="${city.name}" checked onchange="renderDimensionTable()"> ${city.displayName}</label>`;
+        checkboxHtml += `<label class="checkbox-label checked"><input type="checkbox" value="${city.name}" checked onchange="renderDimensionTable()"> ${getCityDisplayName(city.displayName)}</label>`;
       });
 
       currentData.cities.slice(3).forEach(city => {
-        checkboxHtml += `<label class="checkbox-label"><input type="checkbox" value="${city.name}" onchange="renderDimensionTable()"> ${city.displayName}</label>`;
+        checkboxHtml += `<label class="checkbox-label"><input type="checkbox" value="${city.name}" onchange="renderDimensionTable()"> ${getCityDisplayName(city.displayName)}</label>`;
       });
 
       cityCheckboxes.innerHTML = checkboxHtml;
@@ -3553,14 +3773,14 @@
 
       // 给每个商家类型一个背景色
       const typeStyles = {
-        all: { bg: '#e0e7ff', label: '全量' },
-        ka: { bg: '#dcfce7', label: 'KA' },
-        city: { bg: '#fef3c7', label: '城市' }
+        all: { bg: 'var(--primary-bg)', label: '全量' },
+        ka: { bg: 'var(--positive-bg)', label: 'KA' },
+        city: { bg: 'var(--warning-bg)', label: '城市' }
       };
       
       // 如果是未知类型，给默认样式
       const getTypeStyle = (type) => {
-        return typeStyles[type] || { bg: '#f1f5f9', label: type };
+        return typeStyles[type] || { bg: 'var(--bg-hover)', label: type };
       };
 
       const checkboxes = document.querySelectorAll('#cityCheckboxes input[type="checkbox"]:checked');
@@ -3573,35 +3793,74 @@
       let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
       
       if (selectedCities.length === 0) {
-        html += '<p style="padding: 16px; text-align: center; color: #64748b;">请至少选择一个城市</p>';
+        html += '<p style="padding: 16px; text-align: center; color: var(--text-secondary);">请至少选择一个城市</p>';
+        document.getElementById('dimensionTable').innerHTML = html;
+        return;
+      }
+
+      // 移动端城市卡片视图
+      const isMobile = window.innerWidth <= 576;
+      if (isMobile) {
+        html += '<div class="city-cards">';
+        selectedCities.forEach(city => {
+          const cityData = allMerchantData.all?.cities?.find(c => c.name === city || c.displayName === city);
+          html += '<div class="city-card">';
+          html += '<div class="city-card-title">' + getCityDisplayName(city) + '</div>';
+          html += '<div class="city-card-grid">';
+
+          const keyMetrics = [
+            { key: 'orders', label: '订单量', format: 'number' },
+            { key: 'gmvAmount', label: '交易额', format: 'money' },
+            { key: 'profit', label: '毛利', format: 'money' },
+            { key: 'profitRate', label: '利润率', format: 'percent' },
+            { key: 'ue', label: '单均UE', format: 'ue' },
+            { key: 'onlineRevenue', label: '线上收入', format: 'money' }
+          ];
+
+          keyMetrics.forEach(m => {
+            const val = cityData?.modules?.all?.[m.key] || 0;
+            let valStr = '';
+            let cls = '';
+            if (m.format === 'number') valStr = formatNumber(val);
+            else if (m.format === 'money') valStr = formatMoney(val);
+            else if (m.format === 'percent') valStr = formatPercent(val);
+            else if (m.format === 'ue') { const n = parseFloat(val); valStr = isNaN(n) ? '-' : n.toFixed(2); }
+            if ((m.key === 'profit' || m.key === 'ue' || m.key === 'profitRate') && val < 0) cls = ' negative';
+            else if ((m.key === 'profit' || m.key === 'ue' || m.key === 'profitRate') && val > 0) cls = ' positive';
+            html += '<div class="city-card-item"><span class="city-card-item-label">' + m.label + '</span><span class="city-card-item-value' + cls + '">' + valStr + '</span></div>';
+          });
+
+          html += '</div></div>';
+        });
+        html += '</div>';
         document.getElementById('dimensionTable').innerHTML = html;
         return;
       }
       
       currentMetricGroups.forEach((group, groupIdx) => {
-        html += '<div class="collapsible">';
+        html += '<div class="collapsible' + (groupIdx > 0 ? ' collapsed' : '') + '">';
         html += '<div class="collapsible-header" onclick="toggleDimensionGroup(' + groupIdx + ')">';
         html += '<span>' + group.name + ' (' + group.metrics.length + '项)</span>';
-        html += '<span style="font-size: 14px; color: #64748b;">▼</span>';
+        html += '<span style="font-size: 14px; color: var(--text-tertiary);">▼</span>';
         html += '</div>';
         html += '<div class="collapsible-content" style="padding: 0;">';
         html += '<table style="width: 100%; border-collapse: collapse;">';
         html += '<thead>';
-        html += '<tr style="background: #f8fafc;">';
-        html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: #64748b; width: 150px;">指标</th>';
+        html += '<tr style="background: var(--bg-header);">';
+        html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: var(--text-secondary); width: 120px; min-width: 100px;">指标</th>';
         
         selectedCities.forEach(city => {
-          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: #64748b;" colspan="' + availableMerchantTypes.length + '">' + city + '</th>';
+          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: var(--text-secondary);" colspan="' + availableMerchantTypes.length + '">' + getCityDisplayName(city) + '</th>';
         });
         
         html += '</tr>';
-        html += '<tr style="background: #f1f5f9;">';
-        html += '<th style="padding: 6px 8px; text-align: left; font-weight: 500; font-size: 11px; color: #94a3b8;"></th>';
+        html += '<tr style="background: var(--bg-card);">';
+        html += '<th style="padding: 6px 8px; text-align: left; font-weight: 500; font-size: 11px; color: var(--text-tertiary);"></th>';
         
         selectedCities.forEach(() => {
           availableMerchantTypes.forEach(type => {
             const style = getTypeStyle(type);
-            html += '<th style="padding: 6px 8px; text-align: center; font-weight: 500; font-size: 10px; color: #94a3b8; background: ' + style.bg + ';">' + style.label + '</th>';
+            html += '<th style="padding: 6px 8px; text-align: right; font-weight: 500; font-size: 10px; color: var(--text-tertiary); background: ' + style.bg + ';">' + style.label + '</th>';
           });
         });
         
@@ -3611,36 +3870,91 @@
         const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
         const noPerOrderMetrics = ['orders'];
         const noRatioMetrics = ['orders', 'gmvAmount'];
-        
+
+        // 热力色阶：收集每个metric的min/max
+        const metricValuesMap = {};
+        group.metrics.forEach(metric => {
+          const values = [];
+          selectedCities.forEach(city => {
+            availableMerchantTypes.forEach(type => {
+              const data = getDataForCityAndMerchant(city, type, module);
+              const val = data[metric.key] || 0;
+              values.push(val);
+            });
+          });
+          metricValuesMap[metric.key] = { min: Math.min(...values), max: Math.max(...values) };
+        });
+
         group.metrics.forEach(metric => {
           const isSkipMetric = skipMetrics.includes(metric.key);
           const showPerOrder = !isSkipMetric && !noPerOrderMetrics.includes(metric.key);
           const showRatio = !isSkipMetric && !noRatioMetrics.includes(metric.key);
-          
-          html += '<tr style="border-bottom: 1px solid #e2e8f0;">';
-          html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600;">' + metric.label + '</td>';
-          
+
+          // 异常行高亮：UE或profitRate指标在危险/预警区间时高亮整行
+          let rowBgStyle = '';
+          if (metric.key === 'ue' || metric.key === 'profitRate') {
+            // 取所有选中城市全量商家类型的最差值判断
+            let worstVal = Infinity;
+            selectedCities.forEach(city => {
+              const data = getDataForCityAndMerchant(city, 'all', module);
+              const val = parseFloat(data[metric.key]) || 0;
+              if (val < worstVal) worstVal = val;
+            });
+            const checkVal = worstVal === Infinity ? 0 : worstVal;
+            if (metric.key === 'ue') {
+              if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+              else if (checkVal < 0.5) rowBgStyle = 'background: var(--warning-bg);';
+            } else if (metric.key === 'profitRate') {
+              if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+              else if (checkVal < 0.2) rowBgStyle = 'background: var(--warning-bg);';
+            }
+          }
+
+          html += '<tr style="border-bottom: 1px solid var(--border); ' + rowBgStyle + '">';
+          html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600; white-space: nowrap;">' + metric.label + '</td>';
+
           selectedCities.forEach(city => {
             // 遍历实际存在的商家类型
             availableMerchantTypes.forEach(type => {
               const data = getDataForCityAndMerchant(city, type, module);
               const style = getTypeStyle(type);
-              
+
               let cellHtml = '';
               const val = data[metric.key] || 0;
               const orders = data.orders || 1;
               const gmvAmount = data.gmvAmount || 1;
-              
-              cellHtml += '<div style="text-align: right; font-size: 11px; color: #000;">' + formatValue(val, metric.format) + '</div>';
+
+              // 热力色阶计算
+              const mv = metricValuesMap[metric.key];
+              const range = mv.max - mv.min || 1;
+              const ratio = (val - mv.min) / range;
+              const costKeys = ['deliveryCost','subsidyTotal','platformCost','fixedCost','subsidyB','subsidyC','deliveryCostRate','subsidyRatio'];
+              const isCost = costKeys.includes(metric.key);
+              let heatColor;
+              if (isCost) {
+                const r = Math.round(ratio * 200);
+                const g = Math.round((1 - ratio) * 200);
+                heatColor = 'rgba(' + r + ', ' + g + ', 50, 0.12)';
+              } else if (metric.key === 'profit' || metric.key === 'profitRate' || metric.key === 'ue') {
+                if (val < 0) {
+                  heatColor = 'rgba(239, 68, 68, 0.12)';
+                } else {
+                  heatColor = 'rgba(16, 185, 129, ' + (0.05 + ratio * 0.12) + ')';
+                }
+              } else {
+                heatColor = 'rgba(79, 70, 229, ' + (0.03 + ratio * 0.1) + ')';
+              }
+
+              cellHtml += '<div style="text-align: right; font-size: 12px; color: var(--text-primary); font-weight: 500; line-height: 1.5;">' + formatValue(val, metric.format) + '</div>';
               if (showPerOrder && orders > 0) {
                 const perOrderVal = val / orders;
-                cellHtml += '<div style="text-align: right; font-size: 10px; color: #4f46e5;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+                cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
               }
               if (showRatio && gmvAmount > 0) {
                 const ratioVal = val / gmvAmount;
-                cellHtml += '<div style="text-align: right; font-size: 10px; color: #f59e0b;">' + formatPercent(ratioVal) + '</div>';
+                cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px;">' + formatPercent(ratioVal) + '</div>';
               }
-              html += '<td style="padding: 4px 6px; background: ' + style.bg + ';">' + cellHtml + '</td>';
+              html += '<td style="padding: 4px 6px; background: ' + heatColor + '; text-align: right; font-variant-numeric: tabular-nums;">' + cellHtml + '</td>';
             });
           });
           
@@ -3675,13 +3989,13 @@
       if (value == null || value === '') return '-';
       if (format === 'number') return formatNumber(value);
       if (format === 'money') return formatMoney(value);
-      if (format === 'ue') return parseFloat(value)?.toFixed(2) || '-';
+      if (format === 'ue') { const n = parseFloat(value); return isNaN(n) ? '-' : n.toFixed(2); }
       if (format === 'percent') return formatPercent(value);
       return value;
     }
 
     function toggleDimensionGroup(groupIdx) {
-      const collapsibles = document.querySelectorAll('.collapsible');
+      const collapsibles = document.querySelectorAll('#dimensionTable .collapsible');
       if (collapsibles[groupIdx]) {
         collapsibles[groupIdx].classList.toggle('collapsed');
       }
@@ -3743,7 +4057,7 @@
         const citiesData = merchantData[firstMerchantType].cities || [];
         citiesData.forEach(city => {
           if (city.name !== '总商') {
-            citySelectHtml.push('<option value="' + city.name + '">' + (city.displayName || city.name) + '</option>');
+            citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
           }
         });
       } else if (merchantData && merchantData.all) {
@@ -3751,7 +4065,7 @@
         const citiesData = merchantData.all.cities || [];
         citiesData.forEach(city => {
           if (city.name !== '总商') {
-            citySelectHtml.push('<option value="' + city.name + '">' + (city.displayName || city.name) + '</option>');
+            citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
           }
         });
       }
@@ -3857,24 +4171,24 @@
       let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
       
       currentMetricGroups.forEach((group, groupIdx) => {
-        html += '<div class="collapsible">';
+        html += '<div class="collapsible' + (groupIdx > 0 ? ' collapsed' : '') + '">';
         html += '<div class="collapsible-header" onclick="toggleTrendGroup(' + groupIdx + ')">';
         html += '<span>' + group.name + ' (' + group.metrics.length + '项)</span>';
-        html += '<span style="font-size: 14px; color: #64748b;">▼</span>';
+        html += '<span style="font-size: 14px; color: var(--text-tertiary);">▼</span>';
         html += '</div>';
         html += '<div class="collapsible-content" style="padding: 0;">';
         html += '<table style="width: 100%; border-collapse: collapse;">';
         html += '<thead>';
-        html += '<tr style="background: #f8fafc;">';
-        html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: #64748b; width: 120px;">指标</th>';
+        html += '<tr style="background: var(--bg-header);">';
+        html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: var(--text-secondary); width: 120px;">指标</th>';
         
         // 添加月份标题（最新的月份标黄，现在最新的在左边第一位）
         trendMonths.forEach((tm, idx) => {
           const isLatest = idx === 0;  // 最新的是第一个（倒序排列）
-          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: #64748b; ' + (isLatest ? 'background: #fef3c7;' : '') + '">' + tm.label + '</th>';
+          html += '<th style="padding: 6px 8px; text-align: right; font-weight: 600; font-size: 11px; color: var(--text-secondary); ' + (isLatest ? 'background: var(--warning-bg);' : '') + '">' + tm.label + '</th>';
         });
         
-        html += '<th style="padding: 8px 12px; text-align: center; font-weight: 600; font-size: 12px; color: #64748b; background: #f0f9ff; width: 200px;">趋势分析</th>';
+        html += '<th style="padding: 8px 12px; text-align: center; font-weight: 600; font-size: 12px; color: var(--text-secondary); background: var(--primary-bg); width: 200px;">趋势分析</th>';
         html += '</tr></thead><tbody>';
         
         const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
@@ -3891,8 +4205,8 @@
           const rSquared = calculateRSquared(absValues);
           const trendStrength = calculateTrendStrength(absValues);
           
-          html += '<tr style="border-bottom: 1px solid #e2e8f0;">';
-          html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600;">' + metric.label + '</td>';
+          html += '<tr style="border-bottom: 1px solid var(--border);">';
+          html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600; white-space: nowrap;">' + metric.label + '</td>';
           
           monthlyData.forEach((d, idx) => {
             const isLatest = idx === monthlyData.length - 1;
@@ -3902,21 +4216,21 @@
             
             let cellHtml = '';
             // 绝对值
-            cellHtml += '<div style="text-align: right; font-size: 11px; color: #000; font-weight: ' + (isLatest ? '600' : '400') + ';">' + formatValue(val, metric.format) + '</div>';
+            cellHtml += '<div style="text-align: right; font-size: 12px; color: var(--text-primary); font-weight: ' + (isLatest ? '600' : '500') + '; line-height: 1.5;">' + formatValue(val, metric.format) + '</div>';
             
             // 单均
             if (showPerOrder && orders > 0) {
               const perOrderVal = val / orders;
-              cellHtml += '<div style="text-align: right; font-size: 10px; color: #4f46e5;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
             }
             
             // 比例
             if (showRatio && gmvAmount > 0) {
               const ratioVal = val / gmvAmount;
-              cellHtml += '<div style="text-align: right; font-size: 10px; color: #f59e0b;">' + formatPercent(ratioVal) + '</div>';
+              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px;">' + formatPercent(ratioVal) + '</div>';
             }
             
-            html += '<td style="padding: 4px 6px; ' + (isLatest ? 'background: #fffbeb;' : '') + '">' + cellHtml + '</td>';
+            html += '<td style="padding: 4px 6px; ' + (isLatest ? 'background: var(--warning-bg);' : '') + ' text-align: right; font-variant-numeric: tabular-nums;">' + cellHtml + '</td>';
           });
           
           // 计算单均和比例的趋势
@@ -3943,7 +4257,7 @@
           // 基于线性回归判断趋势状态
           const getTrendStatus = (trend, rsq) => {
             // R² < 0.3：趋势不可靠，显示"波动"
-            if (rsq < 0.3) return { icon: '○', text: '波动', color: '#94a3b8' };
+            if (rsq < 0.3) return { icon: '○', text: '波动', color: 'var(--text-tertiary)' };
             
             // 趋势阈值：每数据点变化超过2%视为明显趋势
             const threshold = 2;
@@ -3954,9 +4268,9 @@
             const isGoodTrend = isCostMetric ? (trend < -threshold) : (trend > threshold);
             const isBadTrend = isCostMetric ? (trend > threshold) : (trend < -threshold);
             
-            if (isGoodTrend) return { icon: '📈', text: '向好', color: '#16a34a' };
-            if (isBadTrend) return { icon: '📉', text: '恶化', color: '#dc2626' };
-            return { icon: '➡️', text: '平稳', color: '#64748b' };
+            if (isGoodTrend) return { icon: '📈', text: '向好', color: 'var(--success)' };
+            if (isBadTrend) return { icon: '📉', text: '恶化', color: 'var(--danger)' };
+            return { icon: '➡️', text: '平稳', color: 'var(--text-secondary)' };
           };
           
           // 判断状态是否为正向
@@ -3996,11 +4310,11 @@
               const bothNeutral = poStatus.text === '平稳' && ratioStatus.text === '平稳';
               const mixed = poPositive !== ratioPositive && poPositive !== null && ratioPositive !== null;
               
-              if (bothGood) return { text: '🎉 双优', color: '#16a34a' };
-              if (bothBad) return { text: '⚠️ 双差', color: '#dc2626' };
-              if (bothNeutral) return { text: '✅ 平稳', color: '#64748b' };
-              if (mixed) return { text: '🔄 分化', color: '#f59e0b' };
-              return { text: '➡️ 中性', color: '#64748b' };
+              if (bothGood) return { text: '🎉 双优', color: 'var(--success)' };
+              if (bothBad) return { text: '⚠️ 双差', color: 'var(--danger)' };
+              if (bothNeutral) return { text: '✅ 平稳', color: 'var(--text-secondary)' };
+              if (mixed) return { text: '🔄 分化', color: 'var(--warning)' };
+              return { text: '➡️ 中性', color: 'var(--text-secondary)' };
             }
             
             return null;
@@ -4008,15 +4322,26 @@
           
           const conclusion = getConclusion();
           
-          html += '<td style="padding: 4px 8px; background: #f0f9ff;">';
-          
+          html += '<td style="padding: 4px 8px; background: var(--primary-bg);">';
+
+          // Sparkline
+          const sparkVals = absValues.slice().reverse();
+          if (sparkVals.length >= 2) {
+            const w = 56, h = 18, pad = 2;
+            const sMin = Math.min(...sparkVals), sMax = Math.max(...sparkVals), sRange = sMax - sMin || 1;
+            const pts = sparkVals.map((v, i) => (pad + i * (w - 2*pad) / (sparkVals.length-1)) + ',' + (h - pad - (v - sMin) / sRange * (h - 2*pad))).join(' ');
+            const mainStatus = getTrendStatus(trendStrength, rSquared);
+            const sparkColor = mainStatus.text === '向好' ? 'var(--success)' : mainStatus.text === '恶化' ? 'var(--danger)' : 'var(--text-tertiary)';
+            html += '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="display:block;margin-bottom:4px;"><polyline fill="none" stroke="' + sparkColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"/></svg>';
+          }
+
           // 单均趋势（基于线性回归）
           if (showPerOrder && perOrderValues) {
             const poRsq = calculateRSquared(perOrderValues);
             const poTrend = calculateTrendStrength(perOrderValues);
             const poStatus = getTrendStatus(poTrend, poRsq);
             html += '<div style="display: flex; align-items: center; justify-content: space-between;">';
-            html += '<span style="font-size: 10px; color: #4f46e5;">单均</span>';
+            html += '<span style="font-size: 10px; color: var(--primary);">单均</span>';
             html += '<span style="font-size: 11px; font-weight: 600; color: ' + poStatus.color + ';">' + poStatus.icon + ' ' + poStatus.text + '</span>';
             html += '</div>';
           }
@@ -4027,14 +4352,14 @@
             const ratioTrend = calculateTrendStrength(ratioValues);
             const ratioStatus = getTrendStatus(ratioTrend, ratioRsq);
             html += '<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 3px;">';
-            html += '<span style="font-size: 10px; color: #f59e0b;">占比</span>';
+            html += '<span style="font-size: 10px; color: var(--warning);">占比</span>';
             html += '<span style="font-size: 11px; font-weight: 600; color: ' + ratioStatus.color + ';">' + ratioStatus.icon + ' ' + ratioStatus.text + '</span>';
             html += '</div>';
           }
           
           // 综合结论
           if (conclusion) {
-            html += '<div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid #e2e8f0; text-align: center;">';
+            html += '<div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); text-align: center;">';
             html += '<span style="font-size: 12px; font-weight: 600; color: ' + conclusion.color + ';">' + conclusion.text + '</span>';
             html += '</div>';
           }
@@ -4067,7 +4392,7 @@
       const citySelect = document.getElementById('sensitivityCitySelect');
       citySelect.innerHTML = '<option value="">请选择城市</option>';
       currentData.cities.forEach(city => {
-        citySelect.innerHTML += `<option value="${city.name}">${city.displayName}</option>`;
+        citySelect.innerHTML += `<option value="${city.name}">${getCityDisplayName(city.displayName)}</option>`;
       });
 
       initSensitivityParams();
@@ -4193,7 +4518,7 @@
 
         if (ue < 0.1) {
           anomalies.push({
-            city: city.displayName,
+            city: getCityDisplayName(city.displayName),
             level: 'danger',
             title: 'UE严重偏低',
             desc: `UE为${ue.toFixed(3)}元，低于0.1元危险阈值`,
@@ -4201,7 +4526,7 @@
           });
         } else if (ue < 0.5) {
           anomalies.push({
-            city: city.displayName,
+            city: getCityDisplayName(city.displayName),
             level: 'warning',
             title: 'UE预警',
             desc: `UE为${ue.toFixed(3)}元，低于0.5元预警阈值`,
@@ -4211,7 +4536,7 @@
 
         if (profitRate < 0.1) {
           anomalies.push({
-            city: city.displayName,
+            city: getCityDisplayName(city.displayName),
             level: 'danger',
             title: '毛利率严重偏低',
             desc: `毛利率为${(profitRate * 100).toFixed(1)}%，低于10%危险阈值`,
@@ -4219,7 +4544,7 @@
           });
         } else if (profitRate < 0.2) {
           anomalies.push({
-            city: city.displayName,
+            city: getCityDisplayName(city.displayName),
             level: 'warning',
             title: '毛利率预警',
             desc: `毛利率为${(profitRate * 100).toFixed(1)}%，低于20%预警阈值`,
@@ -4229,7 +4554,7 @@
 
         if (subsidyRatio > 0.15) {
           anomalies.push({
-            city: city.displayName,
+            city: getCityDisplayName(city.displayName),
             level: 'warning',
             title: '补贴率过高',
             desc: `补贴率为${(subsidyRatio * 100).toFixed(1)}%，超过15%预警阈值`,
@@ -4354,7 +4679,7 @@
               <span class="${priorityClass} text-white px-2 py-1 rounded text-xs">${item.priority}</span>
               <strong>${item.title}</strong>
             </div>
-            <p style="color: #64748b; font-size: 13px; margin-bottom: 8px;">${item.desc}</p>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">${item.desc}</p>
             <p style="font-size: 13px;"><strong>行动建议：</strong>${item.action}</p>
           </div>
         `;
@@ -4375,8 +4700,8 @@
       const healthScore = Math.round(((parseFloat(totals.ue) || 0) * 100 + ((parseFloat(totals.profitRate) || 0) * 500)) / 6);
       const merchantLabel = allMerchantData && allMerchantData[currentMerchantType] ? allMerchantData[currentMerchantType].label : '全量商家';
       
-      let report = '<div style="padding: 16px; background: #f8fafc; border-radius: 8px;">';
-      report += '<h3 style="color: #4f46e5; margin-bottom: 16px;">📊 财务分析报告</h3>';
+      let report = '<div style="padding: 16px; background: var(--bg-card); border-radius: 8px;">';
+      report += '<h3 style="color: var(--primary); margin-bottom: 16px;">📊 财务分析报告</h3>';
       report += '<p><strong>生成时间：</strong>' + dateStr + '</p>';
       report += '<p><strong>商家类型：</strong>' + merchantLabel + '</p>';
       report += '<h4 style="margin-top: 16px; margin-bottom: 8px;">一、核心指标概览</h4>';
@@ -4399,7 +4724,7 @@
         const profitRate = parseFloat(mod.profitRate) || 0;
         if (ue < 0.1 || profitRate < 0.1) {
           anomalyCount++;
-          report += '<p>⚠️ ' + city.displayName + '：UE=' + ue.toFixed(2) + '元，毛利率=' + formatPercent(profitRate) + '</p>';
+          report += '<p>⚠️ ' + getCityDisplayName(city.displayName) + '：UE=' + ue.toFixed(2) + '元，毛利率=' + formatPercent(profitRate) + '</p>';
         }
       });
 
@@ -4430,7 +4755,7 @@
 
       if (currentData.cities.length > 0) {
         const cityData = currentData.cities.map(city => ({
-          城市: city.displayName,
+          城市: getCityDisplayName(city.displayName),
           ...city.modules.all || {}
         }));
         const ws2 = XLSX.utils.json_to_sheet(cityData);
@@ -4462,7 +4787,10 @@
     window.onload = async function() {
       console.log('[App] 开始初始化...');
       console.log('[App] 强制从云端加载模式');
-      
+
+      // 显示骨架屏
+      showSkeleton();
+
       // 显示加载状态面板
       const loadingPanel = document.getElementById('cloudLoadingPanel');
       const loadingText = document.getElementById('cloudLoadingText');
