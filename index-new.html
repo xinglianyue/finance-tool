@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260618.7"></script>
-    <script src="js/chart.umd.min.js?v=20260618.7"></script>
-    <script src="js/data-store.js?v=20260618.7"></script>
-    <script src="js/state-manager.js?v=20260618.7"></script>
+  <script src="js/xlsx.full.min.js?v=20260618.8"></script>
+    <script src="js/chart.umd.min.js?v=20260618.8"></script>
+    <script src="js/data-store.js?v=20260618.8"></script>
+    <script src="js/state-manager.js?v=20260618.8"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1243,7 +1243,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-18.7</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-18.8</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
         <button class="btn btn-secondary" onclick="toggleTheme()" style="font-size: 16px; padding: 8px 12px;">🌙</button>
@@ -2338,16 +2338,17 @@
         let cloudData = null;
         
         // 优先使用相对路径加载（同一域名，无 CORS 问题）
+        // 不设超时，9.5MB文件在手机慢网络下需要较长时间
         const localUrl = './shared-data.json';
         console.log('[App] 尝试从相对路径加载:', localUrl);
         
         try {
-          const localResponse = await fetch(localUrl, { signal: AbortSignal.timeout(15000) });
+          const localResponse = await fetch(localUrl);
           if (localResponse.ok) {
             cloudData = await localResponse.json();
             console.log('[App] 从相对路径加载成功');
           } else {
-            console.warn('[App] 相对路径加载失败，尝试直接下载');
+            console.warn('[App] 相对路径加载失败，HTTP状态:', localResponse.status);
           }
         } catch (localError) {
           console.warn('[App] 相对路径加载异常:', localError);
