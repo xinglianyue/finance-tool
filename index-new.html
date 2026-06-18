@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260618.6"></script>
-    <script src="js/chart.umd.min.js?v=20260618.6"></script>
-    <script src="js/data-store.js?v=20260618.6"></script>
-    <script src="js/state-manager.js?v=20260618.6"></script>
+  <script src="js/xlsx.full.min.js?v=20260618.7"></script>
+    <script src="js/chart.umd.min.js?v=20260618.7"></script>
+    <script src="js/data-store.js?v=20260618.7"></script>
+    <script src="js/state-manager.js?v=20260618.7"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -738,6 +738,34 @@
 
     /* 城市卡片视图 - 移动端替代表格 */
     @media (max-width: 576px) {
+      .metric-tabs {
+        display: flex;
+        gap: 0;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 3px;
+        margin-bottom: 10px;
+        overflow-x: auto;
+      }
+      .metric-tab {
+        flex: 1;
+        padding: 8px 4px;
+        border: none;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        min-height: 44px;
+      }
+      .metric-tab.active {
+        background: var(--primary);
+        color: white;
+      }
+
       .city-cards { display: flex; flex-direction: column; gap: 10px; }
       .city-card {
         background: var(--bg-secondary);
@@ -767,6 +795,203 @@
       .city-card-item-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
       .city-card-item-value.positive { color: var(--success); }
       .city-card-item-value.negative { color: var(--danger); }
+
+      /* KPI紧凑网格 */
+      .kpi-grid.compact {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .kpi-compact {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 8px 6px;
+        text-align: center;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+      }
+      .kpi-compact:active { transform: scale(0.97); }
+      .kpi-compact.highlight {
+        grid-column: span 1;
+        border-color: var(--primary);
+      }
+      .kpi-compact-label {
+        display: block;
+        font-size: 10px;
+        color: var(--text-tertiary);
+        line-height: 1.2;
+        margin-bottom: 2px;
+      }
+      .kpi-compact-value {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.3;
+      }
+      .kpi-compact-badge {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 600;
+        padding: 1px 4px;
+        border-radius: 3px;
+        margin-top: 2px;
+      }
+      .kpi-compact-badge.up { color: var(--success); background: var(--positive-bg); }
+      .kpi-compact-badge.down { color: var(--danger); background: var(--negative-bg); }
+      .kpi-compact-badge.warn { color: var(--warning); background: var(--warning-bg); }
+
+      /* KPI展开详情 */
+      .kpi-detail-panel {
+        grid-column: 1 / -1;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid var(--primary);
+        margin: 4px 0;
+        animation: slideDown 0.2s ease;
+      }
+      @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .kpi-detail-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .kpi-detail-close {
+        font-size: 18px;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        padding: 4px 8px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+      }
+      .kpi-detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 13px;
+      }
+      .kpi-detail-row-label { color: var(--text-secondary); }
+      .kpi-detail-row-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+      /* 城市排名表 - 可展开行 */
+      .city-rank-list { display: flex; flex-direction: column; gap: 6px; }
+      .city-rank-item {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .city-rank-summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        cursor: pointer;
+        min-height: 44px;
+      }
+      .rank-badge {
+        width: 24px; height: 24px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .rank-city {
+        font-weight: 700;
+        font-size: 14px;
+        min-width: 36px;
+      }
+      .rank-bars {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .rank-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .rank-bar-label { font-size: 9px; color: var(--text-tertiary); min-width: 52px; white-space: nowrap; }
+      .rank-bar {
+        flex: 1;
+        height: 4px;
+        background: var(--neutral-bg);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .rank-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.6s ease;
+      }
+      .rank-health { font-size: 14px; }
+      .rank-expand-icon {
+        font-size: 12px;
+        color: var(--text-tertiary);
+        transition: transform 0.2s;
+      }
+      .city-rank-item.expanded .rank-expand-icon { transform: rotate(90deg); }
+      .city-rank-detail {
+        padding: 0 12px 12px;
+        border-top: 1px solid var(--border);
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding-top: 8px;
+      }
+      .detail-item { display: flex; flex-direction: column; }
+      .detail-label { font-size: 10px; color: var(--text-tertiary); }
+      .detail-value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+      /* 趋势表 - 迷你图卡片 */
+      .trend-cards { display: flex; flex-direction: column; gap: 10px; }
+      .trend-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .trend-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .trend-card-title { font-size: 13px; font-weight: 600; }
+      .trend-card-status { font-size: 11px; font-weight: 600; }
+      .trend-card-months {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .trend-month {
+        flex: 1;
+        text-align: center;
+        padding: 6px 4px;
+        border-radius: 6px;
+        background: var(--bg-primary);
+      }
+      .trend-month.current { border: 1px solid var(--primary); background: var(--primary-bg); }
+      .trend-month-label { display: block; font-size: 10px; color: var(--text-tertiary); }
+      .trend-month-value { display: block; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
     }
 
     /* 防止iOS点击高亮 */
@@ -1018,7 +1243,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-18.6</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: 2026-06-18.7</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
         <button class="btn btn-secondary" onclick="toggleTheme()" style="font-size: 16px; padding: 8px 12px;">🌙</button>
@@ -1064,7 +1289,7 @@
         <div class="card">
           <div class="card-title">🏙️ 城市排名（按UE）</div>
           <div class="table-container">
-            <table id="cityRankTable"></table>
+            <div id="cityRankTable"></div>
           </div>
         </div>
       </div>
@@ -3005,6 +3230,82 @@
       kpiCards.innerHTML = html;
     }
 
+    /**
+     * @description 切换KPI详情面板的显示/隐藏
+     * @param {number} index - KPI卡片索引
+     */
+    function toggleKpiDetail(index) {
+      const panel = document.getElementById('kpiDetailPanel');
+      const grid = document.getElementById('kpiCards');
+      if (panel && panel.dataset.index === String(index)) {
+        panel.remove();
+        return;
+      }
+      if (panel) panel.remove();
+
+      const totals = currentData?.totals;
+      if (!totals) return;
+
+      const kpiDetails = [
+        { label: '原价交易额', value: formatMoney(totals.gmvAmount), rows: [
+          { label: '加盟GMV', value: formatMoney(totals.franchiseGMV) },
+          { label: '自营GMV', value: formatMoney(totals.selfGMV) }
+        ]},
+        { label: '订单量', value: formatNumber(totals.orders), rows: [
+          { label: '加盟订单', value: formatNumber(totals.franchiseOrders) },
+          { label: '自营订单', value: formatNumber(totals.selfOrders) }
+        ]},
+        { label: '单均收入', value: (parseFloat(totals.avgRevenuePerOrder) || 0).toFixed(2), rows: [] },
+        { label: '单均支出', value: (parseFloat(totals.avgCostPerOrder) || 0).toFixed(2), rows: [] },
+        { label: '单均UE', value: (parseFloat(totals.ue) || 0).toFixed(2), rows: [
+          { label: '健康状态', value: parseFloat(totals.ue) >= 0.5 ? '✅ 健康' : parseFloat(totals.ue) >= 0.1 ? '⚠️ 预警' : '🚨 危险' },
+          { label: 'UE进度', value: Math.min(parseFloat(totals.ue) / 1.0 * 100, 100).toFixed(0) + '%' }
+        ]},
+        { label: '毛利率', value: formatPercent(totals.profitRate), rows: [
+          { label: '健康状态', value: parseFloat(totals.profitRate) >= 0.2 ? '✅ 健康' : parseFloat(totals.profitRate) >= 0.1 ? '⚠️ 预警' : '🚨 危险' },
+          { label: '利率进度', value: Math.min(parseFloat(totals.profitRate) / 0.3 * 100, 100).toFixed(0) + '%' }
+        ]},
+        { label: '毛利总额', value: formatMoney(totals.profit), rows: [] }
+      ];
+
+      const detail = kpiDetails[index];
+      if (!detail) return;
+
+      let html = '<div class="kpi-detail-panel" id="kpiDetailPanel" data-index="' + index + '">';
+      html += '<div class="kpi-detail-title"><span>' + detail.label + '</span><span class="kpi-detail-close" onclick="closeKpiDetail()">✕</span></div>';
+      html += '<div class="kpi-detail-row"><span class="kpi-detail-row-label">当前值</span><span class="kpi-detail-row-value">' + detail.value + '</span></div>';
+      detail.rows.forEach(row => {
+        html += '<div class="kpi-detail-row"><span class="kpi-detail-row-label">' + row.label + '</span><span class="kpi-detail-row-value">' + row.value + '</span></div>';
+      });
+      // UE进度条
+      if (index === 4) {
+        const uePct = Math.min(Math.max(parseFloat(totals.ue) / 1.0 * 100, 0), 100);
+        const ueColor = parseFloat(totals.ue) >= 0.5 ? 'var(--success)' : parseFloat(totals.ue) >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+        html += '<div style="margin-top:8px;height:6px;border-radius:3px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:' + uePct + '%;border-radius:3px;background:' + ueColor + ';transition:width .6s var(--ease);"></div></div>';
+      }
+      // 毛利率进度条
+      if (index === 5) {
+        const prPct = Math.min(Math.max(parseFloat(totals.profitRate) / 0.3 * 100, 0), 100);
+        const prColor = parseFloat(totals.profitRate) >= 0.2 ? 'var(--success)' : parseFloat(totals.profitRate) >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+        html += '<div style="margin-top:8px;height:6px;border-radius:3px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:' + prPct + '%;border-radius:3px;background:' + prColor + ';transition:width .6s var(--ease);"></div></div>';
+      }
+      html += '</div>';
+
+      // 插入到点击的KPI卡片后面
+      const cards = grid.querySelectorAll('.kpi-compact');
+      if (cards[index]) {
+        cards[index].insertAdjacentHTML('afterend', html);
+      }
+    }
+
+    /**
+     * @description 关闭KPI详情面板
+     */
+    function closeKpiDetail() {
+      const panel = document.getElementById('kpiDetailPanel');
+      if (panel) panel.remove();
+    }
+
     function renderOverview() {
       if (!currentData) return;
 
@@ -3031,7 +3332,36 @@
       const dotDanger = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--danger);"></span>';
       const dotPrimary = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--primary);"></span>';
 
-      document.getElementById('kpiCards').innerHTML = `
+      const isMobileView = window.innerWidth <= 576;
+
+      if (isMobileView) {
+        // 移动端紧凑网格
+        const kpis = [
+          { label: '交易额', value: formatMoney(totals.gmvAmount), badge: '', cls: '' },
+          { label: '订单量', value: formatNumber(totals.orders), badge: '', cls: '' },
+          { label: '单均收入', value: (parseFloat(totals.avgRevenuePerOrder) || 0).toFixed(2), badge: '', cls: '' },
+          { label: '单均支出', value: (parseFloat(totals.avgCostPerOrder) || 0).toFixed(2), badge: '', cls: '' },
+          { label: 'UE', value: (parseFloat(totals.ue) || 0).toFixed(2), badge: ueLevel === 'success' ? '✅' : ueLevel === 'warning' ? '⚠️' : '🚨', cls: ueLevel },
+          { label: '毛利率', value: formatPercent(totals.profitRate), badge: profitRateLevel === 'success' ? '✅' : profitRateLevel === 'warning' ? '⚠️' : '🚨', cls: profitRateLevel },
+          { label: '毛利', value: formatMoney(totals.profit), badge: '', cls: '' }
+        ];
+        let mobileHtml = '';
+        kpis.forEach((kpi, i) => {
+          mobileHtml += '<div class="kpi-compact' + (kpi.cls ? ' highlight ' + kpi.cls : '') + '" onclick="toggleKpiDetail(' + i + ')">';
+          mobileHtml += '<span class="kpi-compact-label">' + kpi.label + '</span>';
+          mobileHtml += '<span class="kpi-compact-value">' + kpi.value + '</span>';
+          if (kpi.badge) {
+            const badgeCls = kpi.cls === 'success' ? 'up' : kpi.cls === 'warning' ? 'warn' : 'down';
+            mobileHtml += '<span class="kpi-compact-badge ' + badgeCls + '">' + kpi.badge + '</span>';
+          }
+          mobileHtml += '</div>';
+        });
+        document.getElementById('kpiCards').innerHTML = mobileHtml;
+        document.getElementById('kpiCards').classList.add('compact');
+      } else {
+        // 桌面端原有KPI渲染
+        document.getElementById('kpiCards').classList.remove('compact');
+        document.getElementById('kpiCards').innerHTML = `
         <div class="kpi-card">
           <div class="accent"></div>
           <div class="kpi-label">${dotPrimary}原价交易额</div>
@@ -3075,7 +3405,8 @@
           <div class="kpi-label">${dotSuccess}毛利总额</div>
           <div class="kpi-value">${formatMoney(totals.profit)}</div>
         </div>
-      `;
+        `;
+      }
 
       // 生成洞察总结
       const ueVal2 = parseFloat(totals.ue) || 0;
@@ -3153,6 +3484,18 @@
       });
     }
 
+    /**
+     * @description 切换城市排名项的展开/折叠状态
+     * @param {HTMLElement} el - 被点击的city-rank-item元素
+     */
+    function toggleCityRankExpand(el) {
+      const detail = el.querySelector('.city-rank-detail');
+      if (!detail) return;
+      const isExpanded = el.classList.contains('expanded');
+      el.classList.toggle('expanded');
+      detail.style.display = isExpanded ? 'none' : 'block';
+    }
+
     function renderCityRankTable() {
       const cities = currentData.cities.map(city => ({
         city: city,
@@ -3178,7 +3521,64 @@
 
       const sortedCities = [...cities].sort((a, b) => b.ue - a.ue);
 
-      let html = '<thead><tr><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">排名</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:left;">城市</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">订单量</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">交易额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均收入</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均支出</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">UE</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利率</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利总额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">健康度</th></tr></thead><tbody>';
+      // 移动端可展开行视图
+      const isMobile = window.innerWidth <= 576;
+      if (isMobile) {
+        let mobileHtml = '<div class="city-rank-list">';
+        sortedCities.forEach((item, idx) => {
+          const city = item.city;
+          const mod = city.modules?.all || {};
+          const ue = item.ue;
+          const profitRate = item.profitRate;
+
+          const uePct = Math.min(Math.max(ue / 1.0 * 100, 0), 100);
+          const ueColor = ue >= ueWarningThreshold ? 'var(--success)' : ue >= ueDangerThreshold ? 'var(--warning)' : 'var(--danger)';
+          const healthIcon = (ue >= ueWarningThreshold && profitRate >= profitWarningThreshold) ? '✅' : (ue < ueDangerThreshold || profitRate < profitDangerThreshold) ? '🚨' : '⚠️';
+
+          mobileHtml += '<div class="city-rank-item" onclick="toggleCityRankExpand(this)">';
+          mobileHtml += '<div class="city-rank-summary">';
+          mobileHtml += '<span class="rank-badge">' + (idx + 1) + '</span>';
+          mobileHtml += '<span class="rank-city">' + getCityDisplayName(city?.displayName || '') + '</span>';
+          mobileHtml += '<div class="rank-bars">';
+          mobileHtml += '<div class="rank-bar-row"><span class="rank-bar-label">UE ' + ue.toFixed(2) + '</span><div class="rank-bar"><div class="rank-bar-fill" style="width:' + uePct + '%;background:' + ueColor + ';"></div></div></div>';
+          const prPct = Math.min(Math.max(profitRate / 0.3 * 100, 0), 100);
+          const prColor = profitRate >= profitWarningThreshold ? 'var(--success)' : profitRate >= profitDangerThreshold ? 'var(--warning)' : 'var(--danger)';
+          mobileHtml += '<div class="rank-bar-row"><span class="rank-bar-label">利率 ' + formatPercent(profitRate) + '</span><div class="rank-bar"><div class="rank-bar-fill" style="width:' + prPct + '%;background:' + prColor + ';"></div></div></div>';
+          mobileHtml += '</div>';
+          mobileHtml += '<span class="rank-health">' + healthIcon + '</span>';
+          mobileHtml += '<span class="rank-expand-icon">▸</span>';
+          mobileHtml += '</div>';
+
+          // 展开详情
+          mobileHtml += '<div class="city-rank-detail" style="display:none;">';
+          mobileHtml += '<div class="detail-grid">';
+          const detailItems = [
+            { label: '订单量', value: formatNumber(mod?.orders) },
+            { label: '交易额', value: formatMoney(mod?.gmvAmount) },
+            { label: '单均收入', value: (parseFloat(mod?.avgRevenuePerOrder) || 0).toFixed(2) },
+            { label: '单均支出', value: (parseFloat(mod?.avgCostPerOrder) || 0).toFixed(2) },
+            { label: 'UE', value: ue.toFixed(3) },
+            { label: '毛利率', value: formatPercent(profitRate) },
+            { label: '毛利总额', value: formatMoney(mod?.profit) }
+          ];
+          detailItems.forEach(d => {
+            mobileHtml += '<div class="detail-item"><span class="detail-label">' + d.label + '</span><span class="detail-value">' + d.value + '</span></div>';
+          });
+          mobileHtml += '</div></div>';
+          mobileHtml += '</div>';
+        });
+
+        // 动态阈值说明
+        mobileHtml += '<div style="padding: 8px 12px; font-size: 11px; color: var(--text-secondary);">';
+        mobileHtml += '<strong>动态阈值：</strong>UE危险<' + ueDangerThreshold.toFixed(3) + '，预警<' + ueWarningThreshold.toFixed(3) + '；毛利率危险<' + formatPercent(profitDangerThreshold) + '，预警<' + formatPercent(profitWarningThreshold);
+        mobileHtml += '</div>';
+
+        mobileHtml += '</div>';
+        document.getElementById('cityRankTable').innerHTML = mobileHtml;
+        return;
+      }
+
+      let html = '<table style="width:100%;border-collapse:collapse;"><thead><tr><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">排名</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:left;">城市</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">订单量</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">交易额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均收入</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均支出</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">UE</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利率</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利总额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">健康度</th></tr></thead><tbody>';
 
       sortedCities.forEach((item, idx) => {
         const city = item.city;
@@ -3230,7 +3630,7 @@
       html += '<strong>动态阈值说明：</strong> ';
       html += 'UE阈值：危险<' + ueDangerThreshold.toFixed(3) + '，预警<' + ueWarningThreshold.toFixed(3) + '，健康≥' + ueWarningThreshold.toFixed(3) + '；';
       html += '毛利率阈值：危险<' + formatPercent(profitDangerThreshold) + '，预警<' + formatPercent(profitWarningThreshold) + '，健康≥' + formatPercent(profitWarningThreshold);
-      html += '</td></tr></tfoot>';
+      html += '</td></tr></tfoot></table>';
 
       document.getElementById('cityRankTable').innerHTML = html;
     }
@@ -3761,6 +4161,18 @@
     // 默认使用全品类的指标
     const METRIC_GROUPS = METRIC_GROUPS_BY_MODULE.all;
 
+    // 移动端维度表Tab分组状态
+    let currentMobileMetricTab = 'revenue';
+
+    /**
+     * @description 切换移动端维度表的指标Tab
+     * @param {string} tabKey - Tab键名(revenue/cost/efficiency/all)
+     */
+    function switchMobileMetricTab(tabKey) {
+      currentMobileMetricTab = tabKey;
+      renderDimensionTable();
+    }
+
     function renderDimensionTable() {
       if (!allMerchantData) {
         console.log('renderDimensionTable: allMerchantData is null');
@@ -3798,40 +4210,158 @@
         return;
       }
 
-      // 移动端城市卡片视图
+      // 移动端Tab指标分组+表格视图
       const isMobile = window.innerWidth <= 576;
       if (isMobile) {
-        html += '<div class="city-cards">';
-        selectedCities.forEach(city => {
-          const cityData = allMerchantData.all?.cities?.find(c => c.name === city || c.displayName === city);
-          html += '<div class="city-card">';
-          html += '<div class="city-card-title">' + getCityDisplayName(city) + '</div>';
-          html += '<div class="city-card-grid">';
+        // 渲染Tab按钮
+        const tabs = [
+          { key: 'revenue', label: '收入' },
+          { key: 'cost', label: '成本' },
+          { key: 'efficiency', label: '效率' },
+          { key: 'all', label: '全部' }
+        ];
+        html += '<div class="metric-tabs">';
+        tabs.forEach(t => {
+          html += '<button class="metric-tab' + (currentMobileMetricTab === t.key ? ' active' : '') + '" onclick="switchMobileMetricTab(\'' + t.key + '\')">' + t.label + '</button>';
+        });
+        html += '</div>';
 
-          const keyMetrics = [
-            { key: 'orders', label: '订单量', format: 'number' },
-            { key: 'gmvAmount', label: '交易额', format: 'money' },
-            { key: 'profit', label: '毛利', format: 'money' },
-            { key: 'profitRate', label: '利润率', format: 'percent' },
-            { key: 'ue', label: '单均UE', format: 'ue' },
-            { key: 'onlineRevenue', label: '线上收入', format: 'money' }
-          ];
+        // 根据Tab过滤分组
+        const tabGroupMap = {
+          revenue: ['订单指标', 'GMV指标', '收入指标'],
+          cost: ['补贴支出', '平台成本', '配送成本', '固定成本', '附加成本', '其他成本'],
+          efficiency: ['利润指标'],
+          all: null
+        };
+        const allowedGroups = tabGroupMap[currentMobileMetricTab] || null;
+        const filteredGroups = allowedGroups
+          ? currentMetricGroups.filter(g => allowedGroups.includes(g.name))
+          : currentMetricGroups;
 
-          keyMetrics.forEach(m => {
-            const val = cityData?.modules?.all?.[m.key] || 0;
-            let valStr = '';
-            let cls = '';
-            if (m.format === 'number') valStr = formatNumber(val);
-            else if (m.format === 'money') valStr = formatMoney(val);
-            else if (m.format === 'percent') valStr = formatPercent(val);
-            else if (m.format === 'ue') { const n = parseFloat(val); valStr = isNaN(n) ? '-' : n.toFixed(2); }
-            if ((m.key === 'profit' || m.key === 'ue' || m.key === 'profitRate') && val < 0) cls = ' negative';
-            else if ((m.key === 'profit' || m.key === 'ue' || m.key === 'profitRate') && val > 0) cls = ' positive';
-            html += '<div class="city-card-item"><span class="city-card-item-label">' + m.label + '</span><span class="city-card-item-value' + cls + '">' + valStr + '</span></div>';
+        // 用filteredGroups渲染表格（和桌面端相同的表格渲染逻辑）
+        filteredGroups.forEach((group, groupIdx) => {
+          html += '<div class="collapsible' + (groupIdx > 0 ? ' collapsed' : '') + '">';
+          html += '<div class="collapsible-header" onclick="toggleDimensionGroup(this.parentElement)">';
+          html += '<span>' + group.name + ' (' + group.metrics.length + '项)</span>';
+          html += '<span style="font-size: 14px; color: var(--text-tertiary);">▼</span>';
+          html += '</div>';
+          html += '<div class="collapsible-content" style="padding: 0;">';
+          html += '<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">';
+          html += '<table style="width: 100%; border-collapse: collapse; min-width: 400px;">';
+          html += '<thead>';
+          html += '<tr style="background: var(--bg-header);">';
+          html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: var(--text-secondary); position: sticky; left: 0; background: var(--bg-header); z-index: 2; min-width: 80px;">指标</th>';
+
+          selectedCities.forEach(city => {
+            html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: var(--text-secondary);" colspan="' + availableMerchantTypes.length + '">' + getCityDisplayName(city) + '</th>';
           });
 
-          html += '</div></div>';
+          html += '</tr>';
+          html += '<tr style="background: var(--bg-card);">';
+          html += '<th style="padding: 6px 8px; text-align: left; font-weight: 500; font-size: 11px; color: var(--text-tertiary); position: sticky; left: 0; background: var(--bg-card); z-index: 2;"></th>';
+
+          selectedCities.forEach(() => {
+            availableMerchantTypes.forEach(type => {
+              const style = getTypeStyle(type);
+              html += '<th style="padding: 6px 8px; text-align: right; font-weight: 500; font-size: 10px; color: var(--text-tertiary); background: ' + style.bg + ';">' + style.label + '</th>';
+            });
+          });
+
+          html += '</tr>';
+          html += '</thead><tbody>';
+
+          const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
+          const noPerOrderMetrics = ['orders'];
+          const noRatioMetrics = ['orders', 'gmvAmount'];
+
+          // 热力色阶
+          const metricValuesMap = {};
+          group.metrics.forEach(metric => {
+            const values = [];
+            selectedCities.forEach(city => {
+              availableMerchantTypes.forEach(type => {
+                const data = getDataForCityAndMerchant(city, type, module);
+                const val = data[metric.key] || 0;
+                values.push(val);
+              });
+            });
+            metricValuesMap[metric.key] = { min: Math.min(...values), max: Math.max(...values) };
+          });
+
+          group.metrics.forEach(metric => {
+            const isSkipMetric = skipMetrics.includes(metric.key);
+            const showPerOrder = !isSkipMetric && !noPerOrderMetrics.includes(metric.key);
+            const showRatio = !isSkipMetric && !noRatioMetrics.includes(metric.key);
+
+            let rowBgStyle = '';
+            if (metric.key === 'ue' || metric.key === 'profitRate') {
+              let worstVal = Infinity;
+              selectedCities.forEach(city => {
+                const data = getDataForCityAndMerchant(city, 'all', module);
+                const val = parseFloat(data[metric.key]) || 0;
+                if (val < worstVal) worstVal = val;
+              });
+              const checkVal = worstVal === Infinity ? 0 : worstVal;
+              if (metric.key === 'ue') {
+                if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+                else if (checkVal < 0.5) rowBgStyle = 'background: var(--warning-bg);';
+              } else if (metric.key === 'profitRate') {
+                if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+                else if (checkVal < 0.2) rowBgStyle = 'background: var(--warning-bg);';
+              }
+            }
+
+            html += '<tr style="border-bottom: 1px solid var(--border); ' + rowBgStyle + '">';
+            html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; position: sticky; left: 0; background: var(--bg-card); z-index: 1;">' + metric.label + '</td>';
+
+            selectedCities.forEach(city => {
+              availableMerchantTypes.forEach(type => {
+                const data = getDataForCityAndMerchant(city, type, module);
+
+                let cellHtml = '';
+                const val = data[metric.key] || 0;
+                const orders = data.orders || 1;
+                const gmvAmount = data.gmvAmount || 1;
+
+                const mv = metricValuesMap[metric.key];
+                const range = (mv?.max ?? 0) - (mv?.min ?? 0) || 1;
+                const ratio = (val - (mv?.min ?? 0)) / range;
+                const costKeys = ['deliveryCost','subsidyTotal','platformCost','fixedCost','subsidyB','subsidyC','deliveryCostRate','subsidyRatio'];
+                const isCost = costKeys.includes(metric.key);
+                let heatColor;
+                if (isCost) {
+                  const r = Math.round(ratio * 200);
+                  const g = Math.round((1 - ratio) * 200);
+                  heatColor = 'rgba(' + r + ', ' + g + ', 50, 0.12)';
+                } else if (metric.key === 'profit' || metric.key === 'profitRate' || metric.key === 'ue') {
+                  if (val < 0) {
+                    heatColor = 'rgba(239, 68, 68, 0.12)';
+                  } else {
+                    heatColor = 'rgba(16, 185, 129, ' + (0.05 + ratio * 0.12) + ')';
+                  }
+                } else {
+                  heatColor = 'rgba(79, 70, 229, ' + (0.03 + ratio * 0.1) + ')';
+                }
+
+                cellHtml += '<div style="text-align: right; font-size: 12px; color: var(--text-primary); font-weight: 500; line-height: 1.5;">' + formatValue(val, metric.format) + '</div>';
+                if (showPerOrder && orders > 0) {
+                  const perOrderVal = val / orders;
+                  cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+                }
+                if (showRatio && gmvAmount > 0) {
+                  const ratioVal = val / gmvAmount;
+                  cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px;">' + formatPercent(ratioVal) + '</div>';
+                }
+                html += '<td style="padding: 4px 6px; background: ' + heatColor + '; text-align: right; font-variant-numeric: tabular-nums;">' + cellHtml + '</td>';
+              });
+            });
+
+            html += '</tr>';
+          });
+
+          html += '</tbody></table></div></div></div>';
         });
+
         html += '</div>';
         document.getElementById('dimensionTable').innerHTML = html;
         return;
@@ -3994,10 +4524,18 @@
       return value;
     }
 
-    function toggleDimensionGroup(groupIdx) {
-      const collapsibles = document.querySelectorAll('#dimensionTable .collapsible');
-      if (collapsibles[groupIdx]) {
-        collapsibles[groupIdx].classList.toggle('collapsed');
+    /**
+     * @description 切换维度表分组的折叠状态
+     * @param {number|HTMLElement} groupIdxOrEl - 分组索引或collapsible元素
+     */
+    function toggleDimensionGroup(groupIdxOrEl) {
+      if (typeof groupIdxOrEl === 'number') {
+        const collapsibles = document.querySelectorAll('#dimensionTable .collapsible');
+        if (collapsibles[groupIdxOrEl]) {
+          collapsibles[groupIdxOrEl].classList.toggle('collapsed');
+        }
+      } else if (groupIdxOrEl instanceof HTMLElement) {
+        groupIdxOrEl.classList.toggle('collapsed');
       }
     }
 
@@ -4166,6 +4704,78 @@
         // 将斜率转换为相对于平均值的百分比趋势（每数据点变化率）
         if (yMean === 0) return 0;
         return (slope / yMean) * 100;
+      }
+
+      // 移动端迷你图卡片视图
+      const isMobile = window.innerWidth <= 576;
+      if (isMobile) {
+        let mobileHtml = '<div class="trend-cards">';
+
+        const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
+        const revenueMetrics = ['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders'];
+        const costMetrics = ['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost'];
+
+        const getTrendStatus = (trend, rsq, mKey) => {
+          if (rsq < 0.3) return { icon: '○', text: '波动', color: 'var(--text-tertiary)' };
+          const threshold = 2;
+          const isCostMetric = costMetrics.includes(mKey);
+          const isGoodTrend = isCostMetric ? (trend < -threshold) : (trend > threshold);
+          const isBadTrend = isCostMetric ? (trend > threshold) : (trend < -threshold);
+          if (isGoodTrend) return { icon: '📈', text: '向好', color: 'var(--success)' };
+          if (isBadTrend) return { icon: '📉', text: '恶化', color: 'var(--danger)' };
+          return { icon: '➡️', text: '平稳', color: 'var(--text-secondary)' };
+        };
+
+        currentMetricGroups.forEach(group => {
+          group.metrics.forEach(metric => {
+            if (skipMetrics.includes(metric.key)) return;
+
+            // 收集该指标所有月份的值
+            const values = [];
+            monthlyData.forEach(d => {
+              const val = d ? (d[metric.key] || 0) : 0;
+              values.push(val);
+            });
+
+            if (values.length < 2) return;
+
+            // 计算趋势
+            const rsq = calculateRSquared(values);
+            const trend = calculateTrendStrength(values);
+            const status = getTrendStatus(trend, rsq, metric.key);
+
+            // Sparkline SVG
+            const sparkVals = values.slice();
+            const w = 200, h = 40, pad = 4;
+            const sMin = Math.min(...sparkVals), sMax = Math.max(...sparkVals), sRange = sMax - sMin || 1;
+            const pts = sparkVals.map((v, i) => (pad + i * (w - 2*pad) / (sparkVals.length - 1)) + ',' + (h - pad - (v - sMin) / sRange * (h - 2*pad))).join(' ');
+            const sparkColor = status.text === '向好' ? 'var(--success)' : status.text === '恶化' ? 'var(--danger)' : 'var(--text-tertiary)';
+
+            mobileHtml += '<div class="trend-card">';
+            mobileHtml += '<div class="trend-card-header">';
+            mobileHtml += '<span class="trend-card-title">' + metric.label + '</span>';
+            mobileHtml += '<span class="trend-card-status" style="color:' + status.color + ';">' + status.icon + ' ' + status.text + '</span>';
+            mobileHtml += '</div>';
+            mobileHtml += '<svg width="100%" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="display:block;margin-bottom:8px;"><polyline fill="none" stroke="' + sparkColor + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"/></svg>';
+
+            // 最近3个月数值
+            const recentCount = Math.min(3, trendMonths.length);
+            mobileHtml += '<div class="trend-card-months">';
+            for (let i = trendMonths.length - recentCount; i < trendMonths.length; i++) {
+              const isLatest = i === trendMonths.length - 1;
+              mobileHtml += '<div class="trend-month' + (isLatest ? ' current' : '') + '">';
+              mobileHtml += '<span class="trend-month-label">' + (trendMonths[i]?.label || '') + '</span>';
+              mobileHtml += '<span class="trend-month-value">' + formatValue(values[i] ?? 0, metric.format) + '</span>';
+              mobileHtml += '</div>';
+            }
+            mobileHtml += '</div>';
+            mobileHtml += '</div>';
+          });
+        });
+
+        mobileHtml += '</div>';
+        document.getElementById('trendDetailTable').innerHTML = mobileHtml;
+        return;
       }
 
       let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
