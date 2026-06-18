@@ -2342,7 +2342,7 @@
         console.log('[App] 尝试从相对路径加载:', localUrl);
         
         try {
-          const localResponse = await fetch(localUrl);
+          const localResponse = await fetch(localUrl, { signal: AbortSignal.timeout(15000) });
           if (localResponse.ok) {
             cloudData = await localResponse.json();
             console.log('[App] 从相对路径加载成功');
@@ -2359,7 +2359,7 @@
           console.log('[App] 尝试直接下载:', directUrl);
           
           try {
-            const directResponse = await fetch(directUrl);
+            const directResponse = await fetch(directUrl, { signal: AbortSignal.timeout(10000) });
             if (directResponse.ok) {
               cloudData = await directResponse.json();
               console.log('[App] 直接下载成功');
@@ -2374,7 +2374,7 @@
         // 如果直接下载失败，尝试用 GitHub API
         if (!cloudData) {
           const apiUrl = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
-          const response = await fetch(apiUrl);
+          const response = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
           
           if (!response.ok) {
             console.log('[App] GitHub API 请求失败:', response.status);
@@ -2718,7 +2718,7 @@
         // 如果直接下载失败，尝试用 GitHub API
         if (!cloudData) {
           const apiUrl = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
-          const response = await fetch(apiUrl);
+          const response = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
           
           if (!response.ok) {
             console.log('[App] 无法连接云端');
@@ -5393,17 +5393,28 @@
       loadingText.textContent = '正在从云端加载数据...';
       loadingProgress.textContent = '连接服务器...';
       
-      // 强制从云端加载
+      // 强制从云端加载（含重试）
       console.log('[App] 开始从云端加载...');
       
       let loaded = false;
+      let retryCount = 0;
+      const maxRetries = 2;
       
-      try {
-        loadingProgress.textContent = '正在连接云端服务器...';
-        loaded = await loadFromCloud();
-      } catch (error) {
-        console.error('[App] 加载失败:', error);
-        loadingProgress.textContent = '加载失败: ' + error.message;
+      while (!loaded && retryCount <= maxRetries) {
+        try {
+          if (retryCount > 0) {
+            loadingProgress.textContent = '网络超时，第' + retryCount + '次重试...';
+          } else {
+            loadingProgress.textContent = '正在连接云端服务器...';
+          }
+          loaded = await loadFromCloud();
+        } catch (error) {
+          console.error('[App] 加载失败(第' + (retryCount + 1) + '次):', error);
+        }
+        if (!loaded && retryCount < maxRetries) {
+          await new Promise(r => setTimeout(r, 2000)); // 等待2秒后重试
+        }
+        retryCount++;
       }
       
       // 加载完成后的处理
@@ -5413,7 +5424,7 @@
         
         loadingPanel.className = 'cloud-loading-panel error';
         loadingText.textContent = '⚠️ 数据加载失败';
-        loadingProgress.textContent = '点击右下角"复制信息"按钮获取诊断数据';
+        loadingProgress.innerHTML = '可能是网络问题，请检查网络后<a href="javascript:location.reload()" style="color:var(--primary);text-decoration:underline;">刷新重试</a>';
         
         const logs = collectDiagnosticLogs();
         showDiagnostic(logs);
