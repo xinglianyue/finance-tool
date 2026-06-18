@@ -1258,7 +1258,7 @@
       </div>
     </div>
 
-    <div id="insightLine" style="padding: 12px 20px; background: var(--primary-bg); border-radius: 8px; font-size: 14px; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"></div>
+
 
     <div class="tabs-container">
       <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">📊 概览</button>
@@ -3407,24 +3407,6 @@
         </div>
         `;
       }
-
-      // 生成洞察总结
-      const ueVal2 = parseFloat(totals.ue) || 0;
-      const profitVal = parseFloat(totals.profit) || 0;
-      let insightIcon = '📊';
-      let insightText = '';
-      if (ueVal2 >= 0.5) {
-        insightIcon = '📊';
-        insightText = '整体运营健康，UE达标';
-      } else if (ueVal2 >= 0.1) {
-        insightIcon = '⚠️';
-        insightText = 'UE处于预警区间，建议关注成本优化';
-      } else {
-        insightIcon = '🚨';
-        insightText = 'UE低于安全线，需立即排查成本结构';
-      }
-      insightText += '，' + (profitVal > 0 ? '毛利盈利' : profitVal < 0 ? '毛利亏损' : '毛利持平');
-      document.getElementById('insightLine').innerHTML = insightIcon + ' ' + insightText;
 
       renderCityRankTable();
     }
