@@ -551,6 +551,16 @@ def push_to_github(date, current_data, merchant_data, current_merchant, token):
         # 优先使用顶层 date 字段，兼容旧格式 currentData.date
         rec_date = rec.get("date", "") or rec.get("currentData", {}).get("date", "")
         if rec_date == new_date:  # 按日期精确匹配，不是按月份
+            # 保护：如果已有数据有城市但新数据没有城市，不覆盖（防止空数据覆盖完整数据）
+            existing_md = rec.get("merchantData", {})
+            existing_city_count = len(existing_md.get("all", {}).get("cities", [])) if isinstance(existing_md, dict) else 0
+            new_city_count = len(new_record.get("merchantData", {}).get("all", {}).get("cities", []))
+
+            if existing_city_count > 0 and new_city_count == 0:
+                print(f"       ⚠️ 跳过覆盖 {new_date}：已有 {existing_city_count} 个城市数据，新数据为空")
+                print(f"       可能原因：数据库中该日期数据未入库，但上传页面已上传完整数据")
+                return True  # 返回 True 避免重试
+
             existing_records[i] = new_record
             found = True
             print(f"       已存在 {new_date} 数据，已更新为最新")
@@ -617,7 +627,13 @@ def main():
     current_data, merchant_data, current_merchant = fetch_from_db(DB_CONFIG, date_str)
 
     if not current_data.get("cities"):
-        print(f"\n错误: 日期 {date_str} 没有找到任何数据，请确认日期是否正确")
+        print(f"\n错误: 日期 {date_str} 数据库中没有找到任何数据")
+        print("可能原因：")
+        print("  1. 该日期的 Excel 尚未上传到数据库")
+        print("  2. 数据库入库环节有问题")
+        print("  3. 日期格式不正确")
+        print("\n⚠️ 中止推送，不覆盖 GitHub 上已有的数据")
+        print("如果该日期的数据已通过上传页面上传，无需再执行 db-sync")
         sys.exit(1)
 
     success = push_to_github(date_str, current_data, merchant_data, current_merchant, GITHUB_TOKEN)
