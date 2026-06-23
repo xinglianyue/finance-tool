@@ -1285,7 +1285,6 @@
             updatedAt: new Date().toISOString(),
             uploadedBy: 'web',
             fileName: file.name,
-            currentData: data,
             merchantData: merchantData
           });
           
@@ -1306,11 +1305,18 @@
       
       parsedData = allParsedData;
       
-      const totalCities = allParsedData.reduce((sum, d) => sum + d.currentData.cities.length, 0);
-      const totalOrders = allParsedData.reduce((sum, d) => 
-        sum + d.currentData.cities.reduce((s, c) => s + (c.modules.all?.orders || 0), 0), 0);
-      const totalGMV = allParsedData.reduce((sum, d) => 
-        sum + d.currentData.cities.reduce((s, c) => s + (c.modules.all?.gmvAmount || 0), 0), 0);
+      const totalCities = allParsedData.reduce((sum, d) => {
+        const cities = d.merchantData?.all?.cities || d.currentData?.cities || [];
+        return sum + cities.length;
+      }, 0);
+      const totalOrders = allParsedData.reduce((sum, d) => {
+        const cities = d.merchantData?.all?.cities || d.currentData?.cities || [];
+        return sum + cities.reduce((s, c) => s + (c.modules?.all?.orders || 0), 0);
+      }, 0);
+      const totalGMV = allParsedData.reduce((sum, d) => {
+        const cities = d.merchantData?.all?.cities || d.currentData?.cities || [];
+        return sum + cities.reduce((s, c) => s + (c.modules?.all?.gmvAmount || 0), 0);
+      }, 0);
       
       const statsHtml = '<div class="status-stats">' +
         '<div class="stat-item"><div class="stat-value">' + allParsedData.length + '</div><div class="stat-label">文件数量</div></div>' +
@@ -1341,14 +1347,15 @@
         '</tr></thead><tbody>';
       
       dataList.forEach((item, index) => {
-        const orders = item.currentData.cities.reduce((s, c) => s + (c.modules.all?.orders || 0), 0);
-        const gmv = item.currentData.cities.reduce((s, c) => s + (c.modules.all?.gmvAmount || 0), 0);
+        const cities = item.merchantData?.all?.cities || item.currentData?.cities || [];
+        const orders = cities.reduce((s, c) => s + (c.modules?.all?.orders || 0), 0);
+        const gmv = cities.reduce((s, c) => s + (c.modules?.all?.gmvAmount || 0), 0);
         
         html += '<tr>' +
           '<td>' + (index + 1) + '</td>' +
           '<td>' + item.date + '</td>' +
           '<td>' + item.fileName + '</td>' +
-          '<td>' + item.currentData.cities.length + '</td>' +
+          '<td>' + cities.length + '</td>' +
           '<td>' + orders.toLocaleString() + '</td>' +
           '<td>¥' + (gmv / 10000).toFixed(2) + '万</td>' +
           '</tr>';
@@ -1558,7 +1565,6 @@
         updatedAt: new Date().toISOString(),
         uploadedBy: 'web',
         fileName: currentFileName,
-        currentData: data,
         merchantData: data.merchantData || data.currentData?.merchantData
       }];
 
@@ -1854,7 +1860,6 @@
         updatedAt: new Date().toISOString(),
         uploadedBy: 'web',
         fileName: fileName,
-        currentData: data,
         merchantData: data.merchantData || data.currentData?.merchantData
       };
 
@@ -2281,11 +2286,18 @@
         const fullData = JSON.parse(content);
         const fullRecord = fullData[index];
         
-        if (fullRecord && fullRecord.currentData) {
-          parsedData = fullRecord.currentData;
-          renderPreview(parsedData);
-          showStatus('success', '查看历史数据', '已加载 ' + record.date + ' 的数据');
-          actions.style.display = 'flex';
+        if (fullRecord) {
+          // 优先使用 merchantData（新格式），兼容 currentData（旧格式）
+          if (fullRecord.merchantData) {
+            parsedData = fullRecord;
+          } else if (fullRecord.currentData) {
+            parsedData = fullRecord.currentData;
+          }
+          if (parsedData) {
+            renderPreview(parsedData);
+            showStatus('success', '查看历史数据', '已加载 ' + record.date + ' 的数据');
+            actions.style.display = 'flex';
+          }
         }
       } catch (e) {
         console.error('[Error] 加载失败:', e);
