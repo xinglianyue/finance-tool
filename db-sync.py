@@ -535,11 +535,6 @@ def push_to_github(date, current_data, merchant_data, current_merchant, token):
         "updatedAt": datetime.now().isoformat(),
         "uploadedBy": "auto-sync",
         "fileName": f"auto-sync {format_date(date)}",
-        "currentData": {
-            "date": format_date(date),
-            "cities": current_data["cities"],
-            "fileName": current_data["fileName"],
-        },
         "merchantData": {},
         "currentMerchant": current_merchant,
     }
@@ -553,7 +548,8 @@ def push_to_github(date, current_data, merchant_data, current_merchant, token):
     new_date = format_date(date)
     found = False
     for i, rec in enumerate(existing_records):
-        rec_date = rec.get("currentData", {}).get("date", "")
+        # 优先使用顶层 date 字段，兼容旧格式 currentData.date
+        rec_date = rec.get("date", "") or rec.get("currentData", {}).get("date", "")
         if rec_date == new_date:  # 按日期精确匹配，不是按月份
             existing_records[i] = new_record
             found = True
