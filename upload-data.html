@@ -926,12 +926,19 @@
         Object.values(COL2_RULES).forEach(f => result[f] = 0);
         Object.values(COL3_RULES).forEach(f => result[f] = 0);
 
+        let lastC2 = '';  // 记住上一个非空的二级指标
+        let lastC3 = '';  // 记住上一个非空的三级指标，用于合并单元格场景
         for (let rn = startRow + 3; rn < Math.min(startRow + 100, data.length); rn++) {
           const row = data[rn];
           if (!row) continue;
-          const c2 = String(row[2] || '').trim();
-          const c3 = String(row[3] || '').trim();
+          const c2Raw = String(row[2] || '').trim();
+          const c3Raw = String(row[3] || '').trim();
           const c4 = String(row[4] || '').trim();
+          // 二级/三级指标：非空时更新last值，为空时继承上一个值（Excel合并单元格效果）
+          const c2 = c2Raw || lastC2;
+          const c3 = c3Raw || lastC3;
+          if (c2Raw) lastC2 = c2Raw;
+          if (c3Raw) lastC3 = c3Raw;
           if (c3 && c3.includes('财务指标')) break;
           const val = typeof row[colIdx] === 'number' ? row[colIdx] : parseFloat(String(row[colIdx]).replace(/,/g, '')) || 0;
 
