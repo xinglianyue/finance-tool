@@ -32473,7 +32473,7 @@
   },
   {
     "date": "2026-05-10",
-    "updatedAt": "2026-06-23T03:30:51.905Z",
+    "updatedAt": "2026-06-24T03:49:37.512Z",
     "uploadedBy": "web",
     "fileName": "外卖账单20260510.xlsx",
     "merchantData": {
@@ -43988,7 +43988,7 @@
         ]
       }
     },
-    "version": 4,
+    "version": 5,
     "isHistorical": false,
     "isLatest": true
   },
