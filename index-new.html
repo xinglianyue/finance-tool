@@ -1,4 +1,4 @@
-<!-- v2026-06-24.1 -->
+<!-- v2026-06-24.2 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260624.1"></script>
-    <script src="js/chart.umd.min.js?v=20260624.1"></script>
-    <script src="js/data-store.js?v=20260624.1"></script>
-    <script src="js/state-manager.js?v=20260624.1"></script>
+  <script src="js/xlsx.full.min.js?v=20260624.2"></script>
+    <script src="js/chart.umd.min.js?v=20260624.2"></script>
+    <script src="js/data-store.js?v=20260624.2"></script>
+    <script src="js/state-manager.js?v=20260624.2"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -2005,10 +2005,10 @@
     function switchImportDateDim(idx) {
       idx = parseInt(idx);
       if (idx < 0 || idx >= importHistory.length) return;
-      
+
       currentImportIndex = idx;
       let merchantData = importHistory[idx].data;
-      
+
       // 检测数据格式，如果是旧格式 { date, cities, fileName }，需要包装成新格式
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
         console.log('[App] 检测到旧格式数据（维度），正在转换为新格式:', Object.keys(merchantData));
@@ -2019,10 +2019,39 @@
           }
         };
       }
-      
+
       // 更新allMerchantData为当前选择的merchantData
       allMerchantData = merchantData;
-      
+
+      // 更新currentData（关键修复：之前缺少这步导致维度下钻数据不变）
+      const allCitiesData = merchantData.all?.cities || [];
+      let totalData = null;
+      let citiesData = [];
+      const seenCities = new Set();
+
+      allCitiesData.forEach(city => {
+        const city_name = city.name || '';
+        if (city_name === '城市名称' || seenCities.has(city_name)) {
+          return;
+        }
+        seenCities.add(city_name);
+
+        if (city_name === '总商') {
+          totalData = city;
+        } else {
+          citiesData.push(city);
+        }
+      });
+
+      if (!totalData && allCitiesData.length > 0) {
+        totalData = allCitiesData[0];
+      }
+
+      currentData = {
+        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
+        cities: citiesData
+      };
+
       renderDimensionTable();
     }
 
