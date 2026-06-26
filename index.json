@@ -1,8 +1,17 @@
 {
   "version": "v2",
-  "updatedAt": "2026-06-24T04:19:09.242Z",
-  "recordCount": 9,
+  "updatedAt": "2026-06-26T09:18:46.516Z",
+  "recordCount": 10,
   "records": [
+    {
+      "date": "2026-06-21",
+      "updatedAt": "2026-06-26T09:18:37.603Z",
+      "uploadedBy": "web",
+      "fileName": "外卖账单20260621.xlsx",
+      "version": 1,
+      "isHistorical": false,
+      "isLatest": true
+    },
     {
       "date": "2026-05-31",
       "fileName": "bill_20260531.json",
