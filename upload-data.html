@@ -1003,10 +1003,18 @@
         if (!cityRow) continue;
 
         const cityMap = {};
+        // 定义需要跳过的计算列标题关键词（单均、比例等）
+        const SKIP_COLUMNS = ['城市名称', '单均', '比例', '均值', '平均值', '合计', '小计', '备注', '说明'];
+
         for (let col = 5; col < cityRow.length; col++) {
           const excelName = String(cityRow[col] || '').trim();
-          // 跳过空值、总商、城市名称标题行
-          if (!excelName || excelName === '总商' || excelName === '城市名称') continue;
+          // 跳过空值、总商、城市名称标题行、计算列标题
+          if (!excelName || excelName === '总商') continue;
+          // 跳过计算列标题（单均、比例等）
+          if (SKIP_COLUMNS.some(keyword => excelName.includes(keyword))) {
+            console.log('[parseExcelFile] 跳过计算列:', excelName);
+            continue;
+          }
           cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] || excelName };
         }
         let totalCol = -1;
