@@ -1,4 +1,4 @@
-<!-- v2026-06-24.3 -->
+<!-- v2026-06-24.4 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260624.3"></script>
-    <script src="js/chart.umd.min.js?v=20260624.3"></script>
-    <script src="js/data-store.js?v=20260624.3"></script>
-    <script src="js/state-manager.js?v=20260624.3"></script>
+  <script src="js/xlsx.full.min.js?v=20260624.4"></script>
+    <script src="js/chart.umd.min.js?v=20260624.4"></script>
+    <script src="js/data-store.js?v=20260624.4"></script>
+    <script src="js/state-manager.js?v=20260624.4"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -2007,7 +2007,47 @@
       if (idx < 0 || idx >= importHistory.length) return;
 
       currentImportIndex = idx;
-      let merchantData = importHistory[idx].data;
+      const selectedRecord = importHistory[idx];
+
+      // 关键修复：使用和 switchImportDate 相同的数据获取逻辑
+      let merchantData = null;
+
+      // 1. 从 cache 获取
+      if (window.financeToolCache && window.financeToolCache[selectedRecord.monthLabel]) {
+        merchantData = window.financeToolCache[selectedRecord.monthLabel];
+        console.log('[App] switchImportDateDim: 从 cache 获取 ' + selectedRecord.monthLabel);
+      }
+
+      // 2. 从全局 cloudData 获取
+      if (!merchantData && window.cloudData) {
+        const cloudRecord = window.cloudData.find(r => r.date === selectedRecord.monthLabel);
+        if (cloudRecord) {
+          merchantData = cloudRecord.merchantData || cloudRecord.currentData?.merchantData;
+          // 如果是旧格式，转换为新格式
+          if (!merchantData?.all && cloudRecord.currentData?.cities) {
+            merchantData = {
+              all: {
+                date: cloudRecord.date,
+                cities: cloudRecord.currentData.cities
+              }
+            };
+          }
+          console.log('[App] switchImportDateDim: 从 cloudData 获取 ' + selectedRecord.monthLabel);
+        }
+      }
+
+      // 3. 从 importHistory.data 获取（兜底）
+      if (!merchantData && selectedRecord.data) {
+        merchantData = selectedRecord.data;
+        console.log('[App] switchImportDateDim: 从 importHistory.data 获取');
+      }
+
+      // 如果还是没有数据，提示用户
+      if (!merchantData) {
+        console.error('[App] switchImportDateDim: 无法获取数据');
+        showToast('数据未加载，请刷新页面', 'warning');
+        return;
+      }
 
       // 检测数据格式，如果是旧格式 { date, cities, fileName }，需要包装成新格式
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
