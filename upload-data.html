@@ -1005,7 +1005,8 @@
         const cityMap = {};
         for (let col = 5; col < cityRow.length; col++) {
           const excelName = String(cityRow[col] || '').trim();
-          if (!excelName || excelName === '总商') continue;
+          // 跳过空值、总商、城市名称标题行
+          if (!excelName || excelName === '总商' || excelName === '城市名称') continue;
           cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] || excelName };
         }
         let totalCol = -1;

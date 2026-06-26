@@ -1,4 +1,4 @@
-<!-- v2026-06-18.5 -->
+<!-- v2026-06-24.1 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260618.9"></script>
-    <script src="js/chart.umd.min.js?v=20260618.9"></script>
-    <script src="js/data-store.js?v=20260618.9"></script>
-    <script src="js/state-manager.js?v=20260618.9"></script>
+  <script src="js/xlsx.full.min.js?v=20260624.1"></script>
+    <script src="js/chart.umd.min.js?v=20260624.1"></script>
+    <script src="js/data-store.js?v=20260624.1"></script>
+    <script src="js/state-manager.js?v=20260624.1"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1857,8 +1857,18 @@
       
       let totalData = null;
       let citiesData = [];
+      const seenCities = new Set(); // 去重：防止重复城市
+      
       merchantResult.cities.forEach(city => {
-        if (city.name === '总商') {
+        const city_name = city.name || '';
+        // 过滤：跳过标题行、重复城市
+        if (city_name === '城市名称' || seenCities.has(city_name)) {
+          console.log('[App] 跳过异常城市:', city_name);
+          return;
+        }
+        seenCities.add(city_name);
+        
+        if (city_name === '总商') {
           totalData = city;
         } else {
           citiesData.push(city);
@@ -1955,9 +1965,18 @@
       const allCitiesData = merchantData.all?.cities || [];
       let totalData = null;
       let citiesData = [];
+      const seenCities = new Set(); // 去重：防止重复城市
       
       allCitiesData.forEach(city => {
-        if (city.name === '总商') {
+        const city_name = city.name || '';
+        // 过滤：跳过标题行、重复城市
+        if (city_name === '城市名称' || seenCities.has(city_name)) {
+          console.log('[App] 切换数据时跳过异常城市:', city_name);
+          return;
+        }
+        seenCities.add(city_name);
+        
+        if (city_name === '总商') {
           totalData = city;
         } else {
           citiesData.push(city);
@@ -2039,9 +2058,18 @@
       const allCitiesData = merchantResult.cities || [];
       let totalData = null;
       let citiesData = [];
+      const seenCities = new Set(); // 去重：防止重复城市
       
       allCitiesData.forEach(city => {
-        if (city.name === '总商') {
+        const city_name = city.name || '';
+        // 过滤：跳过标题行、重复城市
+        if (city_name === '城市名称' || seenCities.has(city_name)) {
+          console.log('[App] 切换商家类型时跳过异常城市:', city_name);
+          return;
+        }
+        seenCities.add(city_name);
+        
+        if (city_name === '总商') {
           totalData = city;
         } else {
           citiesData.push(city);
@@ -2099,7 +2127,7 @@
      */
     function parseRecord(record) {
       let merchantData = record.merchantData || record.currentData?.merchantData;
-      
+
       // 兼容旧格式
       if (!merchantData && record.currentData?.cities) {
         merchantData = {
@@ -2109,13 +2137,34 @@
           }
         };
       }
-      
+
       // 深拷贝，避免修改原始数据
       merchantData = JSON.parse(JSON.stringify(merchantData));
-      
+
+      // 去重和过滤：移除标题行、重复城市
+      if (merchantData) {
+        Object.keys(merchantData).forEach(type => {
+          if (merchantData[type] && merchantData[type].cities) {
+            const seenCities = new Set();
+            const filteredCities = [];
+            merchantData[type].cities.forEach(city => {
+              const city_name = city.name || '';
+              // 过滤：跳过标题行、重复城市
+              if (city_name === '城市名称' || seenCities.has(city_name)) {
+                console.log('[App] parseRecord跳过异常城市:', city_name);
+                return;
+              }
+              seenCities.add(city_name);
+              filteredCities.push(city);
+            });
+            merchantData[type].cities = filteredCities;
+          }
+        });
+      }
+
       // 计算毛利（信任原始数据，只在缺失时计算）
       calculateProfit(merchantData);
-      
+
       return merchantData;
     }
 
