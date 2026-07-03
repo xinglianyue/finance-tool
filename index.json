@@ -1,8 +1,17 @@
 {
   "version": "v2",
-  "updatedAt": "2026-07-03T08:24:07.631Z",
-  "recordCount": 14,
+  "updatedAt": "2026-07-03T08:25:41.317Z",
+  "recordCount": 15,
   "records": [
+    {
+      "date": "2026-06-30",
+      "updatedAt": "2026-07-03T08:25:34.867Z",
+      "uploadedBy": "web",
+      "fileName": "外卖账单20260630.xlsx",
+      "version": 1,
+      "isHistorical": false,
+      "isLatest": true
+    },
     {
       "date": "2026-06-27",
       "updatedAt": "2026-07-03T08:23:59.999Z",
