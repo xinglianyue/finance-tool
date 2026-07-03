@@ -1,0 +1,45 @@
+name: Sync data to gh-pages
+
+# 当main分支的shared-data.json或index.json更新时触发
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'shared-data.json'
+      - 'index.json'
+      - 'upload-data.html'
+      - 'index-new.html'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync to gh-pages
+        run: |
+          # 切换到gh-pages分支
+          git checkout gh-pages
+
+          # 从main分支复制关键文件
+          git checkout main -- shared-data.json index.json upload-data.html index-new.html
+
+          # 提交并推送
+          git add shared-data.json index.json upload-data.html index-new.html
+          git commit -m "sync: Auto-sync from main branch" || echo "No changes to commit"
+          git push origin gh-pages
+
+      - name: Verify sync
+        run: |
+          git log --oneline -3
+          echo "✅ Sync completed successfully"
