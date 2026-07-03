@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务数据简洁分析报告</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .header h1 { font-size: 28px; margin-bottom: 10px; }
+    .header .meta { font-size: 14px; opacity: 0.9; }
+    
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .section h2 {
+      color: #667eea;
+      font-size: 20px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+    
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .kpi-card .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+    .kpi-card .value { font-size: 24px; font-weight: bold; color: #667eea; }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 20px 0;
+    }
+    
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .table th, .table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .table th {
+      background: #667eea;
+      color: white;
+      font-weight: 500;
+    }
+    .table tr:nth-child(even) { background: #f9f9f9; }
+    .table tr:hover { background: #f0f0f0; }
+    
+    .insight-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .insight-box h3 { color: #856404; font-size: 16px; margin-bottom: 8px; }
+    .insight-box ul { margin-left: 20px; }
+    
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
+    
+    @media (max-width: 768px) {
+      .container { padding: 10px; }
+      .header { padding: 20px; }
+      .header h1 { font-size: 20px; }
+      .section { padding: 15px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .table { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 财务数据简洁分析报告</h1>
+      <div class="meta">
+        <span id="dateRange"></span> | <span id="totalRecords"></span>条记录 | 
+        <span id="latestDate"></span>最新数据
+      </div>
+    </div>
+
+    <!-- 执行摘要 -->
+    <div class="section">
+      <h2>🎯 执行摘要</h2>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="label">最新总佣金</div>
+          <div class="value" id="latestCommission">-</div>
+        </div>
+        <div class="kpi-card">
+          <div class="label">最新总利润</div>
+          <div class="value" id="latestProfit">-</div>
+        </div>
+        <div class="kpi-card">
+          <div class="label">最新总订单</div>
+          <div class="value" id="latestOrders">-</div>
+        </div>
+        <div class="kpi-card">
+          <div class="label">平均单均收入</div>
+          <div class="value" id="avgRevenue">-</div>
+        </div>
+      </div>
+      
+      <div class="insight-box">
+        <h3>💡 核心发现</h3>
+        <ul id="insights"></ul>
+      </div>
+    </div>
+
+    <!-- 总商累积趋势 -->
+    <div class="section">
+      <h2>📈 总商累积数据趋势</h2>
+      <p style="color:#666;font-size:12px;margin-bottom:10px;">
+        * 数据为各时间点截取的本月累积数据，非单日数据
+      </p>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 城市排名 -->
+    <div class="section">
+      <h2>🏆 城市业绩排名</h2>
+      <p style="color:#666;font-size:12px;margin-bottom:10px;">
+        * 基于<span id="rankingDate"></span>累积数据
+      </p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>城市</th>
+            <th>佣金收入</th>
+            <th>利润</th>
+            <th>订单数</th>
+            <th>单均收入</th>
+          </tr>
+        </thead>
+        <tbody id="cityTable"></tbody>
+      </table>
+    </div>
+
+    <!-- 成本结构 -->
+    <div class="section">
+      <h2>💰 成本结构分析</h2>
+      <div class="chart-container">
+        <canvas id="costChart"></canvas>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>报告生成时间: <span id="reportTime"></span></p>
+      <p>数据来源: shared-data.json | 分析版本: v1.0</p>
+    </div>
+  </div>
+
+  <script>
+    // 加载分析数据
+    let analysisData = null;
+    
+    async function loadAnalysisData() {
+      try {
+        const response = await fetch('./analysis-data.json');
+        analysisData = await response.json();
+        renderReport();
+      } catch (error) {
+        console.error('数据加载失败:', error);
+        alert('分析数据加载失败，请检查analysis-data.json文件');
+      }
+    }
+    
+    function formatNumber(num, decimals = 0) {
+      if (num >= 1000000) return (num / 1000000).toFixed(decimals) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(decimals) + 'K';
+      return num.toFixed(decimals);
+    }
+    
+    function formatCurrency(num) {
+      return '¥' + formatNumber(num);
+    }
+    
+    function renderReport() {
+      const summary = analysisData.summary;
+      const totalData = analysisData.totalData;
+      const cityRanking = analysisData.cityRanking;
+      
+      // 填充元数据
+      document.getElementById('dateRange').textContent = summary.dateRange;
+      document.getElementById('totalRecords').textContent = summary.totalRecords;
+      document.getElementById('latestDate').textContent = summary.latestDate;
+      
+      // 填充KPI卡片
+      const latest = totalData[0];
+      document.getElementById('latestCommission').textContent = formatCurrency(latest.commission);
+      document.getElementById('latestProfit').textContent = formatCurrency(latest.profit);
+      document.getElementById('latestOrders').textContent = formatNumber(latest.orders);
+      
+      const avgRevenue = analysisData.avgRevenueOverall || 0;
+      document.getElementById('avgRevenue').textContent = '¥' + avgRevenue.toFixed(2);
+      
+      // 生成核心发现
+      const insights = [];
+      
+      // 发现1：最新利润率
+      const profitRate = (latest.profit / latest.commission * 100).toFixed(1);
+      insights.push(`最新利润率 ${profitRate}%（利润${formatCurrency(latest.profit)} / 佣金${formatCurrency(latest.commission)}）`);
+      
+      // 发现2：订单增长
+      if (totalData.length >= 2) {
+        const prev = totalData[1];
+        const orderGrowth = ((latest.orders - prev.orders) / prev.orders * 100).toFixed(1);
+        insights.push(`订单数环比增长 ${orderGrowth}%（${formatNumber(prev.orders)} → ${formatNumber(latest.orders)}）`);
+      }
+      
+      // 发现3：最强城市
+      const topCity = cityRanking[0];
+      insights.push(`业绩最强城市：${topCity.name}（佣金${formatCurrency(topCity.commission)}，占总${(topCity.commission/latest.commission*100).toFixed(1)}%）`);
+      
+      // 发现4：利润异常
+      const negativeProfit = cityRanking.filter(c => c.profit < 0);
+      if (negativeProfit.length > 0) {
+        insights.push(`⚠️ ${negativeProfit.length}个城市利润为负：${negativeProfit.map(c => c.name).join(', ')}`);
+      }
+      
+      // 发现5：单均收入差异
+      const maxAvgRevenue = Math.max(...cityRanking.map(c => c.avgRevenue));
+      const minAvgRevenue = Math.min(...cityRanking.map(c => c.avgRevenue));
+      insights.push(`单均收入差异：最高¥${maxAvgRevenue.toFixed(2)}，最低¥${minAvgRevenue.toFixed(2)}，差距${((maxAvgRevenue/minAvgRevenue-1)*100).toFixed(0)}%`);
+      
+      const insightsList = document.getElementById('insights');
+      insights.forEach(insight => {
+        const li = document.createElement('li');
+        li.textContent = insight;
+        insightsList.appendChild(li);
+      });
+      
+      // 渲染趋势图
+      renderTrendChart(totalData);
+      
+      // 渲染城市排名表
+      document.getElementById('rankingDate').textContent = summary.latestDate;
+      const cityTable = document.getElementById('cityTable');
+      cityRanking.forEach((city, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${city.name}</td>
+          <td>${formatCurrency(city.commission)}</td>
+          <td style="color:${city.profit < 0 ? 'red' : 'green'}">${formatCurrency(city.profit)}</td>
+          <td>${formatNumber(city.orders)}</td>
+          <td>¥${city.avgRevenue.toFixed(2)}</td>
+        `;
+        cityTable.appendChild(tr);
+      });
+      
+      // 渲染成本结构图
+      renderCostChart(totalData);
+      
+      // 填充报告时间
+      document.getElementById('reportTime').textContent = new Date().toLocaleString('zh-CN');
+    }
+    
+    function renderTrendChart(totalData) {
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      
+      // 按日期排序（从小到大）
+      const sortedData = [...totalData].reverse();
+      
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: sortedData.map(d => d.date),
+          datasets: [
+            {
+              label: '佣金收入',
+              data: sortedData.map(d => d.commission),
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+              fill: true,
+              tension: 0.4
+            },
+            {
+              label: '利润',
+              data: sortedData.map(d => d.profit),
+              borderColor: '#28a745',
+              backgroundColor: 'rgba(40, 167, 69, 0.1)',
+              fill: true,
+              tension: 0.4
+            },
+            {
+              label: '订单数',
+              data: sortedData.map(d => d.orders),
+              borderColor: '#ffc107',
+              backgroundColor: 'rgba(255, 193, 7, 0.1)',
+              fill: false,
+              tension: 0.4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              ticks: {
+                callback: value => formatCurrency(value)
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              grid: {
+                drawOnChartArea: false
+              },
+              ticks: {
+                callback: value => formatNumber(value)
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  if (context.dataset.yAxisID === 'y1') {
+                    label += formatNumber(context.parsed.y);
+                  } else {
+                    label += formatCurrency(context.parsed.y);
+                  }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function renderCostChart(totalData) {
+      const ctx = document.getElementById('costChart').getContext('2d');
+      
+      // 取最新数据
+      const latest = totalData[0];
+      
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['配送成本', '平台成本', '补贴总额', '利润'],
+          datasets: [{
+            data: [
+              latest.deliveryCost,
+              latest.platformCost,
+              latest.subsidyTotal,
+              latest.profit
+            ],
+            backgroundColor: [
+              '#ff6b6b',
+              '#4ecdc4',
+              '#ffe66d',
+              '#28a745'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = (context.parsed / total * 100).toFixed(1);
+                  return `${context.label}: ${formatCurrency(context.parsed)} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // 加载数据
+    loadAnalysisData();
+  </script>
+</body>
+</html>

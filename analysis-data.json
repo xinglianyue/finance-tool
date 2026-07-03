@@ -1,0 +1,247 @@
+{
+  "summary": {
+    "totalRecords": 15,
+    "dateRange": "2026-03-31 ~ 2026-06-30",
+    "latestDate": "2026-06-30"
+  },
+  "totalData": [
+    {
+      "date": "2026-06-30",
+      "commission": 16801461.09,
+      "deliveryCost": 9297525.77,
+      "platformCost": 3865216.59,
+      "subsidyTotal": 10414311.53,
+      "profit": 973245.470000003,
+      "orders": 2553809,
+      "avgRevenue": 10.352545574081695,
+      "avgCost": 9.971449936154192
+    },
+    {
+      "date": "2026-06-27",
+      "commission": 15078159.74,
+      "deliveryCost": 8345551,
+      "platformCost": 3497672.32,
+      "subsidyTotal": 9333334.95,
+      "profit": 990506.710000001,
+      "orders": 2289150,
+      "avgRevenue": 10.426730939431666,
+      "avgCost": 9.994034650416094
+    },
+    {
+      "date": "2026-06-21",
+      "commission": 11727544.48,
+      "deliveryCost": 6520827.28,
+      "platformCost": 2756757.1,
+      "subsidyTotal": 7224554.78,
+      "profit": 718391.059999999,
+      "orders": 1775055,
+      "avgRevenue": 10.45046917982823,
+      "avgCost": 10.04575436254088
+    },
+    {
+      "date": "2026-06-20",
+      "commission": 11083489.38,
+      "deliveryCost": 6144657.05,
+      "platformCost": 2613792.08,
+      "subsidyTotal": 6803531.79,
+      "profit": 711836.119999997,
+      "orders": 1680551,
+      "avgRevenue": 10.437361163094723,
+      "avgCost": 10.01378810878099
+    },
+    {
+      "date": "2026-06-13",
+      "commission": 7171260.03,
+      "deliveryCost": 4011083.67,
+      "platformCost": 1703561.15,
+      "subsidyTotal": 4325823.44,
+      "profit": 480623.810000001,
+      "orders": 1096775,
+      "avgRevenue": 10.352527601376764,
+      "avgCost": 9.914312096829342
+    },
+    {
+      "date": "2026-06-06",
+      "commission": 3273225.34,
+      "deliveryCost": 1853130.62,
+      "platformCost": 748872.76,
+      "subsidyTotal": 1944153.9,
+      "profit": 258303.330000001,
+      "orders": 501838,
+      "avgRevenue": 10.368158090858005,
+      "avgCost": 9.853443521614544
+    },
+    {
+      "date": "2026-05-31",
+      "commission": 17462842.16,
+      "deliveryCost": 9409468.65,
+      "platformCost": 4277117.48,
+      "subsidyTotal": 10177366.91,
+      "profit": 1355010.19,
+      "orders": 3063240,
+      "avgRevenue": 8.85309094292318,
+      "avgCost": 8.410745521082253
+    },
+    {
+      "date": "2026-05-25",
+      "commission": 14290618.6,
+      "deliveryCost": 7711798.76,
+      "platformCost": 3549153.59,
+      "subsidyTotal": 8270418.74,
+      "profit": 1121422.43,
+      "orders": 2497524,
+      "avgRevenue": 8.886756511649137,
+      "avgCost": 8.437742836505274
+    },
+    {
+      "date": "2026-05-19",
+      "commission": 10837803.46,
+      "deliveryCost": 5877685.98,
+      "platformCost": 2746467.44,
+      "subsidyTotal": 6288740.69,
+      "profit": 759369.160000004,
+      "orders": 1895221,
+      "avgRevenue": 8.890998173827748,
+      "avgCost": 8.490322389842662
+    },
+    {
+      "date": "2026-05-10",
+      "commission": 6065706.77,
+      "deliveryCost": 3261089.1,
+      "platformCost": 1413150.61,
+      "subsidyTotal": 3479288.34,
+      "profit": 574990.51,
+      "orders": 878487,
+      "avgRevenue": 10.659395950082358,
+      "avgCost": 10.004872308867405
+    },
+    {
+      "date": "2026-05-05",
+      "commission": 3334950.06,
+      "deliveryCost": 1869721.81,
+      "platformCost": 772956.45,
+      "subsidyTotal": 1977313.42,
+      "profit": 230126.56,
+      "orders": 574308,
+      "avgRevenue": 9.031741661268867,
+      "avgCost": 8.631039320364682
+    },
+    {
+      "date": "2026-04-30",
+      "commission": 15624439.15,
+      "deliveryCost": 8812368.98,
+      "platformCost": 3857545.19,
+      "subsidyTotal": 8722508.46,
+      "profit": 1449364.57,
+      "orders": 2738555,
+      "avgRevenue": 9.031635307671381,
+      "avgCost": 8.50239102738488
+    },
+    {
+      "date": "2026-04-15",
+      "commission": 7869786.19,
+      "deliveryCost": 4588787.97,
+      "platformCost": 1873999.15,
+      "subsidyTotal": 4389565.14,
+      "profit": 537517.5,
+      "orders": 1372848,
+      "avgRevenue": 8.997184167511625,
+      "avgCost": 8.605649562078248
+    },
+    {
+      "date": "2026-04-11",
+      "commission": 5954195.4,
+      "deliveryCost": 3454411.11,
+      "platformCost": 1417434.31,
+      "subsidyTotal": 3358239.86,
+      "profit": 409062.98,
+      "orders": 1034477,
+      "avgRevenue": 9.044584896522592,
+      "avgCost": 8.649155147963658
+    },
+    {
+      "date": "2026-03-31",
+      "commission": 16896864.92,
+      "deliveryCost": 10143612.99,
+      "platformCost": 4120266.97,
+      "subsidyTotal": 8832105.55,
+      "profit": 1625662.56,
+      "orders": 2889507,
+      "avgRevenue": 9.224626204400957,
+      "avgCost": 8.66201723338964
+    }
+  ],
+  "cityRanking": [
+    {
+      "name": "承德",
+      "commission": 6092239,
+      "profit": 53308.27,
+      "orders": 860627,
+      "avgRevenue": 11.750909546179702
+    },
+    {
+      "name": "玉田",
+      "commission": 2043547.07,
+      "profit": 104035.43,
+      "orders": 330312,
+      "avgRevenue": 9.797828477318413
+    },
+    {
+      "name": "安国",
+      "commission": 1728295.15,
+      "profit": 215731.09,
+      "orders": 276270,
+      "avgRevenue": 9.121620588554675
+    },
+    {
+      "name": "安平",
+      "commission": 1546361,
+      "profit": 119242.29,
+      "orders": 244872,
+      "avgRevenue": 10.100374195498057
+    },
+    {
+      "name": "献县",
+      "commission": 1397332.99,
+      "profit": 132963.97,
+      "orders": 232688,
+      "avgRevenue": 9.011112820600976
+    },
+    {
+      "name": "晋州",
+      "commission": 1218283.65,
+      "profit": 144648.18,
+      "orders": 189536,
+      "avgRevenue": 8.989447123501604
+    },
+    {
+      "name": "围场",
+      "commission": 1166055.55,
+      "profit": 96862,
+      "orders": 184778,
+      "avgRevenue": 10.069333145720812
+    },
+    {
+      "name": "威县",
+      "commission": 897976.15,
+      "profit": 81801.64,
+      "orders": 130465,
+      "avgRevenue": 10.107744299237345
+    },
+    {
+      "name": "深泽",
+      "commission": 420474.41,
+      "profit": 21545.51,
+      "orders": 60941,
+      "avgRevenue": 10.519202999622586
+    },
+    {
+      "name": "康保",
+      "commission": 290896.12,
+      "profit": 3107.11,
+      "orders": 43320,
+      "avgRevenue": 10.956930747922437
+    }
+  ],
+  "avgRevenueOverall": 9.667187090968595
+}
