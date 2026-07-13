@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>财务数据上传 - 美团代理商专用</title>
+  <meta name="version" content="20260713-v2">
+  <title>财务数据上传 v20260713 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
   <script src="js/xlsx.full.min.js"></script>
   <style>
@@ -507,8 +508,16 @@
 </head>
 <body>
   <div class="container">
-    <h1>📊 财务数据上传</h1>
-    <p class="subtitle">上传美团财务Excel账单，数据将自动同步到云端</p>
+    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;">
+      <h1 style="margin:0;color:white;font-size:24px;">📊 财务数据上传</h1>
+      <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">
+        当前版本：<strong style="color:#ffeb3b;">v20260713</strong> | 更新时间：2026-07-13
+      </p>
+      <p style="margin:3px 0 0 0;font-size:12px;opacity:0.85;">
+        ✓ 已修复计算列过滤问题（跳过单均、比例等列）
+      </p>
+    </div>
+    <p class="subtitle" style="display:none;">上传美团财务Excel账单，数据将自动同步到云端</p>
     
     <div class="features">
       <div class="feature">
