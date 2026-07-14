@@ -40,8 +40,12 @@ jobs:
 
           # 提交并推送
           git add shared-data.json index.json upload-data.html index-new.html
-          git commit -m "sync: Auto-sync from main branch" || echo "No changes to commit"
-          git push origin gh-pages
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "sync: Auto-sync from main branch"
+            git push origin gh-pages
+          fi
 
       - name: Verify sync
         run: |
