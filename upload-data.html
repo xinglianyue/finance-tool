@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="20260713.1">
-  <title>财务数据上传 v20260713.1 - 美团代理商专用</title>
+  <meta name="version" content="20260714.1">
+  <title>财务数据上传 v20260714.1 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
   <script src="js/xlsx.full.min.js"></script>
   <style>
@@ -511,7 +511,7 @@
     <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;">
       <h1 style="margin:0;color:white;font-size:24px;">📊 财务数据上传</h1>
       <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">
-        当前版本：<strong style="color:#ffeb3b;">v20260713.1</strong> | 更新时间：2026-07-13
+        当前版本：<strong style="color:#ffeb3b;">v20260714.1</strong> | 更新时间：2026-07-14
       </p>
       <p style="margin:3px 0 0 0;font-size:12px;opacity:0.85;">
         ✓ 已修复计算列过滤问题（跳过单均、比例等列）
@@ -1008,22 +1008,26 @@
         console.log('[parseExcelFile] 开始解析:', mt.sheetName);
 
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-        const cityRow = data[2];
+        const cityRow = data[2];       // 第3行：城市名（承德市、玉田县...）
+        const headerRow = data[1];     // 第2行：列类型头（绝对值、单均、比例...）
         if (!cityRow) continue;
 
         const cityMap = {};
-        // 定义需要跳过的计算列标题关键词（单均、比例等）
-        const SKIP_COLUMNS = ['城市名称', '单均', '比例', '均值', '平均值', '合计', '小计', '备注', '说明'];
+        // 计算列关键词（用于匹配列类型头，非城市名）
+        const SKIP_COLUMNS = ['单均', '比例', '均值', '平均值', '合计', '小计', '备注', '说明'];
 
         for (let col = 5; col < cityRow.length; col++) {
           const excelName = String(cityRow[col] || '').trim();
-          // 跳过空值、总商、城市名称标题行、计算列标题
-          if (!excelName || excelName === '总商') continue;
-          // 跳过计算列标题（单均、比例等）
-          if (SKIP_COLUMNS.some(keyword => excelName.includes(keyword))) {
-            console.log('[parseExcelFile] 跳过计算列:', excelName);
+          // 跳过空值、总商、城市名称标题行
+          if (!excelName || excelName === '总商' || excelName === '城市名称') continue;
+
+          // 检查列类型头（data[1]）是否包含计算列关键词
+          const headerCell = headerRow ? String(headerRow[col] || '').trim() : '';
+          if (SKIP_COLUMNS.some(keyword => headerCell.includes(keyword))) {
+            console.log('[parseExcelFile] 跳过计算列:', excelName, '(列头:', headerCell, ')');
             continue;
           }
+
           cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] || excelName };
         }
         let totalCol = -1;
