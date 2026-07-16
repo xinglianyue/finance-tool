@@ -1,4 +1,4 @@
-<!-- v2026-07-14.1 -->
+<!-- v2026-07-16.1 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260714.1"></script>
-    <script src="js/chart.umd.min.js?v=20260714.1"></script>
-    <script src="js/data-store.js?v=20260714.1"></script>
-    <script src="js/state-manager.js?v=20260714.1"></script>
+  <script src="js/xlsx.full.min.js?v=20260716.1"></script>
+    <script src="js/chart.umd.min.js?v=20260716.1"></script>
+    <script src="js/data-store.js?v=20260716.1"></script>
+    <script src="js/state-manager.js?v=20260716.1"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1376,6 +1376,15 @@
               </select>
             </div>
           </div>
+          <div class="selectors" style="margin-top: 8px; align-items: center;">
+            <div class="selector-group">
+              <span class="selector-label">添加对比：</span>
+              <select id="trendAddDateSelect" onchange="addTrendCompareDate()" style="max-width: 180px;">
+              </select>
+            </div>
+            <button onclick="clearTrendCompareDates()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 12px; color: var(--text-secondary);" title="清除所有添加的对比日期">✕ 清除对比</button>
+            <span style="font-size: 11px; color: var(--text-tertiary); margin-left: 8px;">默认显示近3月（月初5号/月中15号/月末30号），可手动添加对比日期</span>
+          </div>
         </div>
         <div class="card">
           <div class="card-title">📈 多月份趋势对比</div>
@@ -1894,18 +1903,17 @@
       const select1 = document.getElementById('import-date-select');
       const select2 = document.getElementById('import-date-select-dim');
       
-      let optionsHtml = '';
-      importHistory.forEach((record, idx) => {
-        optionsHtml += '<option value="' + idx + '"' + (idx === currentImportIndex ? ' selected' : '') + '>' + record.monthLabel + '</option>';
-      });
+      const allDates = importHistory.map(h => h.monthLabel);
+      const selectedDate = importHistory[currentImportIndex]?.monthLabel || allDates[allDates.length - 1];
+      const optionsHtml = buildMonthGroupedOptions(allDates, selectedDate);
       
       if (select1) select1.innerHTML = optionsHtml;
       if (select2) select2.innerHTML = optionsHtml;
     }
 
-    function switchImportDate(idx) {
-      idx = parseInt(idx);
-      if (idx < 0 || idx >= importHistory.length) return;
+    function switchImportDate(dateStr) {
+      const idx = importHistory.findIndex(h => h.monthLabel === dateStr);
+      if (idx < 0) return;
       
       currentImportIndex = idx;
       
@@ -2002,9 +2010,9 @@
       renderDimension();
     }
 
-    function switchImportDateDim(idx) {
-      idx = parseInt(idx);
-      if (idx < 0 || idx >= importHistory.length) return;
+    function switchImportDateDim(dateStr) {
+      const idx = importHistory.findIndex(h => h.monthLabel === dateStr);
+      if (idx < 0) return;
 
       currentImportIndex = idx;
       const selectedRecord = importHistory[idx];
@@ -4641,78 +4649,160 @@
       }
     }
 
+    // ========== 趋势分析工具函数 ==========
+
+    /**
+     * 获取近3个月的趋势筛选日期（每月3个点：月初5号、月中15号、月末30号）
+     * @param {string[]} allDates - 所有可用日期（YYYY-MM-DD格式）
+     * @returns {string[]} 筛选后的日期，按升序排列
+     */
+    function getFilteredTrendDates(allDates) {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      // 计算目标月份：当前月 + 前2个月
+      const targetMonths = [];
+      for (let i = 0; i < 3; i++) {
+        let month = currentMonth - i;
+        let year = currentYear;
+        if (month <= 0) { month += 12; year -= 1; }
+        targetMonths.push({ year, month });
+      }
+
+      const result = [];
+      const pickedSet = new Set();
+
+      targetMonths.forEach(({ year, month }) => {
+        // 该月所有日期
+        const monthDates = allDates.filter(d => {
+          const parts = d.split('-');
+          return parseInt(parts[0]) === year && parseInt(parts[1]) === month;
+        }).sort();
+
+        if (monthDates.length === 0) return;
+
+        // 三个目标点：5号、15号、30号
+        const targets = [5, 15, 30];
+        targets.forEach(targetDay => {
+          let best = null;
+          let bestDiff = Infinity;
+          monthDates.forEach(d => {
+            if (pickedSet.has(d)) return;
+            const day = parseInt(d.split('-')[2]);
+            const diff = Math.abs(day - targetDay);
+            if (diff < bestDiff) { bestDiff = diff; best = d; }
+          });
+          if (best) {
+            pickedSet.add(best);
+            result.push(best);
+          }
+        });
+      });
+
+      return result.sort();
+    }
+
+    /**
+     * 构建月分组下拉菜单的HTML
+     * @param {string[]} allDates - 所有日期
+     * @param {string} [selectedValue] - 当前选中的值
+     * @returns {string} optgroup HTML
+     */
+    function buildMonthGroupedOptions(allDates, selectedValue) {
+      const groups = {};
+      // 倒序排列，最新的在前
+      [...allDates].sort().reverse().forEach(date => {
+        const [y, m] = date.split('-');
+        const key = y + '年' + parseInt(m) + '月';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(date);
+      });
+
+      let html = '';
+      for (const [group, dates] of Object.entries(groups)) {
+        html += '<optgroup label="' + group + '">';
+        dates.forEach(date => {
+          const sel = (date === selectedValue) ? ' selected' : '';
+          html += '<option value="' + date + '"' + sel + '>' + date.substring(5) + '</option>';
+        });
+        html += '</optgroup>';
+      }
+      return html;
+    }
+
+    /**
+     * 色阶颜色计算：红色=差，绿色=好
+     * @param {number} value - 当前值
+     * @param {number} min - 最小值
+     * @param {number} max - 最大值
+     * @param {boolean} isCostMetric - 是否成本类指标（成本越低越好）
+     * @returns {string} rgba颜色
+     */
+    function getHeatColor(value, min, max, isCostMetric) {
+      if (max === min || isNaN(value) || value === 0) return 'transparent';
+      let ratio = (value - min) / (max - min);
+      // 成本类指标：值越低越好 → 反转
+      if (isCostMetric) ratio = 1 - ratio;
+      // 红(差) → 绿(好)
+      const r = Math.round(220 * (1 - ratio));
+      const g = Math.round(220 * ratio);
+      return 'rgba(' + r + ',' + g + ',100,0.28)';
+    }
+
+    // 趋势分析中用户额外添加的对比日期
+    let trendAddedDates = [];
+
     function renderTrend() {
       if (!allMerchantData || importHistory.length === 0) return;
 
       document.getElementById('trendEmpty').classList.add('hidden');
       document.getElementById('trendData').classList.remove('hidden');
 
-      // 更新时间选择器（按时间倒序排列，最新的在前，与维度下钻保持一致）
+      // 获取所有可用日期
+      const allDates = importHistory.map(h => h.monthLabel).sort();
+
+      // 更新基准日期选择器（月分组下拉菜单）
       const baseMonthSelect = document.getElementById('trendBaseMonthSelect');
       const currentBaseValue = baseMonthSelect.value;
-      let optionsHtml = '';
-      
-      // 使用升序（最早的在前，从左到右日期从小到大）
-      const sortedHistory = [...importHistory].sort((a, b) => a.monthLabel.localeCompare(b.monthLabel));
-      
-      sortedHistory.forEach((record, idx) => {
-        const originalIdx = importHistory.findIndex(h => h.monthLabel === record.monthLabel);
-        optionsHtml += '<option value="' + originalIdx + '">' + record.monthLabel + '</option>';
-      });
-      baseMonthSelect.innerHTML = optionsHtml;
-      
-      // 恢复之前的选择，如果不存在则默认选择第一个（最新的）
-      if (currentBaseValue && optionsHtml.includes('value="' + currentBaseValue + '"')) {
-        baseMonthSelect.value = currentBaseValue;
-      } else if (sortedHistory.length > 0) {
-        const latestIdx = importHistory.findIndex(h => h.monthLabel === sortedHistory[0].monthLabel);
-        baseMonthSelect.value = latestIdx;
+      baseMonthSelect.innerHTML = buildMonthGroupedOptions(allDates, currentBaseValue || allDates[allDates.length - 1]);
+      if (!baseMonthSelect.value && allDates.length > 0) {
+        baseMonthSelect.value = allDates[allDates.length - 1];
       }
+
+      // 更新"添加对比日期"下拉菜单
+      const addDateSelect = document.getElementById('trendAddDateSelect');
+      const currentAddValue = addDateSelect.value;
+      const allDatesExceptSelected = allDates.filter(d => d !== baseMonthSelect.value);
+      addDateSelect.innerHTML = '<option value="">-- 添加对比日期 --</option>' + buildMonthGroupedOptions(allDatesExceptSelected, currentAddValue);
 
       // 更新城市选择器 - 使用当前选中的日期对应的数据
       const trendCitySelect = document.getElementById('trendCitySelect');
       const currentCityValue = trendCitySelect.value;
       const citySelectHtml = [];
-      
-      // 使用当前选中的日期记录来获取城市列表
-      const selectedIdx = parseInt(baseMonthSelect.value) || 0;
-      const selectedRecord = importHistory[selectedIdx] || importHistory[0];
+
+      const selectedDate = baseMonthSelect.value;
+      const selectedRecord = importHistory.find(h => h.monthLabel === selectedDate) || importHistory[0];
       const firstMerchantType = document.getElementById('trendMerchantSelect').value;
-      
+
       let merchantData = selectedRecord && (selectedRecord.data || (window.financeToolCache && window.financeToolCache[selectedRecord.monthLabel]));
-      
-      // 检测数据格式，如果是旧格式 { date, cities, fileName }，需要包装成新格式
+
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
-        console.log('[App] renderTrend 检测到旧格式数据，正在转换为新格式');
-        merchantData = {
-          all: {
-            label: '全部',
-            cities: merchantData.cities
-          }
-        };
+        merchantData = { all: { label: '全部', cities: merchantData.cities } };
       }
-      
+
       if (merchantData && merchantData[firstMerchantType]) {
         citySelectHtml.push('<option value="总商">总商</option>');
-        const citiesData = merchantData[firstMerchantType].cities || [];
-        citiesData.forEach(city => {
-          if (city.name !== '总商') {
-            citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
-          }
+        (merchantData[firstMerchantType].cities || []).forEach(city => {
+          if (city.name !== '总商') citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
         });
       } else if (merchantData && merchantData.all) {
         citySelectHtml.push('<option value="总商">总商</option>');
-        const citiesData = merchantData.all.cities || [];
-        citiesData.forEach(city => {
-          if (city.name !== '总商') {
-            citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
-          }
+        (merchantData.all.cities || []).forEach(city => {
+          if (city.name !== '总商') citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
         });
       }
-      console.log('[App] renderTrend 可用的商家类型:', Object.keys(merchantData || {}));
       trendCitySelect.innerHTML = citySelectHtml.join('');
-      
-      // 恢复之前的选择
       if (currentCityValue && citySelectHtml.some(opt => opt.includes('value="' + currentCityValue + '"'))) {
         trendCitySelect.value = currentCityValue;
       }
@@ -4721,34 +4811,53 @@
       const module = document.getElementById('trendModuleSelect').value;
       const selectedCity = trendCitySelect.value || '总商';
 
-      // 按时间倒序获取所有可用的月份数据（最新的在前）
-      // 同时转换旧格式数据
-      const trendMonths = sortedHistory.map(record => {
-        const originalIdx = importHistory.findIndex(h => h.monthLabel === record.monthLabel);
-        // 优先使用 record.data，为 null 时从缓存读取
-        let tmData = record.data || (window.financeToolCache && window.financeToolCache[record.monthLabel]) || null;
-        
-        // 检测并转换旧格式
+      // 获取筛选后的趋势日期（近3月×3点）
+      const filteredDates = getFilteredTrendDates(allDates);
+
+      // 合并用户添加的对比日期（去重）
+      const allTrendDates = [...new Set([...filteredDates, ...trendAddedDates])].sort();
+
+      // 构建趋势数据
+      const trendMonths = allTrendDates.map(date => {
+        const record = importHistory.find(h => h.monthLabel === date);
+        let tmData = (record && record.data) || (window.financeToolCache && window.financeToolCache[date]) || null;
+
         if (tmData && !tmData.all && !tmData.city && !tmData.ka && tmData.cities) {
-          tmData = {
-            all: {
-              label: '全部',
-              cities: tmData.cities
-            }
-          };
+          tmData = { all: { label: '全部', cities: tmData.cities } };
         }
-        
+
         return {
-          idx: originalIdx,
-          label: record.monthLabel,
-          date: record.importDate,
-          data: tmData
+          idx: importHistory.findIndex(h => h.monthLabel === date),
+          label: date,
+          date: record ? record.importDate : date,
+          data: tmData,
+          isAdded: trendAddedDates.includes(date) && !filteredDates.includes(date)
         };
       });
-      
-      console.log('[App] trendMonths[0].data keys:', Object.keys(trendMonths[0].data || {}));
-      
+
       renderTrendDetailTable(trendMonths, merchantType, module, selectedCity);
+    }
+
+    /**
+     * 添加对比日期到趋势分析
+     */
+    function addTrendCompareDate() {
+      const select = document.getElementById('trendAddDateSelect');
+      const date = select.value;
+      if (!date) return;
+      if (!trendAddedDates.includes(date)) {
+        trendAddedDates.push(date);
+      }
+      select.value = '';
+      renderTrend();
+    }
+
+    /**
+     * 清除所有添加的对比日期
+     */
+    function clearTrendCompareDates() {
+      trendAddedDates = [];
+      renderTrend();
     }
 
     function renderTrendDetailTable(trendMonths, merchantType, module, cityName) {
@@ -4907,6 +5016,34 @@
         const noPerOrderMetrics = ['orders'];
         const noRatioMetrics = ['orders', 'gmvAmount'];
         
+        // 预计算所有指标的色阶数据（单均/占比的min/max）
+        const heatMapCache = {};
+        group.metrics.forEach(metric => {
+          const isSkip = skipMetrics.includes(metric.key);
+          const showPO = !isSkip && !noPerOrderMetrics.includes(metric.key);
+          const showR = !isSkip && !noRatioMetrics.includes(metric.key);
+          const isCost = costMetrics.includes(metric.key);
+          const poVals = [];
+          const ratioVals = [];
+          monthlyData.forEach(d => {
+            if (showPO && d) {
+              const orders = d.orders || 1;
+              poVals.push(orders > 0 ? (d[metric.key] || 0) / orders : 0);
+            }
+            if (showR && d) {
+              const gmv = d.gmvAmount || 1;
+              ratioVals.push(gmv > 0 ? (d[metric.key] || 0) / gmv : 0);
+            }
+          });
+          heatMapCache[metric.key] = {
+            isCost,
+            poMin: poVals.length > 0 ? Math.min(...poVals) : 0,
+            poMax: poVals.length > 0 ? Math.max(...poVals) : 0,
+            ratioMin: ratioVals.length > 0 ? Math.min(...ratioVals) : 0,
+            ratioMax: ratioVals.length > 0 ? Math.max(...ratioVals) : 0
+          };
+        });
+        
         group.metrics.forEach(metric => {
           const isSkipMetric = skipMetrics.includes(metric.key);
           const showPerOrder = !isSkipMetric && !noPerOrderMetrics.includes(metric.key);
@@ -4933,13 +5070,17 @@
             // 单均
             if (showPerOrder && orders > 0) {
               const perOrderVal = val / orders;
-              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+              const hc = heatMapCache[metric.key];
+              const poBg = getHeatColor(perOrderVal, hc.poMin, hc.poMax, hc.isCost);
+              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px; background:' + poBg + '; padding: 1px 3px; border-radius: 2px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
             }
             
             // 比例
             if (showRatio && gmvAmount > 0) {
               const ratioVal = val / gmvAmount;
-              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px;">' + formatPercent(ratioVal) + '</div>';
+              const hc2 = heatMapCache[metric.key];
+              const ratioBg = getHeatColor(ratioVal, hc2.ratioMin, hc2.ratioMax, hc2.isCost);
+              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px; background:' + ratioBg + '; padding: 1px 3px; border-radius: 2px;">' + formatPercent(ratioVal) + '</div>';
             }
             
             html += '<td style="padding: 4px 6px; ' + (isLatest ? 'background: var(--warning-bg);' : '') + ' text-align: right; font-variant-numeric: tabular-nums;">' + cellHtml + '</td>';
