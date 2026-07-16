@@ -1,4 +1,4 @@
-<!-- v2026-07-16.1 -->
+<!-- v2026-07-16.2 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260716.1"></script>
-    <script src="js/chart.umd.min.js?v=20260716.1"></script>
-    <script src="js/data-store.js?v=20260716.1"></script>
-    <script src="js/state-manager.js?v=20260716.1"></script>
+  <script src="js/xlsx.full.min.js?v=20260716.2"></script>
+    <script src="js/chart.umd.min.js?v=20260716.2"></script>
+    <script src="js/data-store.js?v=20260716.2"></script>
+    <script src="js/state-manager.js?v=20260716.2"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -5016,6 +5016,10 @@
         const noPerOrderMetrics = ['orders'];
         const noRatioMetrics = ['orders', 'gmvAmount'];
         
+        // 收入型指标（越多越好）vs 成本型指标（越少越好）
+        const revenueMetrics = ['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders'];
+        const costMetrics = ['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost'];
+        
         // 预计算所有指标的色阶数据（单均/占比的min/max）
         const heatMapCache = {};
         group.metrics.forEach(metric => {
@@ -5101,9 +5105,6 @@
             return gmv > 0 ? val / gmv : 0;
           }) : null;
           
-          // 收入型指标（越多越好）vs 成本型指标（越少越好）
-          const revenueMetrics = ['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders'];
-          const costMetrics = ['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost'];
           const isRevenueMetric = revenueMetrics.includes(metric.key);
           const isCostMetric = costMetrics.includes(metric.key);
           
