@@ -1009,10 +1009,11 @@
 
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
         const cityRow = data[2];       // 第3行：城市名（承德市、玉田县...）
-        const headerRow = data[1];     // 第2行：列类型头（绝对值、单均、比例...）
+        const headerRow = data[1];     // 第2行：列类型头（可能含单均、比例等关键词）
         if (!cityRow) continue;
 
         const cityMap = {};
+        const seenCities = new Set();  // 双保险：记录已见过的城市名，自动去重
         // 计算列关键词（用于匹配列类型头，非城市名）
         const SKIP_COLUMNS = ['单均', '比例', '均值', '平均值', '合计', '小计', '备注', '说明'];
 
@@ -1021,12 +1022,19 @@
           // 跳过空值、总商、城市名称标题行
           if (!excelName || excelName === '总商' || excelName === '城市名称') continue;
 
-          // 检查列类型头（data[1]）是否包含计算列关键词
+          // 双保险1：检查列类型头（data[1]）是否包含计算列关键词
           const headerCell = headerRow ? String(headerRow[col] || '').trim() : '';
           if (SKIP_COLUMNS.some(keyword => headerCell.includes(keyword))) {
-            console.log('[parseExcelFile] 跳过计算列:', excelName, '(列头:', headerCell, ')');
+            console.log('[parseExcelFile] 跳过计算列(列头):', excelName, '(列头:', headerCell, ')');
             continue;
           }
+
+          // 双保险2：城市名去重（同一城市名只保留第一次出现=绝对值列）
+          if (seenCities.has(excelName)) {
+            console.log('[parseExcelFile] 跳过重复城市:', excelName);
+            continue;
+          }
+          seenCities.add(excelName);
 
           cityMap[col] = { excelName, displayName: CONFIG.CITY_DISPLAY_MAP[excelName] || excelName };
         }
