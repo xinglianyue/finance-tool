@@ -1,4 +1,4 @@
-<!-- v2026-07-16.4 -->
+<!-- v2026-07-16.5 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260716.4"></script>
-    <script src="js/chart.umd.min.js?v=20260716.4"></script>
-    <script src="js/data-store.js?v=20260716.4"></script>
-    <script src="js/state-manager.js?v=20260716.4"></script>
+  <script src="js/xlsx.full.min.js?v=20260716.5"></script>
+    <script src="js/chart.umd.min.js?v=20260716.5"></script>
+    <script src="js/data-store.js?v=20260716.5"></script>
+    <script src="js/state-manager.js?v=20260716.5"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1243,7 +1243,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: v2026-07-16.4</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: v2026-07-16.5</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
         <button class="btn btn-secondary" onclick="toggleTheme()" style="font-size: 16px; padding: 8px 12px;">🌙</button>
@@ -1507,6 +1507,34 @@
       if (num == null || isNaN(num)) return '-';
       return (num * 100).toFixed(2) + '%';
     }
+
+    // ===== 性能守卫：自动检测渲染耗时，防止性能退化 =====
+    const PERF_THRESHOLD_MS = 300; // 渲染超过300ms就警告
+    const _perfHistory = {};
+
+    function _wrapRender(name, fn) {
+      return function(...args) {
+        const t0 = performance.now();
+        const result = fn.apply(this, args);
+        const elapsed = performance.now() - t0;
+        if (elapsed > PERF_THRESHOLD_MS) {
+          console.warn(`[PerfGuard] ⚠️ ${name} 耗时 ${elapsed.toFixed(0)}ms，超过阈值${PERF_THRESHOLD_MS}ms`);
+          _perfHistory[name] = { elapsed: Math.round(elapsed), time: new Date().toISOString() };
+        }
+      };
+    }
+
+    // 启动时检查：禁止在渲染路径使用 toLocaleString
+    (function _perfStartupCheck() {
+      const src = document.querySelector('script:not([src])')?.textContent || '';
+      // 检查 formatNumber 是否误用 toLocaleString
+      if (typeof formatNumber === 'function') {
+        const fnSrc = formatNumber.toString();
+        if (fnSrc.includes('toLocaleString')) {
+          console.error('[PerfGuard] 🚨 formatNumber 仍在使用 toLocaleString，这会导致严重卡顿！');
+        }
+      }
+    })();
 
     let diagnosticLogs = [];
     
@@ -3382,7 +3410,7 @@
       if (panel) panel.remove();
     }
 
-    function renderOverview() {
+    const _renderOverview = function renderOverview() {
       if (!currentData) return;
 
       document.getElementById('overviewEmpty').classList.add('hidden');
@@ -3693,7 +3721,7 @@
       document.getElementById('cityRankTable').innerHTML = html;
     }
 
-    function renderDimension() {
+    const _renderDimension = function renderDimension() {
       if (!currentData) return;
 
       document.getElementById('dimensionEmpty').classList.add('hidden');
@@ -4231,7 +4259,7 @@
       renderDimensionTable();
     }
 
-    function renderDimensionTable() {
+    const _renderDimensionTable = function renderDimensionTable() {
       if (!allMerchantData) {
         console.log('renderDimensionTable: allMerchantData is null');
         return;
@@ -4715,7 +4743,7 @@
     // 趋势分析中用户额外添加的对比日期
     let trendAddedDates = [];
 
-    function renderTrend() {
+    const _renderTrend = function renderTrend() {
       if (!allMerchantData || importHistory.length === 0) return;
 
       document.getElementById('trendEmpty').classList.add('hidden');
@@ -5198,6 +5226,17 @@
         collapsibles[groupIdx].classList.toggle('collapsed');
       }
     }
+
+    // ===== 性能守卫：包装渲染函数，自动监测耗时 =====
+    const renderOverview = _wrapRender('renderOverview', _renderOverview);
+    const renderDimension = _wrapRender('renderDimension', _renderDimension);
+    const renderDimensionTable = _wrapRender('renderDimensionTable', _renderDimensionTable);
+    const renderTrend = _wrapRender('renderTrend', _renderTrend);
+
+    // 将性能数据暴露到控制台，方便诊断
+    window._getPerfReport = function() {
+      return { history: _perfHistory, threshold: PERF_THRESHOLD_MS };
+    };
 
     function renderSensitivity() {
       if (!currentData) return;
