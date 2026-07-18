@@ -1,4 +1,4 @@
-<!-- v2026-07-16.2 -->
+<!-- v2026-07-16.3 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260716.2"></script>
-    <script src="js/chart.umd.min.js?v=20260716.2"></script>
-    <script src="js/data-store.js?v=20260716.2"></script>
-    <script src="js/state-manager.js?v=20260716.2"></script>
+  <script src="js/xlsx.full.min.js?v=20260716.3"></script>
+    <script src="js/chart.umd.min.js?v=20260716.3"></script>
+    <script src="js/data-store.js?v=20260716.3"></script>
+    <script src="js/state-manager.js?v=20260716.3"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -1243,7 +1243,7 @@
     <div class="header">
       <h1>📊 财务分析工具</h1>
       <p>美团代理商财务数据分析 | 多城市对比 | 维度下钻 | 敏感性分析</p>
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: v2026-07-16.2</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: v2026-07-16.3</p>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="exportData()">💾 导出</button>
         <button class="btn btn-secondary" onclick="toggleTheme()" style="font-size: 16px; padding: 8px 12px;">🌙</button>
@@ -2446,10 +2446,10 @@
       console.log('[App] StateManager 初始化完成，allMerchantData:', !!StateManager.get('allMerchantData'));
       
       // 渲染 UI（确保 allMerchantData 已设置）
+      // 趋势分析延迟到切换tab时再渲染，避免初始化时生成大量HTML
       renderImportSelector();
       renderOverview();
       renderDimension();
-      renderTrend();
       
       console.log('[App] 应用状态初始化完成', {
         hasData: !!allMerchantData,
@@ -5717,15 +5717,7 @@
       // 2秒后自动隐藏
       setTimeout(() => {
         loadingPanel.style.display = 'none';
-        
-        console.log('[App] 开始渲染UI，当前currentData:', currentData);
-        console.log('[App] 当前importHistory:', importHistory);
-        
-        // 渲染UI
-        renderImportSelector();
-        renderOverview();
-        renderDimension();
-        renderTrend();
+        console.log('[App] 加载面板已隐藏');
       }, 2000);
     };
   </script>
