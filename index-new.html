@@ -1514,26 +1514,42 @@
 
     function _wrapRender(name, fn) {
       return function(...args) {
+        if (window._resetTlsCount) window._resetTlsCount();
         const t0 = performance.now();
         const result = fn.apply(this, args);
         const elapsed = performance.now() - t0;
+        const tlsCount = window._getTlsCount ? window._getTlsCount() : 0;
         if (elapsed > PERF_THRESHOLD_MS) {
-          console.warn(`[PerfGuard] ⚠️ ${name} 耗时 ${elapsed.toFixed(0)}ms，超过阈值${PERF_THRESHOLD_MS}ms`);
-          _perfHistory[name] = { elapsed: Math.round(elapsed), time: new Date().toISOString() };
+          console.warn(`[PerfGuard] ⚠️ ${name} 耗时 ${elapsed.toFixed(0)}ms (toLocaleString调用${tlsCount}次)，超过阈值${PERF_THRESHOLD_MS}ms`);
+          _perfHistory[name] = { elapsed: Math.round(elapsed), tlsCount, time: new Date().toISOString() };
+        }
+        if (tlsCount > 50) {
+          console.error(`[PerfGuard] 🚨 ${name} 中 toLocaleString 被调用 ${tlsCount} 次！这是性能杀手`);
         }
       };
     }
 
-    // 启动时检查：禁止在渲染路径使用 toLocaleString
+    // 启动时全面检查：禁止在任何格式化函数中使用 toLocaleString
     (function _perfStartupCheck() {
-      const src = document.querySelector('script:not([src])')?.textContent || '';
-      // 检查 formatNumber 是否误用 toLocaleString
-      if (typeof formatNumber === 'function') {
-        const fnSrc = formatNumber.toString();
-        if (fnSrc.includes('toLocaleString')) {
-          console.error('[PerfGuard] 🚨 formatNumber 仍在使用 toLocaleString，这会导致严重卡顿！');
+      const CHECK_LIST = ['formatNumber', 'formatMoney', 'formatValue', 'formatPercent'];
+      CHECK_LIST.forEach(fnName => {
+        if (typeof window[fnName] === 'function' && window[fnName].toString().includes('toLocaleString')) {
+          console.error(`[PerfGuard] 🚨 ${fnName} 使用了 toLocaleString，会导致严重卡顿！请改用 _addThousandsSep`);
         }
-      }
+      });
+      // 运行时拦截：监测 toLocaleString 总调用次数
+      let _tlsCallCount = 0;
+      const _origTLS = Number.prototype.toLocaleString;
+      Number.prototype.toLocaleString = function(...args) {
+        _tlsCallCount++;
+        if (_tlsCallCount > 100) {
+          console.error(`[PerfGuard] 🚨 toLocaleString 已被调用 ${_tlsCallCount} 次！这是卡顿根因，请改用 _addThousandsSep`);
+        }
+        return _origTLS.call(this, ...args);
+      };
+      // 每次渲染前重置计数
+      window._resetTlsCount = function() { _tlsCallCount = 0; };
+      window._getTlsCount = function() { return _tlsCallCount; };
     })();
 
     let diagnosticLogs = [];
@@ -4912,14 +4928,14 @@
       if (isMobile) {
         let mobileHtml = '<div class="trend-cards">';
 
-        const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
-        const revenueMetrics = ['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders'];
-        const costMetrics = ['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost'];
+        const skipMetrics = new Set(['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio']);
+        const revenueMetrics = new Set(['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders']);
+        const costMetrics = new Set(['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost']);
 
         const getTrendStatus = (trend, rsq, mKey) => {
           if (rsq < 0.3) return { icon: '○', text: '波动', color: 'var(--text-tertiary)' };
           const threshold = 2;
-          const isCostMetric = costMetrics.includes(mKey);
+          const isCostMetric = costMetrics.has(mKey);
           const isGoodTrend = isCostMetric ? (trend < -threshold) : (trend > threshold);
           const isBadTrend = isCostMetric ? (trend > threshold) : (trend < -threshold);
           if (isGoodTrend) return { icon: '📈', text: '向好', color: 'var(--success)' };
@@ -4929,7 +4945,7 @@
 
         currentMetricGroups.forEach(group => {
           group.metrics.forEach(metric => {
-            if (skipMetrics.includes(metric.key)) return;
+            if (skipMetrics.has(metric.key)) return;
 
             // 收集该指标所有月份的值
             const values = [];
@@ -5002,21 +5018,21 @@
         html += '<th style="padding: 8px 12px; text-align: center; font-weight: 600; font-size: 12px; color: var(--text-secondary); background: var(--primary-bg); width: 200px;">趋势分析</th>';
         html += '</tr></thead><tbody>';
         
-        const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
-        const noPerOrderMetrics = ['orders'];
-        const noRatioMetrics = ['orders', 'gmvAmount'];
+        const skipMetrics = new Set(['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio']);
+        const noPerOrderMetrics = new Set(['orders']);
+        const noRatioMetrics = new Set(['orders', 'gmvAmount']);
         
         // 收入型指标（越多越好）vs 成本型指标（越少越好）
-        const revenueMetrics = ['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders'];
-        const costMetrics = ['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost'];
+        const revenueMetrics = new Set(['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders']);
+        const costMetrics = new Set(['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost']);
         
         // 预计算所有指标的色阶数据（单均/占比的min/max）
         const heatMapCache = {};
         group.metrics.forEach(metric => {
-          const isSkip = skipMetrics.includes(metric.key);
-          const showPO = !isSkip && !noPerOrderMetrics.includes(metric.key);
-          const showR = !isSkip && !noRatioMetrics.includes(metric.key);
-          const isCost = costMetrics.includes(metric.key);
+          const isSkip = skipMetrics.has(metric.key);
+          const showPO = !isSkip && !noPerOrderMetrics.has(metric.key);
+          const showR = !isSkip && !noRatioMetrics.has(metric.key);
+          const isCost = costMetrics.has(metric.key);
           const poVals = [];
           const ratioVals = [];
           monthlyData.forEach(d => {
@@ -5039,9 +5055,9 @@
         });
         
         group.metrics.forEach(metric => {
-          const isSkipMetric = skipMetrics.includes(metric.key);
-          const showPerOrder = !isSkipMetric && !noPerOrderMetrics.includes(metric.key);
-          const showRatio = !isSkipMetric && !noRatioMetrics.includes(metric.key);
+          const isSkipMetric = skipMetrics.has(metric.key);
+          const showPerOrder = !isSkipMetric && !noPerOrderMetrics.has(metric.key);
+          const showRatio = !isSkipMetric && !noRatioMetrics.has(metric.key);
           
           // 绝对值行
           const absValues = monthlyData.map(d => d ? (d[metric.key] || 0) : 0);
@@ -5095,8 +5111,8 @@
             return gmv > 0 ? val / gmv : 0;
           }) : null;
           
-          const isRevenueMetric = revenueMetrics.includes(metric.key);
-          const isCostMetric = costMetrics.includes(metric.key);
+          const isRevenueMetric = revenueMetrics.has(metric.key);
+          const isCostMetric = costMetrics.has(metric.key);
           
           // 基于线性回归判断趋势状态
           const getTrendStatus = (trend, rsq) => {
