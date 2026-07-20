@@ -6,16 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.45.1",
     "vite": "^6.0.0",
-    "vite-plugin-singlefile": "^2.0.0"
+    "vite-plugin-singlefile": "^2.0.0",
+    "wrangler": "^4.112.0"
   },
   "dependencies": {
-    "jquery": "^3.7.1",
-    "xlsx": "^0.18.5",
     "chart.js": "^4.4.7",
-    "chartjs-plugin-datalabels": "^2.2.0"
+    "chartjs-plugin-datalabels": "^2.2.0",
+    "jquery": "^3.7.1",
+    "xlsx": "^0.18.5"
   }
 }
