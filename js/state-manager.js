@@ -38,24 +38,39 @@ const StateManager = {
       this._state.currentData = initialData.currentData || null;
       
       // 支持 v3 格式：从内存缓存或 initialData.cache 中提取 allMerchantData
-      if (initialData.version === 3) {
+      // 但优先使用初始数据中直接提供的 allMerchantData（来自 initializeAppState）
+      let allMerchantDataToSet = null;
+      
+      // 如果 initialData 明确提供了 allMerchantData，直接使用它
+      if (initialData.allMerchantData !== undefined && initialData.allMerchantData !== null) {
+        allMerchantDataToSet = initialData.allMerchantData;
+        console.log('[StateManager] 从 initialData.allMerchantData 字段加载（优先级最高）');
+      } else if (initialData.version === 3) {
         const currentRecord = initialData.importHistory?.[initialData.currentImportIndex];
         // 优先从内存缓存(window.financeToolCache)读取，其次从initialData.cache读取
         const cacheData = window.financeToolCache?.[currentRecord?.monthLabel] || initialData.cache?.[currentRecord?.monthLabel];
         if (currentRecord && cacheData) {
-          this._state.allMerchantData = cacheData;
+          allMerchantDataToSet = cacheData;
           console.log('[StateManager] 从 cache 加载 allMerchantData:', currentRecord.monthLabel);
         } else if (initialData.allMerchantData) {
-          this._state.allMerchantData = initialData.allMerchantData;
+          allMerchantDataToSet = initialData.allMerchantData;
           console.log('[StateManager] 从 allMerchantData 字段加载');
         } else {
           console.warn('[StateManager] cache 中无数据，使用空对象');
-          this._state.allMerchantData = {};
+          allMerchantDataToSet = {};
         }
       } else {
         // v2 格式：直接使用 allMerchantData
-        this._state.allMerchantData = initialData.allMerchantData || null;
+        allMerchantDataToSet = initialData.allMerchantData || null;
       }
+      
+      // 如果 still null，且我们有 initialData.allMerchantData，则使用它
+      if (allMerchantDataToSet === null && initialData.allMerchantData !== undefined) {
+        allMerchantDataToSet = initialData.allMerchantData;
+      }
+      
+      this._state.allMerchantData = allMerchantDataToSet || null;
+      console.log('[StateManager] allMerchantData 已设置为:', !!this._state.allMerchantData ? '有数据' : 'null或空');
       
       this._state.importHistory = initialData.importHistory || [];
       this._state.currentImportIndex = initialData.currentImportIndex || 0;
