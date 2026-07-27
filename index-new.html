@@ -1,4 +1,4 @@
-<!-- v2026-07-27.1 -->
+<!-- v2026-07-27.2 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260727.1"></script>
-    <script src="js/chart.umd.min.js?v=20260727.1"></script>
-    <script src="js/data-store.js?v=20260727.1"></script>
-    <script src="js/state-manager.js?v=20260727.1"></script>
+  <script src="js/xlsx.full.min.js?v=20260727.2"></script>
+    <script src="js/chart.umd.min.js?v=20260727.2"></script>
+    <script src="js/data-store.js?v=20260727.2"></script>
+    <script src="js/state-manager.js?v=20260727.2"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -3376,6 +3376,25 @@
         cities: citiesData
       };
 
+      // 同步全局变量到 StateManager，确保保存时数据一致
+      // 构建 v3 格式数据供 StateManager.init() 使用
+      const stateManagerImportHistory = importHistory.map(r => ({
+        monthLabel: r.monthLabel,
+        importedAt: r.importedAt || r.importDate || new Date().toISOString(),
+        fileName: r.fileName || ''
+      }));
+
+      const stateManagerData = {
+        version: 3,
+        currentData: currentData,
+        allMerchantData: allMerchantData,
+        importHistory: stateManagerImportHistory,
+        currentImportIndex: currentImportIndex,
+        currentMerchantType: currentMerchantType,
+        cache: window.financeToolCache || {}
+      };
+      StateManager.init(stateManagerData);
+      
       saveToLocalStorage();
       renderImportSelector();
       renderOverview();
