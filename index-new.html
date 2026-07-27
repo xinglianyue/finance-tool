@@ -1,4 +1,4 @@
-<!-- v2026-07-16.5 -->
+<!-- v2026-07-27.1 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -9,10 +9,10 @@
   <meta http-equiv="Expires" content="0">
   <title>财务分析工具 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
-  <script src="js/xlsx.full.min.js?v=20260716.5"></script>
-    <script src="js/chart.umd.min.js?v=20260716.5"></script>
-    <script src="js/data-store.js?v=20260716.5"></script>
-    <script src="js/state-manager.js?v=20260716.5"></script>
+  <script src="js/xlsx.full.min.js?v=20260727.1"></script>
+    <script src="js/chart.umd.min.js?v=20260727.1"></script>
+    <script src="js/data-store.js?v=20260727.1"></script>
+    <script src="js/state-manager.js?v=20260727.1"></script>
   <script>
     // 预加载阶段：检查本地缓存状态
     (function() {
@@ -2101,6 +2101,12 @@
         console.log('[App] switchImportDateDim: 从 importHistory.data 获取');
       }
 
+      // 4. 从 allMerchantData 获取（最终兜底）
+      if (!merchantData && allMerchantData) {
+        merchantData = allMerchantData;
+        console.log('[App] switchImportDateDim: 从 allMerchantData 获取');
+      }
+
       // 如果还是没有数据，提示用户
       if (!merchantData) {
         console.error('[App] switchImportDateDim: 无法获取数据');
@@ -2121,7 +2127,11 @@
 
       // 更新allMerchantData为当前选择的merchantData
       allMerchantData = merchantData;
-
+      
+      // 重置城市数据缓存（关键：确保切换日期后使用新数据）
+      _cityDataCacheKey = null;
+      _cityDataCache = null;
+      
       // 更新currentData（关键修复：之前缺少这步导致维度下钻数据不变）
       const allCitiesData = merchantData.all?.cities || [];
       let totalData = null;
@@ -2958,14 +2968,50 @@
           currentMerchantType = StateManager.get('currentMerchantType');
           
           // 恢复缓存到全局变量（供趋势分析使用）
-          if (data.cache) {
-            window.financeToolCache = data.cache;
+      if (data.cache) {
+        window.financeToolCache = data.cache;
+      }
+      
+      // 如果缓存为空但导入历史有数据，尝试从其他来源重建缓存
+      if (!window.financeToolCache || Object.keys(window.financeToolCache).length === 0 && importHistory.length > 0) {
+        console.log('[App] 缓存为空，尝试从其他来源重建...');
+        
+        // 1. 尝试从已有的所有merchantData构建缓存（针对当前选中的日期）
+        if (allMerchantData) {
+          const currentRecord = importHistory[currentImportIndex];
+          if (currentRecord) {
+            window.financeToolCache = window.financeToolCache || {};
+            window.financeToolCache[currentRecord.monthLabel] = allMerchantData;
+            console.log('[App] 从 allMerchantData 重建缓存，日期:', currentRecord.monthLabel);
           }
-          
-          // 恢复导入日期选择器
-          if (importHistory.length > 0) {
-            renderImportSelector();
+        }
+        
+        // 2. 如果仍然为空，尝试从云端数据中获取（如果有cloudData全局变量）
+        if (!window.financeToolCache || Object.keys(window.financeToolCache).length === 0 && window.cloudData) {
+          importHistory.forEach(record => {
+            const cloudRecord = window.cloudData.find(r => r.date === record.monthLabel);
+            if (cloudRecord) {
+              const merchantData = cloudRecord.merchantData || cloudRecord.currentData?.merchantData;
+              if (merchantData) {
+                // 兼容旧格式
+                if (!merchantData.all && merchantData.cities) {
+                  merchantData.all = { date: record.monthLabel, cities: merchantData.cities };
+                }
+                window.financeToolCache = window.financeToolCache || {};
+                window.financeToolCache[record.monthLabel] = merchantData;
+              }
+            }
+          });
+          if (Object.keys(window.financeToolCache).length > 0) {
+            console.log('[App] 从 cloudData 重建缓存，共 ' + Object.keys(window.financeToolCache).length + ' 个日期');
           }
+        }
+      }
+      
+      // 恢复导入日期选择器
+      if (importHistory.length > 0) {
+        renderImportSelector();
+      }
           
           return true;
         }
@@ -3300,6 +3346,10 @@
 
       // 使用最新导入的数据
       allMerchantData = importHistory[currentImportIndex].data;
+      
+      // 性能优化：同步更新内存缓存，确保维度下钻和趋势分析能正确获取数据
+      if (!window.financeToolCache) window.financeToolCache = {};
+      window.financeToolCache[importDateLabel] = JSON.parse(JSON.stringify(allMerchantData));
       
       const firstKey = Object.keys(allMerchantData)[0];
       currentMerchantType = firstKey;
@@ -4607,7 +4657,7 @@
     let _cityDataCache = null;
 
     function _buildCityDataCache() {
-      const key = allMerchantData ? JSON.stringify(Object.keys(allMerchantData).map(k => k + ':' + (allMerchantData[k]?.cities?.length || 0))) : '';
+      const key = allMerchantData ? JSON.stringify(Object.keys(allMerchantData).map(k => k + ':' + (allMerchantData[k]?.cities?.length || 0))) + '|' + currentImportIndex : '';
       if (_cityDataCacheKey === key && _cityDataCache) return;
       _cityDataCacheKey = key;
       _cityDataCache = {};
@@ -4787,12 +4837,50 @@
       const currentCityValue = trendCitySelect.value;
       const citySelectHtml = [];
 
+      // 获取当前选中日期的商户数据，用于填充城市选择器
       const selectedDate = baseMonthSelect.value;
       const selectedRecord = importHistory.find(h => h.monthLabel === selectedDate) || importHistory[0];
       const firstMerchantType = document.getElementById('trendMerchantSelect').value;
-
-      let merchantData = selectedRecord && (selectedRecord.data || (window.financeToolCache && window.financeToolCache[selectedRecord.monthLabel]));
-
+      
+      let merchantData = null;
+      
+      // 1. 从 selectedRecord.data 获取（历史导入数据）
+      if (selectedRecord && selectedRecord.data) {
+        merchantData = selectedRecord.data;
+      }
+      
+      // 2. 从内存缓存获取（云端加载或上次保存的数据）
+      if (!merchantData && window.financeToolCache && window.financeToolCache[selectedRecord?.monthLabel]) {
+        merchantData = window.financeToolCache[selectedRecord.monthLabel];
+      }
+      
+      // 3. 从全局 allMerchantData 获取兜底（当前选中的数据）
+      if (!merchantData && allMerchantData) {
+        // 优先尝试 allMerchantData.all 或直接使用 allMerchantData
+        if (allMerchantData.all) {
+          merchantData = allMerchantData;
+        } else if (allMerchantData[firstMerchantType]) {
+          merchantData = allMerchantData[firstMerchantType];
+        } else {
+          merchantData = allMerchantData;
+        }
+      }
+      
+      // 4. 从全局 cloudData 中查找（终极兜底）
+      if (!merchantData && window.cloudData && selectedRecord) {
+        const cloudRec = window.cloudData.find(r => r.date === selectedRecord.monthLabel);
+        if (cloudRec) {
+          const md = cloudRec.merchantData || cloudRec.currentData?.merchantData;
+          if (md) merchantData = md;
+        }
+      }
+      
+      // 如果还是没拿到数据，直接使用空对象避免报错
+      if (!merchantData) {
+        merchantData = {};
+      }
+      
+      // 检测并转换旧格式
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
         merchantData = { all: { label: '全部', cities: merchantData.cities } };
       }
@@ -4826,12 +4914,40 @@
       // 构建趋势数据
       const trendMonths = allTrendDates.map(date => {
         const record = importHistory.find(h => h.monthLabel === date);
-        let tmData = (record && record.data) || (window.financeToolCache && window.financeToolCache[date]) || null;
+        let tmData = null;
+        
+        // 1. 从 selectedRecord.data 获取（历史导入数据中缓存的）
+        if (record && record.data) {
+          tmData = record.data;
+        }
+        
+        // 2. 从内存缓存获取（云端加载时构建的）
+        if (!tmData && window.financeToolCache && window.financeToolCache[date]) {
+          tmData = window.financeToolCache[date];
+        }
+        
+        // 3. 从全局 cloudData 中查找（终极兜底）
+        if (!tmData && window.cloudData) {
+          const cloudRec = window.cloudData.find(r => r.date === date);
+          if (cloudRec) {
+            const md = cloudRec.merchantData || cloudRec.currentData?.merchantData;
+            if (md) tmData = md;
+          }
+        }
+        
+        // 4. 如果当前日期正好是当前选中的日期，使用 allMerchantData
+        if (!tmData && allMerchantData && record) {
+          const currentRecord = importHistory[currentImportIndex];
+          if (currentRecord && currentRecord.monthLabel === date) {
+            tmData = allMerchantData;
+          }
+        }
 
+        // 检测并转换旧格式
         if (tmData && !tmData.all && !tmData.city && !tmData.ka && tmData.cities) {
           tmData = { all: { label: '全部', cities: tmData.cities } };
         }
-
+        
         return {
           idx: importHistory.findIndex(h => h.monthLabel === date),
           label: date,
