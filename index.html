@@ -2163,6 +2163,16 @@
 
       // 切换日期后需要重新渲染城市选择框和表格
       renderDimension();
+      // 同步 StateManager 以确保状态一致性
+      StateManager.init({
+        version: 3,
+        currentData: currentData,
+        allMerchantData: allMerchantData,
+        importHistory: importHistory,
+        currentImportIndex: currentImportIndex,
+        currentMerchantType: currentMerchantType,
+        cache: window.financeToolCache || {}
+      });
     }
 
     function renderMerchantSelector() {
