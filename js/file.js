@@ -1,5 +1,6 @@
 // file.js - ES Module
 import { state, $, DataStore } from './core';
+import { StateManager } from './state-manager';
 const XLSX = window.XLSX;
 import { parseExcelFile, parseDateFromFilename } from './parser';
 
@@ -32,11 +33,22 @@ import { parseExcelFile, parseDateFromFilename } from './parser';
 
         state.merchantData = merchantData;
         state.currentData = {
-          date,
-          cities: merchantData[state.currentMerchant].cities,
-          fileName: file.name
+            date,
+            cities: merchantData[state.currentMerchant].cities,
+            fileName: file.name
         };
-
+        
+        // ===== NEW: Sync with StateManager =====
+        StateManager.init({
+            version: 3,
+            currentData: state.currentData,
+            allMerchantData: state.merchantData,
+            importHistory: [],
+            currentImportIndex: 0,
+            currentMerchantType: state.currentMerchant
+        });
+        // =====================================
+        
         DataStore.save(date, { currentData: state.currentData, merchantData: state.merchantData, currentMerchant: state.currentMerchant });
         window.onDataLoaded();
         renderHistory();

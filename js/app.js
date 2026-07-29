@@ -1,5 +1,6 @@
 // app.js - ES Module
 import { state, $, $$, DataStore, safeFixed, safeLog } from './core';
+import { StateManager } from './state-manager';
 import { analyzeContribution, analyzeCostWaterfall, generateInsights,
   renderInsightsPanel, renderUEDecomposition, renderWaterfallChart, renderContributionPanel,
   renderPeriodCompare, renderEnvOverview, initEnvOverview } from './analysis';
@@ -47,17 +48,29 @@ import { renderHealthTab } from './health-ui.js';
     var cities = state.merchantData[typeKey].cities;
     safeLog('info', '[switchMerchant] cities count:', cities.length, 'first:', cities[0] ? cities[0].name : 'N/A');
     state.currentData = {
-      date: state.currentData.date,
-      cities: cities,
-      fileName: state.currentData.fileName
+        date: state.currentData.date,
+        cities: cities,
+        fileName: state.currentData.fileName
     };
     state.selectedCities = new Set(cities.map(c => c.name));
+    
+    // ===== NEW: Sync with StateManager =====
+    StateManager.init({
+        version: 3,
+        currentData: state.currentData,
+        allMerchantData: state.merchantData,
+        importHistory: [],
+        currentImportIndex: 0,
+        currentMerchantType: state.currentMerchant
+    });
+    // =====================================
+    
     renderMerchantSelector();
     window.renderCityFilters();
     safeLog('info', '[switchMerchant] switching to tab:', state.currentTab || 'overview');
     // 刷新当前活跃Tab的数据
     switchTab(state.currentTab || 'overview');
-  }
+}
 
 function refreshDashboard() {
     safeLog('info', '[refreshDashboard] cities:', state.currentData ? state.currentData.cities.length : 0, 'selected:', state.selectedData ? state.selectedCities.size : 0);
@@ -276,23 +289,35 @@ function switchTab(tabName) {
 
     // Date selector
     $('#dateSelect').addEventListener('change', (e) => {
-      const date = e.target.value;
-      const allData = DataStore.loadAll();
-      if (allData[date]) {
-        const entry = allData[date];
-        if (entry.merchantData) {
-          state.merchantData = entry.merchantData;
-          state.currentMerchant = entry.currentMerchant || Object.keys(entry.merchantData)[0];
-          state.currentData = entry.currentData;
-        } else {
-          state.currentData = entry;
-          state.merchantData = { all: { label: '全量商家', cities: entry.cities } };
-          state.currentMerchant = 'all';
+        const date = e.target.value;
+        const allData = DataStore.loadAll();
+        if (allData[date]) {
+            const entry = allData[date];
+            if (entry.merchantData) {
+                state.merchantData = entry.merchantData;
+                state.currentMerchant = entry.currentMerchant || Object.keys(entry.merchantData)[0];
+                state.currentData = entry.currentData;
+            } else {
+                state.currentData = entry;
+                state.merchantData = { all: { label: '全量商家', cities: entry.cities } };
+                state.currentMerchant = 'all';
+            }
+            
+            // ===== NEW: Sync with StateManager =====
+            StateManager.init({
+                version: 3,
+                currentData: state.currentData,
+                allMerchantData: state.merchantData,
+                importHistory: [],
+                currentImportIndex: 0,
+                currentMerchantType: state.currentMerchant
+            });
+            // =====================================
+            
+            onDataLoaded();
+            renderHistory();
+            renderMerchantSelector();
         }
-        onDataLoaded();
-        renderHistory();
-        renderMerchantSelector();
-      }
     });
 
     // City filter actions
@@ -574,20 +599,34 @@ function renderRawData() {
     const allData = DataStore.loadAll();
     const dates = Object.keys(allData).sort().reverse();
     if (dates.length > 0) {
-      const entry = allData[dates[0]];
-      if (entry.merchantData) {
-        state.merchantData = entry.merchantData;
-        state.currentMerchant = entry.currentMerchant || Object.keys(entry.merchantData)[0];
-        state.currentData = entry.currentData;
-      } else if (entry.cities) {
-        state.currentData = entry;
-        state.merchantData = { all: { label: '全量商家', cities: entry.cities } };
-        state.currentMerchant = 'all';
-      } else {
-        console.warn('[init] 缓存数据格式异常，请重新上传');
-        return;
-      }
-      onDataLoaded(skipPush);
+        const entry = allData[dates[0]];
+        if (entry.merchantData) {
+            state.merchantData = entry.merchantData;
+            state.currentMerchant = entry.currentMerchant || Object.keys(entry.merchantData)[0];
+            state.currentData = entry.currentData;
+        } else if (entry.cities) {
+            state.currentData = entry;
+            state.merchantData = { all: { label: '全量商家', cities: entry.cities } };
+            state.currentMerchant = 'all';
+        } else {
+            console.warn('[init] 缓存数据格式异常，请重新上传');
+            return;
+        }
+        
+        // ===== NEW: Sync with StateManager =====
+        // Prepare data for StateManager in v3 format
+        const stateManagerData = {
+            version: 3,
+            currentData: state.currentData,
+            allMerchantData: state.merchantData,
+            importHistory: [],  // Not used in simple storage mode
+            currentImportIndex: 0,
+            currentMerchantType: state.currentMerchant
+        };
+        StateManager.init(stateManagerData);
+        // =====================================
+        
+        onDataLoaded(skipPush);
       renderRawData();
       renderMerchantSelector();
       $('#uploadArea').style.display = 'none';
