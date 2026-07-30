@@ -1,5 +1,20 @@
 # 📝 财务分析工具 - 版本变更日志
 
+## v2026-07-29.2 (2026-07-30)
+
+### 🔴 严重问题修复
+
+**4️⃣ 维度下钻点击城市时显示 "allMerchantData is null" 错误**
+- **Root Cause**: `renderDimensionTable()` 在 `window.allMerchantData` 为空时直接返回，没有提供数据 fallback，导致城市切换时无响应且控制台报错
+- **Fix**: 增加多层数据源 fallback 机制：
+  1. 优先从 `window.allMerchantData` 获取（由 switchImportDateDim 或 StateManager 设置）
+  2. 其次从 `window.financeToolCache` 按当前日期获取
+  3. 再次从云端最新记录 `window.cloudData` 获取
+  4. 所有来源都不可用时显示友好提示
+- **Modified**: `index-new.html` → `renderDimensionTable()` 函数
+
+---
+
 ## v2026-07-29.1 (2026-07-29)
 
 ### 🔴 严重问题修复
