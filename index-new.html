@@ -4376,13 +4376,44 @@
     }
 
     const _renderDimensionTable = function renderDimensionTable() {
-  // 确保从全局对象获取最新数据，避免作用域遮蔽问题
-  if (!window.allMerchantData) {
-    console.log('renderDimensionTable: allMerchantData is null');
+    // ===== FIX: Try multiple data sources for robustness =====
+  let allMerchantData = null;
+
+  // 优先级1：直接从全局窗口对象获取（由 switchImportDateDim 或 StateManager 设置）
+  if (window.allMerchantData && Object.keys(window.allMerchantData).length > 0) {
+    allMerchantData = window.allMerchantData;
+    console.log('[renderDimensionTable] 从 window.allMerchantData 获取数据');
+  } 
+  // 优先级2：从缓存尝试获取兜底
+  else if (window.financeToolCache) {
+    const currentMonthLabel = importHistory && importHistory[currentImportIndex] ? importHistory[currentImportIndex].monthLabel : null;
+    if (currentMonthLabel && window.financeToolCache[currentMonthLabel]) {
+      allMerchantData = window.financeToolCache[currentMonthLabel];
+      console.log('[renderDimensionTable] 从 financeToolCache 获取兜底数据:', currentMonthLabel);
+    }
+  }
+  // 优先级3：从云端数据兜底
+  else if (window.cloudData && window.cloudData.length > 0) {
+    allMerchantData = window.cloudData[window.cloudData.length - 1].merchantData;
+    console.log('[renderDimensionTable] 从 cloudData 获取兜底数据');
+  }
+  // 最终检查：如果没有数据，返回并显示错误
+  if (!allMerchantData || Object.keys(allMerchantData).length === 0) {
+    console.error('[renderDimensionTable]: 无法获取任何数据源，allMerchantData 为空');
+    showToast('数据未加载，请先选择有效的日期和数据', 'warning');
+    
+    const tableEl = document.getElementById('dimensionTable');
+    if (tableEl) {
+      tableEl.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">无法显示数据表：没有找到可用的商家数据<br/>请先通过上方的"选择数据"下拉框选择一个日期</div>';
+    }
     return;
   }
 
-  // 使用窗体上所有商数据
+  // 使用获取到的数据
+  console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', Object.keys(allMerchantData));
+
+  // 获取实际存在的商家类型
+// 使用窗体上所有商数据
   const allMerchantData = window.allMerchantData;
   console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', Object.keys(allMerchantData));
   
