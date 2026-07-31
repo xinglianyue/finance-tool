@@ -1996,7 +1996,7 @@
       if (select2) select2.innerHTML = optionsHtml;
     }
 
-    function switchImportDate(idx) {
+    async function switchImportDate(idx) {
   idx = parseInt(idx);
   const currentData = DataStore.load();
   if (!currentData || !currentData.importHistory || idx < 0 || idx >= currentData.importHistory.length) {
@@ -2936,7 +2936,7 @@
         console.error('[App] 云端数据加载失败:', e);
         return false;
       }
-    }\n\nfunction checkCloudForUpdates(localData) {
+    }\n\nasync function checkCloudForUpdates(localData) {
       try {
         const indexResponse = await fetch('./index.json');
         if (!indexResponse.ok) return false;
@@ -2960,7 +2960,7 @@
      * @param {Object} localData - 本地数据
      * @returns {Promise<boolean>} - 是否有新数据
      */
-    function checkCloudForUpdates(localData) {
+    async function checkCloudForUpdates(localData) {
       try {
         console.log('[App] 检查云端更新...');
         
