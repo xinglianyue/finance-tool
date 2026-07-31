@@ -1996,7 +1996,7 @@
       if (select2) select2.innerHTML = optionsHtml;
     }
 
-    function switchImportDate(dateStr) {
+    async function switchImportDate(dateStr) {
       const idx = importHistory.findIndex(h => h.monthLabel === dateStr);
       if (idx < 0) return;
       
@@ -5752,109 +5752,7 @@ function buildV3Data(cloudRecords, cloudIndex) {
   cloudRecords.slice(0, 3).forEach(r => cache[r.date] = parseRecord(r));
   const importHistory = cloudRecords.map(r => ({ monthLabel: r.date, data: null, importedAt: r.updatedAt || r.date }));
   return { version: 3, metadata, currentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
-}
-
-
-async function buildV3Data(cloudRecords, cloudIndex) {
-  const metadata = {
-    lastSyncAt: new Date().toISOString(),
-    cloudVersion: cloudIndex?.version || 'v1',
-    availableDates: cloudIndex?.records?.map(r => r.date) || []
-  };
-  const currentData = parseRecord(cloudRecords[0]);
-  const allCitiesData = currentData.all?.cities || [];
-  let totalData = null;
-  const citiesData = [];
-  allCitiesData.forEach(city => {
-    if (city.name === 'total') { totalData = city; } else { citiesData.push(city); }
-  });
-  const formattedCurrentData = {
-    totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-    cities: citiesData
-  };
-  const cache = {};
-  cloudRecords.slice(0, 3).forEach(record => { cache[record.date] = parseRecord(record); });
-  const importHistory = cloudRecords.map(record => ({ monthLabel: record.date, data: null, importedAt: record.updatedAt || record.date, fileName: record.fileName || '' }));
-  return { version: 3, metadata, currentData: formattedCurrentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
-}
-
-async function loadFromCloud() {
-  console.log('[App] Loading cloud data (V3 mode)');
-  const localData = DataStore.load();
-  if (!localData || !localData.metadata || localData.version !== 3) {
-    try {
-      const indexResponse = await fetch('./index.json');
-      const cloudIndex = await indexResponse.json();
-      const dataResponse = await fetch('./shared-data.json');
-      const cloudRecords = await dataResponse.json();
-      const v3Data = buildV3Data(cloudRecords, cloudIndex);
-      DataStore.save(v3Data);
-      return v3Data;
-    } catch (e) { console.error('[App] Cloud load failed:', e); throw e; }
-  }
-  const hasUpdate = await checkCloudForUpdates(localData);
-  if (hasUpdate) {
-    try {
-      const indexResponse = await fetch('./index.json');
-      const cloudIndex = await indexResponse.json();
-      const dataResponse = await fetch('./shared-data.json');
-      const cloudRecords = await dataResponse.json();
-      const v3Data = buildV3Data(cloudRecords, cloudIndex);
-      DataStore.save(v3Data);
-      return v3Data;
-    } catch (e) { console.error('[App] Update fetch failed:', e); }
-  }
-  return localData;
-}
-
-async function switchImportDate(idx) {
-  idx = parseInt(idx);
-  const currentData = DataStore.load();
-  if (!currentData || !currentData.importHistory || idx < 0 || idx >= currentData.importHistory.length) {
-    console.error('[App] Invalid data switch index:', idx);
-    showToast('Data not available', 'error');
-    return;
-  }
-  const selectedDate = currentData.importHistory[idx].monthLabel;
-  const cachedData = DataStore.getCache(selectedDate);
-  if (cachedData) { updateUIWithMerchantData(cachedData); return; }
-  showToast('Loading ' + selectedDate + ' data...', 'info');
-  try {
-    const dataResponse = await fetch('./shared-data.json');
-    const cloudRecords = await dataResponse.json();
-    const record = cloudRecords.find(r => r.date === selectedDate);
-    if (!record) throw new Error('No data record for ' + selectedDate);
-    const merchantData = parseRecord(record);
-    DataStore.setCache(selectedDate, merchantData);
-    updateUIWithMerchantData(merchantData);
-    showToast('Loaded ' + selectedDate + ' data', 'success');
-  } catch (e) {
-    console.error('[App] Failed to load history:', e);
-    showToast('Load failed: ' + e.message, 'error');
-  }
-}
-
-async function checkCloudForUpdates(localData) {
-  try {
-    const indexResponse = await fetch('./index.json');
-    if (!indexResponse.ok) return false;
-    const cloudIndex = await indexResponse.json();
-    const localVersion = localData.metadata?.cloudVersion || '0';
-    const cloudVersion = cloudIndex.version || '0';
-    if (parseInt(cloudVersion) > parseInt(localVersion)) return true;
-    const localDates = new Set(localData.metadata?.availableDates || []);
-    const cloudDates = new Set(cloudIndex.records?.map(r => r.date) || []);
-    const newDates = [...cloudDates].filter(d => !localDates.has(d));
-    if (newDates.length > 0) return true;
-    return false;
-  } catch (e) {
-    console.error('[App] Check update failed:', e);
-    return false;
-  }
-}
-
-
-</script>
+}</script>
 </body>
 </html>
 
