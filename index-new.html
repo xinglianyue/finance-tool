@@ -2549,7 +2549,7 @@
       });
     }
 
-    async async function loadFromCloud() {
+    async function loadFromCloud() {
       try {
         console.log('[App] 正在从云端加载数据...');
         
@@ -2863,7 +2863,7 @@
         console.error('[App] 云端数据加载失败:', e);
         return false;
       }
-    }\n\nasync async function checkCloudForUpdates(localData) {
+    }\n\nasync function checkCloudForUpdates(localData) {
       try {
         const indexResponse = await fetch('./index.json');
         if (!indexResponse.ok) return false;
@@ -2887,7 +2887,7 @@
      * @param {Object} localData - 本地数据
      * @returns {Promise<boolean>} - 是否有新数据
      */
-    async async function checkCloudForUpdates(localData) {
+    async function checkCloudForUpdates(localData) {
       try {
         console.log('[App] 检查云端更新...');
         
