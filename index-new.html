@@ -1646,7 +1646,8 @@
       const logDiv = document.getElementById('diagnosticLog');
       const copyBtn = document.getElementById('copyBtn');
       
-      logDiv.textContent = logs.join('\n');
+      logDiv.textContent = logs.join('
+');
       panel.style.display = 'block';
       copyBtn.textContent = '📋 复制信息';
       copyBtn.classList.remove('copy-success');
@@ -2606,7 +2607,8 @@
           // 如果content字段可用，先尝试解析
         if (githubData.content && githubData.content.trim() !== '') {
           try {
-            const base64Content = githubData.content.replace(/\n/g, '');
+            const base64Content = githubData.content.replace(/
+/g, '');
             const decodedContent = decodeURIComponent(escape(atob(base64Content)));
             cloudData = JSON.parse(decodedContent);
             console.log('[App] 从API content字段解析数据成功');
@@ -2863,7 +2865,9 @@
         console.error('[App] 云端数据加载失败:', e);
         return false;
       }
-    }\n\nasync function checkCloudForUpdates(localData) {
+    }
+
+async function checkCloudForUpdates(localData) {
       try {
         const indexResponse = await fetch('./index.json');
         if (!indexResponse.ok) return false;
@@ -2880,7 +2884,9 @@
         console.error('[App] 检查更新失败:', e);
         return false;
       }
-    }\n\n
+    }
+
+
     
     /**
      * 检查云端是否有新数据
@@ -2919,7 +2925,8 @@
           
           if (githubData.content && githubData.content.trim() !== '') {
             try {
-              const base64Content = githubData.content.replace(/\n/g, '');
+              const base64Content = githubData.content.replace(/
+/g, '');
               const decodedContent = decodeURIComponent(escape(atob(base64Content)));
               cloudData = JSON.parse(decodedContent);
               console.log('[App] 从API content解析云端数据成功');
@@ -3116,7 +3123,9 @@
       }
       const nonZeroCount = Object.values(result).filter(v => v > 0).length;
       return nonZeroCount >= 3 ? result : null;
-    }}\n\nfunction parseExcelData(workbook, fileName) {
+    }}
+
+function parseExcelData(workbook, fileName) {
       console.log('[parseExcelData] 开始解析 Excel 文件:', fileName);
 
       try {
