@@ -1646,8 +1646,7 @@
       const logDiv = document.getElementById('diagnosticLog');
       const copyBtn = document.getElementById('copyBtn');
       
-      logDiv.textContent = logs.join('
-');
+      logDiv.textContent = logs.join('\n');
       panel.style.display = 'block';
       copyBtn.textContent = '📋 复制信息';
       copyBtn.classList.remove('copy-success');
@@ -2607,8 +2606,7 @@
           // 如果content字段可用，先尝试解析
         if (githubData.content && githubData.content.trim() !== '') {
           try {
-            const base64Content = githubData.content.replace(/
-/g, '');
+            const base64Content = githubData.content.replace(/\n/g, '');
             const decodedContent = decodeURIComponent(escape(atob(base64Content)));
             cloudData = JSON.parse(decodedContent);
             console.log('[App] 从API content字段解析数据成功');
@@ -2865,9 +2863,7 @@
         console.error('[App] 云端数据加载失败:', e);
         return false;
       }
-    }
-
-async function checkCloudForUpdates(localData) {
+    }\n\nasync function checkCloudForUpdates(localData) {
       try {
         const indexResponse = await fetch('./index.json');
         if (!indexResponse.ok) return false;
@@ -2884,9 +2880,7 @@ async function checkCloudForUpdates(localData) {
         console.error('[App] 检查更新失败:', e);
         return false;
       }
-    }
-
-
+    }\n\n
     
     /**
      * 检查云端是否有新数据
@@ -2925,8 +2919,7 @@ async function checkCloudForUpdates(localData) {
           
           if (githubData.content && githubData.content.trim() !== '') {
             try {
-              const base64Content = githubData.content.replace(/
-/g, '');
+              const base64Content = githubData.content.replace(/\n/g, '');
               const decodedContent = decodeURIComponent(escape(atob(base64Content)));
               cloudData = JSON.parse(decodedContent);
               console.log('[App] 从API content解析云端数据成功');
@@ -3123,9 +3116,7 @@ async function checkCloudForUpdates(localData) {
       }
       const nonZeroCount = Object.values(result).filter(v => v > 0).length;
       return nonZeroCount >= 3 ? result : null;
-    }}
-
-function parseExcelData(workbook, fileName) {
+    }}\n\nfunction parseExcelData(workbook, fileName) {
       console.log('[parseExcelData] 开始解析 Excel 文件:', fileName);
 
       try {
@@ -5649,7 +5640,7 @@ function parseExcelData(workbook, fileName) {
         document.getElementById('sensitivityData').classList.add('hidden');
         
         showToast('数据已清除！', 'success');
-      }
+      
     }
 
     window.onload = async function() {
@@ -5740,7 +5731,7 @@ function parseExcelData(workbook, fileName) {
 function parseRecord(record) {
   let merchantData = record.merchantData || record.currentData?.merchantData;
   if (!merchantData && record.currentData?.cities) {
-    merchantData = { all: { date: record.date, cities: record.currentData.cities } };
+    merchantData = { all: { date: record.date, cities: record.currentData.cities  };
   }
   if (merchantData?.all) {
     merchantData.all.profit = merchantData.all.onlineRevenue - merchantData.all.totalExpense;
