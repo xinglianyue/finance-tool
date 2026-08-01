@@ -5640,7 +5640,7 @@
         document.getElementById('sensitivityData').classList.add('hidden');
         
         showToast('数据已清除！', 'success');
-      
+      }
     }
 
     window.onload = async function() {
@@ -5731,14 +5731,14 @@
 function parseRecord(record) {
   let merchantData = record.merchantData || record.currentData?.merchantData;
   if (!merchantData && record.currentData?.cities) {
-    merchantData = { all: { date: record.date, cities: record.currentData.cities  };
+    merchantData = { all: { date: record.date, cities: record.currentData.cities } };
   }
   if (merchantData?.all) {
     merchantData.all.profit = merchantData.all.onlineRevenue - merchantData.all.totalExpense;
     merchantData.all.ue = merchantData.all.orders > 0 ? merchantData.all.profit / merchantData.all.orders : 0;
   }
   return merchantData;
-}
+
 
 // 辅助函数：构建 v3 格式数据
 function buildV3Data(cloudRecords, cloudIndex) {
@@ -5752,7 +5752,7 @@ function buildV3Data(cloudRecords, cloudIndex) {
   cloudRecords.slice(0, 3).forEach(r => cache[r.date] = parseRecord(r));
   const importHistory = cloudRecords.map(r => ({ monthLabel: r.date, data: null, importedAt: r.updatedAt || r.date }));
   return { version: 3, metadata, currentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
-}</script>
+</script>
 </body>
 </html>
 
