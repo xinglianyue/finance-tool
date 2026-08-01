@@ -1648,8 +1648,7 @@
       const logDiv = document.getElementById('diagnosticLog');
       const copyBtn = document.getElementById('copyBtn');
       
-      logDiv.textContent = logs.join('
-');
+      logDiv.textContent = logs.join('\n');
       panel.style.display = 'block';
       copyBtn.textContent = '📋 复制信息';
       copyBtn.classList.remove('copy-success');
