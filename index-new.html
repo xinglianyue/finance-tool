@@ -2609,8 +2609,8 @@
           // 如果content字段可用，先尝试解析
         if (githubData.content && githubData.content.trim() !== '') {
           try {
-            const base64Content = githubData.content.replace(/
-/g, '');
+            const base64Content = githubData.content.replace(/\n/g, '');
+
             const decodedContent = decodeURIComponent(escape(atob(base64Content)));
             cloudData = JSON.parse(decodedContent);
             console.log('[App] 从API content字段解析数据成功');
