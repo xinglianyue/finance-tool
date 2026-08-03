@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据注入器 - 财务工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 20px; }
+        .status { padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover { background: #4338ca; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .progress { height: 4px; background: #e5e7eb; border-radius: 2px; margin: 10px 0; }
+        .progress-bar { height: 100%; background: #4f46e5; width: 0%; transition: width 0.3s; }
+        a { color: #4f46e5; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 财务工具 - 数据注入器</h1>
+        <div id="status" class="status info">准备加载数据...</div>
+        <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+        <button id="loadBtn" onclick="loadData()">加载预载数据</button>
+        <button id="openBtn" onclick="openTool()" disabled>打开财务工具</button>
+        <p style="margin-top: 20px; color: #666;">
+            此工具会将预加载的7期财务数据注入到浏览器的 localStorage 中，
+            然后你可以正常使用财务分析工具。
+        </p>
+    </div>
+
+    <script>
+        async function loadData() {
+            const statusEl = document.getElementById('status');
+            const progressBar = document.getElementById('progressBar');
+            const loadBtn = document.getElementById('loadBtn');
+            const openBtn = document.getElementById('openBtn');
+            
+            loadBtn.disabled = true;
+            statusEl.textContent = '正在加载数据文件...';
+            statusEl.className = 'status info';
+            
+            try {
+                progressBar.style.width = '30%';
+                
+                // Fetch preloaded_data.json
+                const response = await fetch('./preloaded_data.json');
+                if (!response.ok) {
+                    throw new Error('无法加载 preloaded_data.json');
+                }
+                
+                const preloadedData = await response.json();
+                progressBar.style.width = '60%';
+                
+                statusEl.textContent = '正在转换数据格式...';
+                
+                // Convert to v9 format
+                const KEY = 'finance-tool-v9';
+                const existing = localStorage.getItem(KEY);
+                const existingData = existing ? JSON.parse(existing) : {};
+                let injected = 0;
+                
+                for (const [date, data] of Object.entries(preloadedData)) {
+                    const allCities = data?.all?.cities || [];
+                    const merchantData = {};
+                    
+                    for (const mt of ['all', 'city', 'ka']) {
+                        if (data[mt]) {
+                            merchantData[mt] = {
+                                label: data[mt].label || mt,
+                                cities: data[mt].cities || []
+                            };
+                        }
+                    }
+                    
+                    if (!existingData[date]) {
+                        existingData[date] = {
+                            currentData: {
+                                date: date,
+                                cities: allCities,
+                                fileName: `build-${date}`
+                            },
+                            merchantData: merchantData,
+                            currentMerchant: 'all'
+                        };
+                        injected++;
+                    }
+                }
+                
+                progressBar.style.width = '90%';
+                statusEl.textContent = '正在保存到 localStorage...';
+                
+                localStorage.setItem(KEY, JSON.stringify(existingData));
+                
+                progressBar.style.width = '100%';
+                
+                if (injected > 0) {
+                    statusEl.textContent = `✓ 成功注入 ${injected} 期数据！`;
+                    statusEl.className = 'status success';
+                } else {
+                    statusEl.textContent = '数据已是最新，无需更新。';
+                    statusEl.className = 'status info';
+                }
+                
+                openBtn.disabled = false;
+                
+            } catch (error) {
+                console.error(error);
+                statusEl.textContent = '错误: ' + error.message;
+                statusEl.className = 'status error';
+                loadBtn.disabled = false;
+            }
+        }
+        
+        function openTool() {
+            window.location.href = './index.html';
+        }
+        
+        // Auto-load on page load
+        window.onload = function() {
+            // Check if data already exists
+            const KEY = 'finance-tool-v9';
+            const existing = localStorage.getItem(KEY);
+            if (existing) {
+                try {
+                    const data = JSON.parse(existing);
+                    const count = Object.keys(data).length;
+                    if (count > 0) {
+                        document.getElementById('status').textContent = 
+                            `已检测到 ${count} 期数据，可直接打开工具。`;
+                        document.getElementById('status').className = 'status info';
+                        document.getElementById('openBtn').disabled = false;
+                        document.getElementById('progressBar').style.width = '100%';
+                    }
+                } catch(e) {}
+            }
+        };
+    </script>
+</body>
+</html>

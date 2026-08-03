@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务分析仪表盘 v17.0 - 优化版</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #eef2ff;
+      --danger: #dc2626;
+      --danger-light: #fef2f2;
+      --warning: #f59e0b;
+      --warning-light: #fffbeb;
+      --success: #16a34a;
+      --success-light: #f0fdf4;
+      --info: #3b82f6;
+      --info-light: #eff6ff;
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --border: #e5e7eb;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --gray: #9ca3af;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* ===== 头部导航 ===== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .header-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* ===== Tab导航 ===== */
+    .tabs-container {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      padding: 4px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background: var(--bg-primary);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+
+    .tab-icon {
+      font-size: 16px;
+    }
+
+    /* ===== 概览区域 ===== */
+    .overview-section {
+      margin-bottom: 24px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ===== 核心指标卡片 ===== */
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .stat-card .label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+
+    .stat-card .value.danger { color: var(--danger); }
+    .stat-card .value.success { color: var(--success); }
+    .stat-card .value.warning { color: var(--warning); }
+
+    .stat-card .sub-info {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    /* ===== 健康度仪表盘 ===== */
+    .health-dashboard {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 16px;
+    }
+
+    .health-score-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .health-ring-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .health-ring {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+
+    .health-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .health-score {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .health-label {
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .health-metrics {
+      display: flex;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .health-metric-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .health-metric-item .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .health-metric-item .metric-value.danger { color: var(--danger); }
+    .health-metric-item .metric-value.warning { color: var(--warning); }
+    .health-metric-item .metric-value.success { color: var(--success); }
+
+    .health-metric-item .metric-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* ===== 异常预警面板 ===== */
+    .anomaly-panel {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .panel-badge {
+      background: var(--danger);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .panel-badge.hidden {
+      display: none;
+    }
+
+    .anomaly-alert-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .anomaly-alert-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--danger-light);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .anomaly-alert-item:hover {
+      background: #fee2e2;
+    }
+
+    .anomaly-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+      animation: pulse 2s infinite;
+    }
+
+    .anomaly-dot.warning {
+      background: var(--warning);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .anomaly-text {
+      font-size: 13px;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .anomaly-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--danger);
+    }
+
+    /* ===== 图表区域 ===== */
+    .chart-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .chart-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+
+    .chart-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+    }
+
+    .chart-export-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .chart-export-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* ===== 分析卡片 ===== */
+    .analysis-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-header span {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .card-actions {
+      margin-left: auto;
+    }
+
+    .card-legend {
+      display: flex;
+      gap: 16px;
+      margin-left: auto;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* ===== UE矩阵表格 ===== */
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .matrix-table th {
+      background: var(--bg-primary);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .matrix-table .corner {
+      background: transparent;
+      border: none;
+    }
+
+    .matrix-table .city-name {
+      text-align: left;
+      font-weight: 500;
+    }
+
+    .ue-cell {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+    }
+
+    .ue-cell:hover {
+      background: var(--bg-primary);
+    }
+
+    .ue-cell.ue-danger { background: var(--danger-light); }
+    .ue-cell.ue-warn { background: var(--warning-light); }
+    .ue-cell.ue-good { background: var(--success-light); }
+    .ue-cell.ue-missing { background: var(--bg-primary); }
+
+    .ue-value {
+      font-weight: 600;
+    }
+
+    .ue-cell.ue-danger .ue-value { color: var(--danger); }
+    .ue-cell.ue-warn .ue-value { color: var(--warning); }
+    .ue-cell.ue-good .ue-value { color: var(--success); }
+
+    /* ===== 智能洞察 ===== */
+    .insight-card .card-body {
+      min-height: 150px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .empty-text {
+      font-size: 14px;
+    }
+
+    /* ===== 按钮样式 ===== */
+    .export-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .export-btn:hover {
+      background: #4338ca;
+    }
+
+    /* ===== 响应式设计 ===== */
+    @media (max-width: 1200px) {
+      .stat-cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .health-dashboard {
+        grid-template-columns: 1fr;
+      }
+      .chart-row {
+        grid-template-columns: 1fr;
+      }
+      .card-header {
+        flex-wrap: wrap;
+      }
+      .card-legend {
+        margin-left: 0;
+        margin-top: 8px;
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .stat-cards {
+        grid-template-columns: 1fr;
+      }
+      .health-metrics {
+        gap: 12px;
+      }
+      .tabs-container {
+        flex-wrap: wrap;
+      }
+      .tab-btn {
+        flex: none;
+        min-width: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- 头部 -->
+    <div class="header">
+      <div>
+        <div class="header-title">💰 财务分析仪表盘</div>
+        <div class="header-subtitle">美团代理商财务数据综合分析工具 v17.0</div>
+      </div>
+      <div class="header-right">
+        <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none;">
+        <button class="export-btn" onclick="document.getElementById('fileInput').click()">
+          <i>📁</i> 导入数据
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab导航 -->
+    <div class="tabs-container">
+      <button class="tab-btn active" data-tab="overview">
+        <span class="tab-icon">📊</span>经营概况
+      </button>
+      <button class="tab-btn" data-tab="detail">
+        <span class="tab-icon">🔍</span>详细分析
+      </button>
+      <button class="tab-btn" data-tab="diagnosis">
+        <span class="tab-icon">🩺</span>诊断中心
+      </button>
+      <button class="tab-btn" data-tab="cost">
+        <span class="tab-icon">💰</span>成本分析
+      </button>
+      <button class="tab-btn" data-tab="report">
+        <span class="tab-icon">📋</span>分析报告
+      </button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="paneOverview">
+      <!-- 核心指标区 -->
+      <div class="overview-section">
+        <div class="section-header">
+          <h3 class="section-title">📊 核心指标概览</h3>
+        </div>
+        <div class="stat-cards" id="statCards">
+          <div class="stat-card">
+            <div class="label">总订单量</div>
+            <div class="value">--</div>
+            <div class="sub-info">总商全品类</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">总毛利</div>
+            <div class="value">--</div>
+            <div class="sub-info">单均UE - | 补贴率 -% | 配送-%</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">代补总额</div>
+            <div class="value">--</div>
+            <div class="sub-info">B端 - / C端 -</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">配送成本</div>
+            <div class="value">--</div>
+            <div class="sub-info">罚款 -</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 健康度与异常预警 -->
+      <div class="overview-section">
+        <div class="section-header">
+          <h3 class="section-title">🩺 运营健康度</h3>
+        </div>
+        <div class="health-dashboard">
+          <!-- 健康度评分 -->
+          <div class="health-score-card">
+            <div class="health-ring-container">
+              <div class="health-ring">
+                <svg width="140" height="140">
+                  <circle cx="70" cy="70" r="60" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+                  <circle id="healthCircle" cx="70" cy="70" r="60" fill="none" stroke="var(--primary)" stroke-width="12" stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="188"/>
+                </svg>
+                <div class="health-score" id="healthScore">50</div>
+              </div>
+              <div class="health-label">综合健康分</div>
+            </div>
+            <div class="health-metrics">
+              <div class="health-metric-item">
+                <span class="metric-value danger" id="dangerCount">0</span>
+                <span class="metric-label">严重异常</span>
+              </div>
+              <div class="health-metric-item">
+                <span class="metric-value warning" id="warningCount">0</span>
+                <span class="metric-label">预警项</span>
+              </div>
+              <div class="health-metric-item">
+                <span class="metric-value success" id="healthyCount">0</span>
+                <span class="metric-label">健康项</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 异常预警 -->
+          <div class="anomaly-panel">
+            <div class="panel-header">
+              <span class="panel-title">⚠️ 异常预警</span>
+              <span class="panel-badge" id="anomalyBadge" class="hidden">0</span>
+            </div>
+            <div class="anomaly-alert-items" id="anomalyAlertItems">
+              <div class="empty-state">
+                <div class="empty-text">暂无异常数据</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 可视化图表 -->
+      <div class="overview-section">
+        <div class="section-header">
+          <h3 class="section-title">📈 数据可视化</h3>
+        </div>
+        <div class="chart-row" id="overviewCharts">
+          <div class="chart-card">
+            <h4><i>📊</i>各城市UE对比</h4>
+            <div class="chart-container">
+              <button class="chart-export-btn" onclick="alert('导出图表')">&#128249; PNG</button>
+              <canvas id="chartUE" height="280"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h4><i>📊</i>成本构成对比</h4>
+            <div class="chart-container">
+              <button class="chart-export-btn" onclick="alert('导出图表')">&#128249; PNG</button>
+              <canvas id="chartCost" height="280"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 深度分析 -->
+      <div class="overview-section">
+        <div class="section-header">
+          <h3 class="section-title">🔍 深度分析</h3>
+        </div>
+
+        <!-- UE矩阵 -->
+        <div class="analysis-card">
+          <div class="card-header">
+            <span>10城 x 5模块 UE矩阵</span>
+            <div class="card-actions">
+              <button class="export-btn" onclick="alert('导出矩阵')"><i>📊</i> 导出矩阵</button>
+            </div>
+            <div class="card-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>严重</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div>预警</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>健康</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>缺失</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th class="corner">城市 \ 模块</th>
+                  <th>餐饮</th>
+                  <th>闪购</th>
+                  <th>医药</th>
+                  <th>拼好饭</th>
+                  <th>全品类</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="city-name">总商</td>
+                  <td class="ue-cell ue-good"><div class="ue-value">2.35</div></td>
+                  <td class="ue-cell ue-warn"><div class="ue-value">-1.20</div></td>
+                  <td class="ue-cell ue-danger"><div class="ue-value">-5.80</div></td>
+                  <td class="ue-cell ue-good"><div class="ue-value">3.10</div></td>
+                  <td class="ue-cell ue-good"><div class="ue-value">1.80</div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 智能洞察 -->
+        <div class="analysis-card insight-card">
+          <div class="card-header">
+            <span><i>💡</i>智能洞察</span>
+          </div>
+          <div class="card-body">
+            <div id="insightsPanel">
+              <div class="empty-state">
+                <div class="empty-text">加载数据后自动生成洞察</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 其他Tab内容（简化） -->
+    <div id="paneDetail" style="display:none;">
+      <div class="empty-state">
+        <div class="empty-text">详细分析页面</div>
+      </div>
+    </div>
+
+    <div id="paneDiagnosis" style="display:none;">
+      <div class="empty-state">
+        <div class="empty-text">诊断中心页面</div>
+      </div>
+    </div>
+
+    <div id="paneCost" style="display:none;">
+      <div class="empty-state">
+        <div class="empty-text">成本分析页面</div>
+      </div>
+    </div>
+
+    <div id="paneReport" style="display:none;">
+      <div class="empty-state">
+        <div class="empty-text">分析报告页面</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        document.querySelectorAll('[id^="pane"]').forEach(p => p.style.display = 'none');
+        document.getElementById(`pane${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block';
+      });
+    });
+
+    // 模拟数据加载
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        loadMockData();
+      }
+    });
+
+    function loadMockData() {
+      // 更新统计卡片
+      document.querySelector('.stat-cards').innerHTML = `
+        <div class="stat-card">
+          <div class="label">总订单量</div>
+          <div class="value">125.8万</div>
+          <div class="sub-info">总商全品类</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">总毛利</div>
+          <div class="value success">228.6万</div>
+          <div class="sub-info">单均UE 1.82元 | 补贴率23.5% | 配送28.3%</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">代补总额</div>
+          <div class="value">295.2万</div>
+          <div class="sub-info">B端 180.5万 / C端 114.7万</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">配送成本</div>
+          <div class="value">356.0万</div>
+          <div class="sub-info">罚款 12.8万 <span style="color:var(--danger);font-weight:600;">⚠️</span></div>
+        </div>
+      `;
+
+      // 更新健康度
+      document.getElementById('healthScore').textContent = '72';
+      document.getElementById('healthCircle').style.strokeDashoffset = '105';
+      document.getElementById('dangerCount').textContent = '3';
+      document.getElementById('warningCount').textContent = '8';
+      document.getElementById('healthyCount').textContent = '39';
+
+      // 更新异常预警
+      document.getElementById('anomalyBadge').textContent = '11';
+      document.getElementById('anomalyBadge').classList.remove('hidden');
+      document.getElementById('anomalyAlertItems').innerHTML = `
+        <div class="anomaly-alert-item">
+          <div class="anomaly-dot"></div>
+          <span class="anomaly-text">北京 / 医药 UE异常</span>
+          <span class="anomaly-value">-5.80元</span>
+        </div>
+        <div class="anomaly-alert-item">
+          <div class="anomaly-dot warning"></div>
+          <span class="anomaly-text">上海 / 闪购 补贴率偏高</span>
+          <span class="anomaly-value">38.5%</span>
+        </div>
+        <div class="anomaly-alert-item">
+          <div class="anomaly-dot warning"></div>
+          <span class="anomaly-text">广州 / 餐饮 配送成本率偏高</span>
+          <span class="anomaly-value">32.1%</span>
+        </div>
+      `;
+
+      // 更新矩阵表格
+      document.querySelector('.matrix-table tbody').innerHTML = `
+        <tr>
+          <td class="city-name">总商</td>
+          <td class="ue-cell ue-good"><div class="ue-value">1.82</div></td>
+          <td class="ue-cell ue-warn"><div class="ue-value">-1.20</div></td>
+          <td class="ue-cell ue-danger"><div class="ue-value">-5.80</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">3.10</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">0.96</div></td>
+        </tr>
+        <tr>
+          <td class="city-name">北京</td>
+          <td class="ue-cell ue-good"><div class="ue-value">2.35</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">1.80</div></td>
+          <td class="ue-cell ue-danger"><div class="ue-value">-8.20</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">4.50</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">1.25</div></td>
+        </tr>
+        <tr>
+          <td class="city-name">上海</td>
+          <td class="ue-cell ue-warn"><div class="ue-value">-0.50</div></td>
+          <td class="ue-cell ue-warn"><div class="ue-value">-2.10</div></td>
+          <td class="ue-cell ue-warn"><div class="ue-value">-3.20</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">2.80</div></td>
+          <td class="ue-cell ue-warn"><div class="ue-value">-0.80</div></td>
+        </tr>
+        <tr>
+          <td class="city-name">广州</td>
+          <td class="ue-cell ue-good"><div class="ue-value">3.10</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">2.20</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">1.50</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">3.80</div></td>
+          <td class="ue-cell ue-good"><div class="ue-value">2.65</div></td>
+        </tr>
+      `;
+
+      // 更新智能洞察
+      document.getElementById('insightsPanel').innerHTML = `
+        <div style="padding:12px;">
+          <div style="background:var(--warning-light);padding:12px;border-radius:8px;margin-bottom:12px;">
+            <strong style="color:var(--warning);">⚠️ 异常警告</strong>
+            <p style="margin-top:8px;font-size:13px;color:var(--text-primary);">北京医药模块UE为-8.20元，严重低于目标值，建议立即排查补贴政策和成本结构。</p>
+          </div>
+          <div style="background:var(--info-light);padding:12px;border-radius:8px;margin-bottom:12px;">
+            <strong style="color:var(--info);">💡 优化建议</strong>
+            <p style="margin-top:8px;font-size:13px;color:var(--text-primary);">广州整体表现最优，UE达2.65元，可作为标杆城市进行经验分享。</p>
+          </div>
+          <div style="background:var(--success-light);padding:12px;border-radius:8px;">
+            <strong style="color:var(--success);">✅ 良好表现</strong>
+            <p style="margin-top:8px;font-size:13px;color:var(--text-primary);">拼好饭模块整体健康，所有城市均为正UE，建议保持当前运营策略。</p>
+          </div>
+        </div>
+      `;
+
+      // 显示图表区域
+      document.getElementById('overviewCharts').style.display = 'grid';
+    }
+
+    // 初始化显示
+    loadMockData();
+  </script>
+</body>
+</html>

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务工具 - Debug工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-info {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #2563eb;
+        }
+        
+        .status {
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+        
+        .status-success {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        
+        .status-error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        
+        .status-warning {
+            background: #fffbeb;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        .status-info {
+            background: #eff6ff;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .feature-item {
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .feature-item h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .feature-item p {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        
+        .shortcut-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+        
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        
+        .shortcut-key {
+            background: #e5e7eb;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: white;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 财务工具 Debug & 诊断中心</h1>
+        
+        <!-- 诊断功能 -->
+        <div class="card">
+            <h2>📊 系统诊断</h2>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="runFullDiagnosis()">
+                    🔍 完整诊断
+                </button>
+                <button class="btn btn-info" onclick="checkModules()">
+                    📦 检查模块
+                </button>
+                <button class="btn btn-info" onclick="checkData()">
+                    💾 检查数据
+                </button>
+                <button class="btn btn-info" onclick="checkPerformance()">
+                    🚀 检查性能
+                </button>
+            </div>
+            <div id="diagnosisResult"></div>
+        </div>
+        
+        <!-- 快速修复 -->
+        <div class="card">
+            <h2>🔧 快速修复</h2>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="clearCharts()">
+                    🧹 清理图表实例
+                </button>
+                <button class="btn btn-success" onclick="clearCache()">
+                    🗑️ 清理缓存
+                </button>
+                <button class="btn btn-warning" onclick="createBackup()">
+                    💾 创建备份
+                </button>
+                <button class="btn btn-danger" onclick="clearErrors()">
+                    ⚠️ 清除错误日志
+                </button>
+            </div>
+            <div id="fixResult"></div>
+        </div>
+        
+        <!-- 高级功能 -->
+        <div class="card">
+            <h2>⚡ 高级操作</h2>
+            <div class="btn-group">
+                <button class="btn btn-warning" onclick="exportAllData()">
+                    📥 导出所有数据
+                </button>
+                <button class="btn btn-warning" onclick="importData()">
+                    📤 导入数据
+                </button>
+                <button class="btn btn-danger" onclick="clearAllData()">
+                    🗑️ 清除所有数据
+                </button>
+                <button class="btn btn-info" onclick="exportReport()">
+                    📄 导出诊断报告
+                </button>
+            </div>
+            <div id="advancedResult"></div>
+        </div>
+        
+        <!-- 功能说明 -->
+        <div class="card">
+            <h2>✨ 功能模块</h2>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <h3>🩺 健康度分析</h3>
+                    <p>城市健康度评分、5星系统、自动排名</p>
+                </div>
+                <div class="feature-item">
+                    <h3>📦 数据备份</h3>
+                    <p>自动备份、版本恢复、导出导入</p>
+                </div>
+                <div class="feature-item">
+                    <h3>⚠️ 错误处理</h3>
+                    <p>全局异常捕获、日志记录</p>
+                </div>
+                <div class="feature-item">
+                    <h3>🚀 性能优化</h3>
+                    <p>图表管理、缓存、防抖节流</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 快捷键 -->
+        <div class="card">
+            <h2>⌨️ 快捷键</h2>
+            <div class="shortcut-list">
+                <div class="shortcut-item">
+                    <span>完整诊断</span>
+                    <span class="shortcut-key">Ctrl+Shift+D</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>性能报告</span>
+                    <span class="shortcut-key">Ctrl+Shift+P</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>切换主题</span>
+                    <span class="shortcut-key">Ctrl+Shift+L</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>快捷键帮助</span>
+                    <span class="shortcut-key">Ctrl+Shift+H</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>备份数据</span>
+                    <span class="shortcut-key">Ctrl+S</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>导出数据</span>
+                    <span class="shortcut-key">Ctrl+E</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>财务分析工具 v17.0 | Debug Center</p>
+            <p style="margin-top: 8px;">
+                <a href="index-complete.html">← 返回主工具</a>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // 诊断功能
+        function runFullDiagnosis() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在运行完整诊断...</div>';
+            
+            setTimeout(() => {
+                if (window.Debugger) {
+                    const result = Debugger.diagnose();
+                    
+                    if (result.success) {
+                        resultDiv.innerHTML = '<div class="status status-success">✅ 诊断完成，未发现严重问题！</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="status status-warning">⚠️ 诊断完成，发现 ' + result.errorCount + ' 个错误，' + result.warningCount + ' 个警告</div>';
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-error">❌ Debug模块未加载，请在主工具页面打开</div>';
+                }
+            }, 500);
+        }
+        
+        function checkModules() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在检查模块...</div>';
+            
+            setTimeout(() => {
+                if (window.Debugger) {
+                    Debugger.checkModules();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 模块检查完成，详见控制台</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-error">❌ Debug模块未加载</div>';
+                }
+            }, 300);
+        }
+        
+        function checkData() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在检查数据...</div>';
+            
+            setTimeout(() => {
+                if (window.Debugger) {
+                    Debugger.checkData();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 数据检查完成，详见控制台</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-error">❌ Debug模块未加载</div>';
+                }
+            }, 300);
+        }
+        
+        function checkPerformance() {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在检查性能...</div>';
+            
+            setTimeout(() => {
+                if (window.Debugger) {
+                    Debugger.checkPerformance();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 性能检查完成，详见控制台</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-error">❌ Debug模块未加载</div>';
+                }
+            }, 300);
+        }
+        
+        // 快速修复
+        function clearCharts() {
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在清理图表...</div>';
+            
+            setTimeout(() => {
+                if (window.ChartManager) {
+                    const stats = ChartManager.getStats();
+                    ChartManager.destroyAll();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 已清理 ' + stats.total + ' 个图表实例</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-warning">⚠️ ChartManager未加载</div>';
+                }
+            }, 300);
+        }
+        
+        function clearCache() {
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在清理缓存...</div>';
+            
+            setTimeout(() => {
+                if (window.DataCache) {
+                    const stats = DataCache.getStats();
+                    DataCache.clear();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 已清理 ' + stats.size + ' 个缓存项</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-warning">⚠️ DataCache未加载</div>';
+                }
+            }, 300);
+        }
+        
+        function createBackup() {
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在创建备份...</div>';
+            
+            setTimeout(() => {
+                if (window.BackupManager) {
+                    const success = BackupManager.create();
+                    if (success) {
+                        resultDiv.innerHTML = '<div class="status status-success">✅ 备份创建成功</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="status status-warning">⚠️ 无数据可备份</div>';
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-warning">⚠️ BackupManager未加载，请在主工具页面使用</div>';
+                }
+            }, 500);
+        }
+        
+        function clearErrors() {
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在清除错误日志...</div>';
+            
+            setTimeout(() => {
+                if (window.ErrorManager) {
+                    const errors = ErrorManager.getErrors();
+                    ErrorManager.clear();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 已清除 ' + errors.length + ' 条错误日志</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-warning">⚠️ ErrorManager未加载</div>';
+                }
+            }, 300);
+        }
+        
+        // 高级操作
+        function exportAllData() {
+            const resultDiv = document.getElementById('advancedResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在导出数据...</div>';
+            
+            setTimeout(() => {
+                if (window.BackupManager) {
+                    BackupManager.export();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 数据导出已开始，请选择保存位置</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-warning">⚠️ BackupManager未加载，请在主工具页面使用</div>';
+                }
+            }, 500);
+        }
+        
+        function importData() {
+            const resultDiv = document.getElementById('advancedResult');
+            resultDiv.innerHTML = '<div class="status status-info">请在弹出的文件选择器中选择JSON文件...</div>';
+            
+            setTimeout(() => {
+                if (window.BackupManager) {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = async (e) => {
+                        if (e.target.files[0]) {
+                            try {
+                                const count = await BackupManager.import(e.target.files[0]);
+                                resultDiv.innerHTML = '<div class="status status-success">✅ 成功导入 ' + count + ' 期数据</div>';
+                            } catch (error) {
+                                resultDiv.innerHTML = '<div class="status status-error">❌ 导入失败: ' + error.message + '</div>';
+                            }
+                        }
+                    };
+                    input.click();
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-warning">⚠️ BackupManager未加载，请在主工具页面使用</div>';
+                }
+            }, 500);
+        }
+        
+        function clearAllData() {
+            if (confirm('警告：此操作将清除所有数据！\n\n确定要继续吗？')) {
+                if (confirm('再次确认：所有数据将被永久删除！')) {
+                    localStorage.clear();
+                    resultDiv = document.getElementById('advancedResult');
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 所有数据已清除，请刷新页面</div>';
+                }
+            }
+        }
+        
+        function exportReport() {
+            const resultDiv = document.getElementById('advancedResult');
+            resultDiv.innerHTML = '<div class="status status-info">正在生成诊断报告...</div>';
+            
+            setTimeout(() => {
+                if (window.Debugger) {
+                    Debugger.exportReport();
+                    resultDiv.innerHTML = '<div class="status status-success">✅ 诊断报告已导出</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="status status-warning">⚠️ Debug模块未加载</div>';
+                }
+            }, 500);
+        }
+        
+        // 自动运行诊断
+        window.onload = function() {
+            console.log('🔍 Debug工具已加载');
+        };
+    </script>
+</body>
+</html>

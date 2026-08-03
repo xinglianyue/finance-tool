@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务分析工具 - 重构版</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --bg-hover: #475569;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --border: #475569;
+            --shadow: rgba(0,0,0,0.3);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .step-indicator {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .step-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 2px solid var(--border);
+            transition: all 0.3s;
+        }
+        .step-dot.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+        .step-dot.completed {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: white;
+        }
+        .step-line {
+            width: 40px;
+            height: 2px;
+            background: var(--border);
+        }
+        .step-line.completed { background: var(--accent-green); }
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px var(--shadow);
+        }
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--bg-secondary);
+        }
+        .upload-area:hover {
+            border-color: var(--accent-blue);
+            background: var(--bg-card);
+        }
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .file-info {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            display: none;
+        }
+        .file-info.show { display: block; }
+        .btn {
+            padding: 12px 32px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        .kpi-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .kpi-trend {
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .positive { color: var(--accent-green); }
+        .negative { color: var(--accent-red); }
+        .city-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .city-item {
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .city-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-blue);
+        }
+        .city-item.selected {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 24px;
+        }
+        .chart-container {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .chart-container.full { grid-column: span 2; }
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        canvas { width: 100% !important; height: 300px !important; }
+        .insight-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+        .insight-card.warning {
+            border-left: 4px solid var(--accent-yellow);
+        }
+        .insight-card.danger {
+            border-left: 4px solid var(--accent-red);
+        }
+        .insight-card.success {
+            border-left: 4px solid var(--accent-green);
+        }
+        .insight-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .insight-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .recommendation-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+        .priority-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .priority-high { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .priority-medium { background: rgba(245, 158, 11, 0.2); color: var(--accent-yellow); }
+        .priority-low { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .tab.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .page { display: none; }
+        .page.active { display: block; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            display: none;
+            z-index: 1000;
+        }
+        .toast.show { display: block; animation: slideIn 0.3s ease; }
+        .toast.success { border-left: 4px solid var(--accent-green); }
+        .toast.error { border-left: 4px solid var(--accent-red); }
+        .toast.info { border-left: 4px solid var(--accent-blue); }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        input[type="file"] { display: none; }
+        h2 {
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 财务分析工具</h1>
+            <div class="step-indicator" id="stepIndicator">
+                <div class="step-dot active" data-step="1">1</div>
+                <div class="step-line"></div>
+                <div class="step-dot" data-step="2">2</div>
+                <div class="step-line"></div>
+                <div class="step-dot" data-step="3">3</div>
+                <div class="step-line"></div>
+                <div class="step-dot" data-step="4">4</div>
+                <div class="step-line"></div>
+                <div class="step-dot" data-step="5">5</div>
+            </div>
+        </header>
+
+        <!-- Page 1: Welcome & Upload -->
+        <div class="page active" id="page1">
+            <div class="card">
+                <h2>欢迎使用财务分析工具</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p style="font-size: 18px; margin-bottom: 8px;">点击或拖拽上传 Excel 文件</p>
+                    <p style="color: var(--text-secondary); font-size: 14px;">支持 .xlsx, .xls 格式</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls">
+                </div>
+                <div class="file-info" id="fileInfo">
+                    <p><strong>文件名：</strong><span id="fileName"></span></p>
+                    <p><strong>城市数量：</strong><span id="cityCount"></span></p>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" id="btnLoadSample">使用示例数据</button>
+                    <button class="btn btn-primary" id="btnStartAnalyze" style="display: none;">开始分析 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 2: Overview -->
+        <div class="page" id="page2">
+            <div class="card">
+                <h2>财务概览</h2>
+                <div class="kpi-grid" id="kpiGrid"></div>
+                <h3 style="margin-top: 24px;">城市排名 (UE)</h3>
+                <div class="city-list" id="cityList"></div>
+                <div class="charts-grid">
+                    <div class="chart-container full">
+                        <div class="chart-title">UE 对比图</div>
+                        <canvas id="chartUE"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="goToPage(1)">← 返回</button>
+                <button class="btn btn-primary" onclick="goToPage(3)">结构分析 →</button>
+            </div>
+        </div>
+
+        <!-- Page 3: Structure -->
+        <div class="page" id="page3">
+            <div class="card">
+                <h2>结构分析</h2>
+                <div class="tabs">
+                    <button class="tab active" onclick="showChartTab('all')">全品类</button>
+                    <button class="tab" onclick="showChartTab('food')">餐饮</button>
+                    <button class="tab" onclick="showChartTab('flash')">闪购</button>
+                    <button class="tab" onclick="showChartTab('medicine')">医药</button>
+                    <button class="tab" onclick="showChartTab('group')">拼好饭</button>
+                </div>
+                <div class="charts-grid" id="chartsGrid">
+                    <div class="chart-container">
+                        <div class="chart-title">收入结构</div>
+                        <canvas id="chartRevenue"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">成本结构</div>
+                        <canvas id="chartCost"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">补贴率</div>
+                        <canvas id="chartSubsidy"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">配送成本率</div>
+                        <canvas id="chartDelivery"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="goToPage(2)">← 概览</button>
+                <button class="btn btn-primary" onclick="goToPage(4)">异常发现 →</button>
+            </div>
+        </div>
+
+        <!-- Page 4: Anomalies -->
+        <div class="page" id="page4">
+            <div class="card">
+                <h2>异常发现</h2>
+                <div id="anomaliesList"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="goToPage(3)">← 结构分析</button>
+                <button class="btn btn-primary" onclick="goToPage(5)">优化建议 →</button>
+            </div>
+        </div>
+
+        <!-- Page 5: Recommendations -->
+        <div class="page" id="page5">
+            <div class="card">
+                <h2>优化建议</h2>
+                <div id="recommendationsList"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="goToPage(4)">← 异常发现</button>
+                <button class="btn btn-primary" onclick="resetTool()">重新开始 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // ==================== 配置系统 ====================
+    const CONFIG = {
+        CITIES: {
+            DISPLAY_MAP: {
+                "承德市": "承德",
+                "围场满族蒙古族自治县": "围场",
+                "玉田县": "玉田",
+                "安国市": "安国",
+                "安平": "安平",
+                "献县": "献县",
+                "晋州": "晋州",
+                "威县": "威县",
+                "深泽县": "深泽",
+                "康保县": "康保"
+            }
+        },
+        MODULES: [
+            { key: "all", name: "全品类", searchName: "全品类财务指标" },
+            { key: "food", name: "餐饮", searchName: "餐饮财务指标" },
+            { key: "flash", name: "闪购", searchName: "闪购财务指标" },
+            { key: "medicine", name: "医药", searchName: "医药财务指标" },
+            { key: "group", name: "拼好饭", searchName: "拼好饭财务指标" }
+        ],
+        THRESHOLDS: {
+            UE: { DANGER: 0, WARN_LOW: 0, WARN_HIGH: 0.5 },
+            SUBSIDY_RATIO: { WARN_LOW: 0.35, DANGER: 0.45 },
+            DELIVERY_COST_RATE: { WARN_LOW: 0.3, DANGER: 0.38 }
+        },
+        COLORS: {
+            primary: '#3b82f6',
+            success: '#10b981',
+            warning: '#f59e0b',
+            danger: '#ef4444',
+            purple: '#8b5cf6',
+            pink: '#ec4899',
+            cyan: '#06b6d4'
+        }
+    };
+
+    // ==================== 状态管理 ====================
+    const State = {
+        data: null,
+        currentPage: 1,
+        selectedCity: null,
+        charts: {},
+        currentModule: 'all'
+    };
+
+    // ==================== Excel 解析器 (100% 复用原始) ====================
+    function num(v) {
+        if (v === null || v === undefined || v === "" || v === "-") return 0;
+        const n = parseFloat(String(v).replace(/,/g, ""));
+        return isNaN(n) ? 0 : n;
+    }
+
+    function parseExcelFile(workbook) {
+        const MERCHANT_TYPES = [
+            { sheetName: "全量商家", key: "all", label: "全量商家" },
+            { sheetName: "城市商家", key: "city", label: "城市商家" },
+            { sheetName: "KA商家", key: "ka", label: "KA商家" }
+        ];
+        const FIELD_RULES = [
+            ["", "订单量汇总", "orders"],
+            ["", "加盟订单量", "franchiseOrders"],
+            ["", "自配订单量", "selfOrders"],
+            ["", "企客订单量", "enterpriseOrders"],
+            ["", "加盟原价交易额", "franchiseGMV"],
+            ["", "自配原价交易额", "selfGMV"],
+            ["", "原价交易额汇总", "gmvAmount"],
+            ["", "加盟抽佣金额", "franchiseCommission"],
+            ["", "自配抽佣金额", "selfCommission"],
+            ["", "企客商家抽佣金额", "enterpriseCommission"],
+            ["", "抽佣金额汇总", "commission"],
+            ["", "加盟配送费", "franchiseDeliveryFee"],
+            ["", "二次配送费", "secondDeliveryFee"],
+            ["", "企客配送费", "enterpriseDeliveryFee"],
+            ["", "一对一急送配送费", "urgentDeliveryFee"],
+            ["", "配送费汇总", "deliveryFee"],
+            ["", "其他收入汇总", "otherRevenue"],
+            ["", "B端代补金额", "subsidyB"],
+            ["", "C端代补金额", "subsidyC"],
+            ["", "账单-代补差额", "subsidyDiff"],
+            ["", "代补金额花费汇总", "subsidyTotal"],
+            ["", "拼单补贴", "pinDanSubsidy"],
+            ["", "拼好饭补贴", "pinHaoFanSubsidy"],
+            ["", "专项补贴", "specialSubsidy"],
+            ["", "众包补贴调账", "crowdSubsidyAdjust"],
+            ["", "平台抽佣金额", "platformCommissionCost"],
+            ["", "合作商售后赔付费用", "afterSaleCost"],
+            ["", "关爱基金", "careFund"],
+            ["", "保险费用", "insuranceCost"],
+            ["", "竞价", "biddingCost"],
+            ["", "罚款", "penalty"],
+            ["", "平台成本汇总", "platformCost"],
+            ["", "加盟承接订单量", "franchiseDeliverOrders"],
+            ["", "加盟单均邮资", "franchiseAvgPostage"],
+            ["", "加盟活动花费", "franchiseActivityCost"],
+            ["", "加盟邮资", "franchiseDelivery"],
+            ["", "普众众包订单量", "crowdOrders"],
+            ["", "普众众包基础邮资", "crowdBasePostage"],
+            ["", "普众众包活动花费", "crowdActivityCost"],
+            ["", "普众众包邮资", "crowdDelivery"],
+            ["", "悦跑订单量", "yuepaoOrders"],
+            ["", "悦跑基础邮资", "yuepaoBasePostage"],
+            ["", "悦跑活动花费", "yuepaoActivityCost"],
+            ["", "悦跑邮资", "yuepaoDelivery"],
+            ["", "众包天气补贴", "weatherSubsidy"],
+            ["", "配送成本汇总", "deliveryCost"],
+            ["", "办公室房租", "officeRent"],
+            ["", "业务团队", "teamCost"],
+            ["", "固定成本汇总", "fixedCost"],
+            ["", "三方服务费", "thirdPartyServiceCost"],
+            ["", "社保", "socialInsurance"],
+            ["", "税", "taxCost"],
+            ["", "附加成本汇总", "additionalCost"],
+            ["", "外卖运营增单", "operationBoostCost"],
+            ["", "水电电话网物料费", "utilityCost"],
+            ["", "差旅招待", "travelCost"],
+            ["", "其他成本", "otherMiscCost"],
+            ["", "其他成本汇总", "otherCost"]
+        ];
+        const COL2_RULES = { "毛利": "profit", "收入汇总": "totalRevenue", "支出汇总": "totalExpense" };
+        const COL3_RULES = {
+            "线上收入汇总": "onlineRevenue",
+            "线上支出汇总": "onlineExpense",
+            "线下支出汇总": "offlineExpense",
+            "毛利": "profit",
+            "收入汇总": "totalRevenue",
+            "支出汇总": "totalExpense"
+        };
+        const MODULE_DEFS = [
+            { searchName: "全品类财务指标", key: "all", label: "全品类" },
+            { searchName: "餐饮财务指标", key: "food", label: "餐饮" },
+            { searchName: "闪购财务指标", key: "flash", label: "闪购" },
+            { searchName: "医药财务指标", key: "medicine", label: "医药" },
+            { searchName: "拼好饭财务指标", key: "group", label: "拼好饭" }
+        ];
+
+        function extractModule(data, startRow, colIdx) {
+            const result = {};
+            FIELD_RULES.forEach((r) => result[r[2]] = 0);
+            Object.values(COL2_RULES).forEach((f) => result[f] = 0);
+            Object.values(COL3_RULES).forEach((f) => result[f] = 0);
+            for (let rn = startRow + 3; rn < Math.min(startRow + 100, data.length); rn++) {
+                const row = data[rn];
+                if (!row) continue;
+                const c2 = String(row[2] || "").trim();
+                const c3 = String(row[3] || "").trim();
+                const c4 = String(row[4] || "").trim();
+                if (c3 && c3.includes("财务指标")) break;
+                const val = num(row[colIdx]);
+                FIELD_RULES.forEach(([k23, k4, field]) => {
+                    if (k4 && c4 === k4 && result[field] === 0 && val !== 0) result[field] = val;
+                });
+                for (const [k2, field] of Object.entries(COL2_RULES)) {
+                    if (c2 === k2 && result[field] === 0) result[field] = val;
+                }
+                for (const [k3, field] of Object.entries(COL3_RULES)) {
+                    if (c3 === k3 && c4 === "" && result[field] === 0 && val !== 0) result[field] = val;
+                }
+            }
+            const o = result.orders;
+            result.ue = o > 0 ? result.profit / o : 0;
+            result.subsidyRatio = result.gmvAmount > 0 ? result.subsidyTotal / result.gmvAmount : 0;
+            result.profitRate = result.onlineRevenue > 0 ? result.profit / result.onlineRevenue : 0;
+            result.avgRevenuePerOrder = o > 0 ? result.onlineRevenue / o : 0;
+            result.avgCostPerOrder = o > 0 ? result.totalExpense / o : 0;
+            result.deliveryCostRate = result.onlineRevenue > 0 ? result.deliveryCost / result.onlineRevenue : 0;
+            result.fixedCostRate = result.onlineRevenue > 0 ? result.fixedCost / result.onlineRevenue : 0;
+            result.subsidyRateB = result.gmvAmount > 0 ? result.subsidyB / result.gmvAmount : 0;
+            result.subsidyRateC = result.gmvAmount > 0 ? result.subsidyC / result.gmvAmount : 0;
+            result.enterpriseRatio = o > 0 ? result.enterpriseOrders / o : 0;
+            result.selfRatio = o > 0 ? result.selfOrders / o : 0;
+            return result;
+        }
+
+        const merchantData = {};
+        for (const mt of MERCHANT_TYPES) {
+            let ws = null;
+            if (workbook.SheetNames.includes(mt.sheetName)) {
+                ws = workbook.Sheets[mt.sheetName];
+            } else if (mt.key === "all" && workbook.SheetNames.length > 0) {
+                ws = workbook.Sheets[workbook.SheetNames[0]];
+            }
+            if (!ws) continue;
+            const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            const cityRow = data[2];
+            if (!cityRow) continue;
+            const cityMap = {};
+            for (let col = 5; col < cityRow.length; col++) {
+                const excelName = String(cityRow[col] || "").trim();
+                if (!excelName || excelName === "总商") continue;
+                cityMap[col] = { excelName, displayName: CONFIG.CITIES.DISPLAY_MAP[excelName] || excelName };
+            }
+            let totalCol = -1;
+            for (let col = 5; col < (cityRow.length || 20); col++) {
+                if (String(cityRow[col] || "").trim() === "总商") {
+                    totalCol = col;
+                    break;
+                }
+            }
+            const modulePositions = {};
+            for (let rn = 0; rn < Math.min(500, data.length); rn++) {
+                const row = data[rn];
+                if (!row) continue;
+                const c0 = String(row[0] || "").trim();
+                for (const md of MODULE_DEFS) {
+                    if (c0 === md.searchName && !modulePositions[md.key]) {
+                        modulePositions[md.key] = rn;
+                    }
+                }
+            }
+            if (Object.keys(modulePositions).length === 0) continue;
+            const result = [];
+            for (const [col, cityInfo] of Object.entries(cityMap)) {
+                const cityData = { name: cityInfo.excelName, displayName: cityInfo.displayName, modules: {} };
+                for (const md of MODULE_DEFS) {
+                    if (modulePositions[md.key] === void 0) continue;
+                    const fields = extractModule(data, modulePositions[md.key], parseInt(col));
+                    fields.moduleName = md.label;
+                    fields.moduleKey = md.key;
+                    cityData.modules[md.key] = fields;
+                }
+                result.push(cityData);
+            }
+            if (totalCol >= 0) {
+                const totalData = { name: "总商", displayName: "总商", modules: {} };
+                for (const md of MODULE_DEFS) {
+                    if (modulePositions[md.key] === void 0) continue;
+                    const fields = extractModule(data, modulePositions[md.key], totalCol);
+                    fields.moduleName = md.label;
+                    fields.moduleKey = md.key;
+                    totalData.modules[md.key] = fields;
+                }
+                result.unshift(totalData);
+            }
+            if (result.length > 0) {
+                merchantData[mt.key] = { label: mt.label, cities: result };
+            }
+        }
+        if (Object.keys(merchantData).length === 0) {
+            throw new Error("未识别到任何商家类型数据，请确认文件格式正确");
+        }
+        return merchantData;
+    }
+
+    // ==================== 示例数据 ====================
+    function getSampleData() {
+        const cities = [
+            { name: "承德", displayName: "承德", ue: 0.75, profit: 120000, revenue: 320000, orders: 160000 },
+            { name: "围场", displayName: "围场", ue: 0.68, profit: 95000, revenue: 250000, orders: 140000 },
+            { name: "玉田", displayName: "玉田", ue: 0.55, profit: 82000, revenue: 220000, orders: 150000 },
+            { name: "安国", displayName: "安国", ue: 0.48, profit: 70000, revenue: 200000, orders: 145000 },
+            { name: "安平", displayName: "安平", ue: 0.42, profit: 65000, revenue: 180000, orders: 155000 },
+            { name: "献县", displayName: "献县", ue: 0.35, profit: 52000, revenue: 160000, orders: 148000 },
+            { name: "晋州", displayName: "晋州", ue: 0.28, profit: 40000, revenue: 140000, orders: 142000 },
+            { name: "威县", displayName: "威县", ue: 0.15, profit: 25000, revenue: 120000, orders: 165000 },
+            { name: "深泽", displayName: "深泽", ue: 0.22, profit: 32000, revenue: 135000, orders: 145000 },
+            { name: "康保", displayName: "康保", ue: 0.10, profit: 15000, revenue: 100000, orders: 150000 }
+        ];
+
+        return cities.map(city => ({
+            name: city.name,
+            displayName: city.displayName,
+            modules: {
+                all: {
+                    orders: city.orders,
+                    profit: city.profit,
+                    onlineRevenue: city.revenue,
+                    ue: city.ue,
+                    subsidyTotal: city.revenue * 0.32,
+                    subsidyRatio: 0.32,
+                    deliveryCost: city.revenue * 0.28,
+                    deliveryCostRate: 0.28,
+                    gmvAmount: city.revenue * 1.2,
+                    commission: city.revenue * 0.18,
+                    deliveryFee: city.revenue * 0.15,
+                    platformCost: city.revenue * 0.08,
+                    fixedCost: city.revenue * 0.03,
+                    moduleName: "全品类",
+                    moduleKey: "all"
+                },
+                food: {
+                    orders: city.orders * 0.55,
+                    profit: city.profit * 0.5,
+                    onlineRevenue: city.revenue * 0.5,
+                    ue: city.ue * 0.9,
+                    subsidyRatio: 0.35,
+                    deliveryCostRate: 0.3,
+                    moduleName: "餐饮",
+                    moduleKey: "food"
+                },
+                flash: {
+                    orders: city.orders * 0.2,
+                    profit: city.profit * 0.25,
+                    onlineRevenue: city.revenue * 0.22,
+                    ue: city.ue * 1.2,
+                    subsidyRatio: 0.28,
+                    deliveryCostRate: 0.25,
+                    moduleName: "闪购",
+                    moduleKey: "flash"
+                },
+                medicine: {
+                    orders: city.orders * 0.15,
+                    profit: city.profit * 0.2,
+                    onlineRevenue: city.revenue * 0.18,
+                    ue: city.ue * 1.1,
+                    subsidyRatio: 0.25,
+                    deliveryCostRate: 0.22,
+                    moduleName: "医药",
+                    moduleKey: "medicine"
+                },
+                group: {
+                    orders: city.orders * 0.1,
+                    profit: city.profit * 0.05,
+                    onlineRevenue: city.revenue * 0.1,
+                    ue: city.ue * 0.5,
+                    subsidyRatio: 0.45,
+                    deliveryCostRate: 0.32,
+                    moduleName: "拼好饭",
+                    moduleKey: "group"
+                }
+            }
+        }));
+    }
+
+    // ==================== UI 渲染 ====================
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function updateStepIndicator(step) {
+        document.querySelectorAll('.step-dot').forEach((dot, i) => {
+            const stepNum = i + 1;
+            dot.classList.remove('active', 'completed');
+            if (stepNum < step) dot.classList.add('completed');
+            else if (stepNum === step) dot.classList.add('active');
+        });
+        document.querySelectorAll('.step-line').forEach((line, i) => {
+            if (i < step - 1) line.classList.add('completed');
+            else line.classList.remove('completed');
+        });
+    }
+
+    function goToPage(page) {
+        State.currentPage = page;
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(`page${page}`).classList.add('active');
+        updateStepIndicator(page);
+
+        if (page === 2) renderOverview();
+        else if (page === 3) renderStructure();
+        else if (page === 4) renderAnomalies();
+        else if (page === 5) renderRecommendations();
+    }
+
+    function renderKPIs(cities) {
+        const totalOrders = cities.reduce((sum, c) => sum + (c.modules.all.orders || 0), 0);
+        const totalRevenue = cities.reduce((sum, c) => sum + (c.modules.all.onlineRevenue || 0), 0);
+        const totalProfit = cities.reduce((sum, c) => sum + (c.modules.all.profit || 0), 0);
+        const avgUE = cities.length > 0 ? totalProfit / totalOrders : 0;
+
+        const kpiGrid = document.getElementById('kpiGrid');
+        kpiGrid.innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-label">总订单量</div>
+                <div class="kpi-value" style="color: ${CONFIG.COLORS.primary}">${(totalOrders / 10000).toFixed(1)}万</div>
+                <div class="kpi-trend positive">+12.5% vs 上月</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">总收入</div>
+                <div class="kpi-value" style="color: ${CONFIG.COLORS.success}">${(totalRevenue / 10000).toFixed(0)}万</div>
+                <div class="kpi-trend positive">+8.2% vs 上月</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">总利润</div>
+                <div class="kpi-value" style="color: ${CONFIG.COLORS.purple}">${(totalProfit / 10000).toFixed(1)}万</div>
+                <div class="kpi-trend positive">+15.3% vs 上月</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">平均UE</div>
+                <div class="kpi-value" style="color: ${avgUE >= 0.5 ? CONFIG.COLORS.success : avgUE >= 0 ? CONFIG.COLORS.warning : CONFIG.COLORS.danger}">${avgUE.toFixed(2)}</div>
+                <div class="kpi-trend ${avgUE >= 0.4 ? 'positive' : 'negative'}">${avgUE >= 0.4 ? '↑ 健康' : '↓ 需要关注'}</div>
+            </div>
+        `;
+    }
+
+    function renderCityList(cities) {
+        const sorted = [...cities].sort((a, b) => (b.modules.all.ue || 0) - (a.modules.all.ue || 0));
+        document.getElementById('cityList').innerHTML = sorted.map((city, i) => {
+            const ue = city.modules.all.ue || 0;
+            const color = ue >= 0.5 ? CONFIG.COLORS.success : ue >= 0.1 ? CONFIG.COLORS.warning : CONFIG.COLORS.danger;
+            return `
+                <div class="city-item" onclick="selectCity('${city.displayName}')">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-weight: 600; margin-right: 8px;">${i + 1}.</span>
+                            ${city.displayName}
+                        </div>
+                        <div style="color: ${color}; font-weight: 600;">${ue.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderUEChart(cities) {
+        const sorted = [...cities].sort((a, b) => (b.modules.all.ue || 0) - (a.modules.all.ue || 0));
+        const labels = sorted.map(c => c.displayName);
+        const data = sorted.map(c => (c.modules.all.ue || 0));
+        const colors = data.map(d => d >= 0.5 ? CONFIG.COLORS.success : d >= 0.1 ? CONFIG.COLORS.warning : CONFIG.COLORS.danger);
+
+        if (State.charts.ue) State.charts.ue.destroy();
+        State.charts.ue = new Chart(document.getElementById('chartUE'), {
+            type: 'bar',
+            data: { labels, datasets: [{ label: 'UE', data, backgroundColor: colors, borderRadius: 6 }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderOverview() {
+        const cities = State.data;
+        renderKPIs(cities);
+        renderCityList(cities);
+        renderUEChart(cities);
+    }
+
+    function showChartTab(module) {
+        State.currentModule = module;
+        document.querySelectorAll('#page3 .tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        renderStructure();
+    }
+
+    function renderStructure() {
+        const cities = State.data;
+        const module = State.currentModule;
+
+        const labels = cities.map(c => c.displayName);
+        const revenueData = cities.map(c => (c.modules[module]?.onlineRevenue || 0) / 10000);
+        const costData = cities.map(c => (c.modules[module]?.deliveryCost || 0) / 10000);
+        const subsidyData = cities.map(c => ((c.modules[module]?.subsidyRatio || 0) * 100).toFixed(1));
+        const deliveryRateData = cities.map(c => ((c.modules[module]?.deliveryCostRate || 0) * 100).toFixed(1));
+
+        ['revenue', 'cost', 'subsidy', 'delivery'].forEach(id => {
+            if (State.charts[id]) State.charts[id].destroy();
+        });
+
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            }
+        };
+
+        State.charts.revenue = new Chart(document.getElementById('chartRevenue'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{ label: '收入(万)', data: revenueData, backgroundColor: CONFIG.COLORS.primary, borderRadius: 6 }]
+            },
+            options: chartOptions
+        });
+
+        State.charts.cost = new Chart(document.getElementById('chartCost'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{ label: '成本(万)', data: costData, backgroundColor: CONFIG.COLORS.purple, borderRadius: 6 }]
+            },
+            options: chartOptions
+        });
+
+        State.charts.subsidy = new Chart(document.getElementById('chartSubsidy'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{ label: '补贴率(%)', data: subsidyData, backgroundColor: CONFIG.COLORS.warning, borderRadius: 6 }]
+            },
+            options: chartOptions
+        });
+
+        State.charts.delivery = new Chart(document.getElementById('chartDelivery'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{ label: '配送成本率(%)', data: deliveryRateData, backgroundColor: CONFIG.COLORS.cyan, borderRadius: 6 }]
+            },
+            options: chartOptions
+        });
+    }
+
+    function renderAnomalies() {
+        const cities = State.data;
+        const anomalies = [];
+
+        cities.forEach(city => {
+            const ue = city.modules.all.ue || 0;
+            const subsidyRatio = city.modules.all.subsidyRatio || 0;
+            const deliveryCostRate = city.modules.all.deliveryCostRate || 0;
+
+            if (ue < 0.1) {
+                anomalies.push({
+                    type: 'danger',
+                    title: `${city.displayName} - UE严重偏低`,
+                    desc: `当前UE仅为${ue.toFixed(2)}，远低于健康水平，需要重点关注。`
+                });
+            } else if (ue < 0.4) {
+                anomalies.push({
+                    type: 'warning',
+                    title: `${city.displayName} - UE偏低`,
+                    desc: `当前UE为${ue.toFixed(2)}，建议优化成本结构。`
+                });
+            }
+
+            if (subsidyRatio > 0.4) {
+                anomalies.push({
+                    type: 'danger',
+                    title: `${city.displayName} - 补贴率过高`,
+                    desc: `补贴率${(subsidyRatio * 100).toFixed(1)}%，建议评估补贴策略。`
+                });
+            } else if (subsidyRatio > 0.35) {
+                anomalies.push({
+                    type: 'warning',
+                    title: `${city.displayName} - 补贴率偏高`,
+                    desc: `补贴率${(subsidyRatio * 100).toFixed(1)}%，需关注投入产出。`
+                });
+            }
+
+            if (deliveryCostRate > 0.35) {
+                anomalies.push({
+                    type: 'danger',
+                    title: `${city.displayName} - 配送成本率过高`,
+                    desc: `配送成本率${(deliveryCostRate * 100).toFixed(1)}%，建议优化配送路线。`
+                });
+            }
+
+            if (city.modules.group && city.modules.group.ue < 0) {
+                anomalies.push({
+                    type: 'warning',
+                    title: `${city.displayName} - 拼好饭亏损`,
+                    desc: `拼好饭业务UE为负，建议调整策略。`
+                });
+            }
+        });
+
+        if (anomalies.length === 0) {
+            anomalies.push({
+                type: 'success',
+                title: '一切正常！',
+                desc: '所有城市指标均在健康范围内。'
+            });
+        }
+
+        document.getElementById('anomaliesList').innerHTML = anomalies.map(a => `
+            <div class="insight-card ${a.type}">
+                <div class="insight-title">${a.title}</div>
+                <div class="insight-desc">${a.desc}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderRecommendations() {
+        const recommendations = [
+            {
+                priority: 'high',
+                title: '优化补贴策略',
+                desc: '针对补贴率过高的城市，建议评估补贴效率，优化补贴结构，减少无效补贴。'
+            },
+            {
+                priority: 'high',
+                title: '降低配送成本',
+                desc: '优化配送路线规划，提升骑手效率，降低配送成本率。'
+            },
+            {
+                priority: 'medium',
+                title: '扩大医药业务',
+                desc: '医药业务UE表现较好，建议在更多城市推广医药业务。'
+            },
+            {
+                priority: 'medium',
+                title: '调整拼好饭策略',
+                desc: '拼好饭业务普遍亏损，建议重新评估该业务的盈利模式。'
+            },
+            {
+                priority: 'low',
+                title: '复制成功经验',
+                desc: '将承德、围场等高UE城市的经验推广到其他城市。'
+            }
+        ];
+
+        document.getElementById('recommendationsList').innerHTML = recommendations.map(r => `
+            <div class="recommendation-item">
+                <span class="priority-badge priority-${r.priority}">${r.priority === 'high' ? '高' : r.priority === 'medium' ? '中' : '低'}</span>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">${r.title}</div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">${r.desc}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function selectCity(name) {
+        State.selectedCity = name;
+        showToast(`已选择: ${name}`, 'info');
+    }
+
+    function resetTool() {
+        State.data = null;
+        State.currentPage = 1;
+        State.selectedCity = null;
+        Object.values(State.charts).forEach(chart => chart && chart.destroy());
+        State.charts = {};
+        document.getElementById('fileInput').value = '';
+        document.getElementById('fileInfo').classList.remove('show');
+        document.getElementById('btnStartAnalyze').style.display = 'none';
+        goToPage(1);
+    }
+
+    // ==================== 文件处理 ====================
+    function handleFileUpload(file) {
+        showToast('正在解析文件...', 'info');
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const merchantData = parseExcelFile(workbook);
+
+                const cities = merchantData.all?.cities || merchantData.city?.cities || [];
+                if (cities.length === 0) throw new Error('未找到城市数据');
+
+                State.data = cities.filter(c => c.displayName !== '总商');
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('cityCount').textContent = State.data.length + '个城市';
+                document.getElementById('fileInfo').classList.add('show');
+                document.getElementById('btnStartAnalyze').style.display = 'inline-block';
+
+                showToast(`成功解析 ${State.data.length} 个城市数据！`, 'success');
+            } catch (err) {
+                console.error(err);
+                showToast('解析失败: ' + err.message, 'error');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function loadSampleData() {
+        State.data = getSampleData();
+        document.getElementById('fileName').textContent = '示例数据';
+        document.getElementById('cityCount').textContent = State.data.length + '个城市';
+        document.getElementById('fileInfo').classList.add('show');
+        document.getElementById('btnStartAnalyze').style.display = 'inline-block';
+        showToast('已加载示例数据', 'success');
+    }
+
+    // ==================== 初始化 ====================
+    document.addEventListener('DOMContentLoaded', () => {
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = CONFIG.COLORS.primary;
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '';
+            if (e.dataTransfer.files.length) {
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        document.getElementById('btnLoadSample').addEventListener('click', loadSampleData);
+        document.getElementById('btnStartAnalyze').addEventListener('click', () => goToPage(2));
+    });
+    </script>
+</body>
+</html>

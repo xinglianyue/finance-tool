@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>财务分析工具 v2 - 验证测试</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4f46e5;
+      padding-bottom: 10px;
+    }
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-result {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .test-pass {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .test-fail {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .test-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .btn {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    .btn:hover {
+      background: #4338ca;
+    }
+    .summary {
+      font-size: 18px;
+      font-weight: bold;
+      padding: 20px;
+      text-align: center;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    .summary-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .summary-fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 财务分析工具 v2 - 功能验证测试</h1>
+  
+  <div class="test-section">
+    <h2>📋 测试说明</h2>
+    <p>此页面用于验证第1周实现的各项功能是否正常工作。</p>
+    <button class="btn" onclick="runTests()">▶️ 运行所有测试</button>
+    <button class="btn" onclick="runQuickTest()">⚡ 快速测试（核心功能）</button>
+  </div>
+  
+  <div id="results"></div>
+  
+  <div class="test-section">
+    <h2>🔍 预期功能清单</h2>
+    <ul>
+      <li>✅ 动态阈值异常检测 - 根据城市级别和模块自动调整</li>
+      <li>✅ 多维度健康度评估 - UE、补贴率、配送成本、利润率</li>
+      <li>✅ 根因分析（5 Whys）- 自动推断问题根本原因</li>
+      <li>✅ 智能建议生成 - 按优先级P0/P1/P2排序</li>
+      <li>✅ 健康度仪表盘 - 环形进度条展示</li>
+      <li>✅ UE矩阵热力图 - 城市×模块可视化</li>
+      <li>✅ 异常预警列表 - 按严重程度排序</li>
+      <li>✅ 智能洞察面板 - 自动生成业务洞察</li>
+    </ul>
+  </div>
+  
+  <div class="test-section">
+    <h2>📊 测试结果</h2>
+    <div id="test-results"></div>
+  </div>
+  
+  <!-- 加载分析引擎 -->
+  <script src="js/analyzer/analyzer-engine.js"></script>
+  <script src="js/analyzer/test-analyzer.js"></script>
+  
+  <script>
+    let testResults = [];
+    
+    function runTests() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '<div class="test-info test-result">正在运行测试...</div>';
+      
+      setTimeout(() => {
+        try {
+          testResults = [];
+          
+          // 测试1: AnalyzerUtils
+          appendResult('测试 AnalyzerUtils 工具函数', testAnalyzerUtils());
+          
+          // 测试2: AnomalyDetector
+          appendResult('测试 AnomalyDetector 异常检测', testAnomalyDetector());
+          
+          // 测试3: HealthCalculator
+          appendResult('测试 HealthCalculator 健康度计算', testHealthCalculator());
+          
+          // 测试4: RootCauseAnalyzer
+          appendResult('测试 RootCauseAnalyzer 根因分析', testRootCauseAnalyzer());
+          
+          // 测试5: SuggestionEngine
+          appendResult('测试 SuggestionEngine 建议生成', testSuggestionEngine());
+          
+          // 测试6: FinancialAnalyzer
+          appendResult('测试 FinancialAnalyzer 完整流程', testFinancialAnalyzer());
+          
+          // 显示总结
+          showSummary();
+          
+        } catch (error) {
+          resultsDiv.innerHTML = `<div class="test-fail test-result">测试执行出错: ${error.message}</div>`;
+          console.error(error);
+        }
+      }, 100);
+    }
+    
+    function runQuickTest() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '<div class="test-info test-result">正在运行快速测试...</div>';
+      
+      setTimeout(() => {
+        try {
+          // 快速测试核心功能
+          const analyzer = new FinancialAnalyzer();
+          
+          const testData = {
+            cities: [
+              {
+                name: '围场',
+                displayName: '围场',
+                modules: {
+                  all: { orders: 97345, ue: 0.73, subsidyRatio: 0.079, deliveryCostRate: 0.30, profitRate: 0.183, profit: 71111 }
+                }
+              },
+              {
+                name: '承德',
+                displayName: '承德',
+                modules: {
+                  all: { orders: 529234, ue: -0.08, subsidyRatio: 0.074, deliveryCostRate: 0.35, profitRate: -0.015, profit: -58024 }
+                }
+              }
+            ]
+          };
+          
+          const result = analyzer.analyze(testData);
+          
+          let html = '<h3>快速测试结果</h3>';
+          html += `<div class="test-info test-result">✅ 核心分析引擎运行正常</div>`;
+          html += `<ul>`;
+          html += `<li>健康度: ${result.health.overall}分</li>`;
+          html += `<li>异常数量: ${result.anomalies.length}</li>`;
+          html += `<li>建议数量: ${result.suggestions.length}</li>`;
+          html += `<li>洞察数量: ${result.insights.length}</li>`;
+          html += `</ul>`;
+          
+          if (result.anomalies.length > 0) {
+            html += '<h4>检测到的异常:</h4><ul>';
+            result.anomalies.slice(0, 3).forEach(a => {
+              html += `<li>${a.city}: ${a.anomalies[0]?.message || '未知异常'}</li>`;
+            });
+            html += '</ul>';
+          }
+          
+          resultsDiv.innerHTML = html;
+          
+        } catch (error) {
+          resultsDiv.innerHTML = `<div class="test-fail test-result">快速测试失败: ${error.message}</div>`;
+        }
+      }, 100);
+    }
+    
+    function appendResult(name, passed) {
+      const resultsDiv = document.getElementById('test-results');
+      testResults.push({ name, passed });
+      
+      const div = document.createElement('div');
+      div.className = passed ? 'test-pass test-result' : 'test-fail test-result';
+      div.textContent = `${passed ? '✅' : '❌'} ${name}`;
+      resultsDiv.appendChild(div);
+      
+      if (!passed) {
+        console.error(`测试失败: ${name}`);
+      }
+    }
+    
+    function showSummary() {
+      const resultsDiv = document.getElementById('test-results');
+      const passed = testResults.filter(r => r.passed).length;
+      const total = testResults.length;
+      
+      const div = document.createElement('div');
+      div.className = 'summary ' + (passed === total ? 'summary-success' : 'summary-fail');
+      div.textContent = `总计: ${passed}/${total} 项测试通过`;
+      
+      if (passed === total) {
+        div.textContent += ' 🎉';
+      } else {
+        div.textContent += ' ⚠️';
+      }
+      
+      resultsDiv.appendChild(div);
+    }
+    
+    // 自动运行测试
+    window.onload = function() {
+      console.log('页面加载完成，请点击"运行所有测试"按钮');
+    };
+  </script>
+</body>
+</html>

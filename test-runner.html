@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务分析工具 v2 - 测试运行器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #00d4ff; margin-bottom: 20px; font-size: 1.8rem; }
+        .test-panel { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .test-title { font-size: 1.2rem; color: #e94560; }
+        .test-status { padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; }
+        .status-running { background: #f39c12; color: #000; }
+        .status-passed { background: #27ae60; color: #fff; }
+        .status-failed { background: #e74c3c; color: #fff; }
+        .test-list { list-style: none; max-height: 400px; overflow-y: auto; }
+        .test-item { padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; align-items: flex-start; gap: 10px; }
+        .test-pass { background: rgba(39, 174, 96, 0.15); border-left: 3px solid #27ae60; }
+        .test-fail { background: rgba(231, 76, 60, 0.15); border-left: 3px solid #e74c3c; }
+        .test-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .test-name { flex: 1; }
+        .test-error { color: #e74c3c; font-size: 0.85rem; margin-left: 30px; padding: 8px; background: rgba(231, 76, 60, 0.1); border-radius: 4px; margin-top: 5px; word-break: break-all; }
+        .summary { background: #0f3460; border-radius: 12px; padding: 20px; text-align: center; }
+        .summary h2 { color: #00d4ff; margin-bottom: 10px; }
+        .summary .stats { font-size: 2rem; font-weight: bold; margin: 15px 0; }
+        .summary .pass-rate { color: #27ae60; }
+        .summary .fail-count { color: #e74c3c; }
+        .btn { background: #e94560; color: #fff; border: none; padding: 12px 30px; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.3s; }
+        .btn:hover { background: #ff6b6b; transform: translateY(-2px); }
+        .btn:disabled { background: #666; cursor: not-allowed; transform: none; }
+        .module-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+        .module-item { background: rgba(0, 212, 255, 0.1); padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+        .module-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; }
+        .module-ok { background: #27ae60; }
+        .module-error { background: #e74c3c; }
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .progress-bar { height: 4px; background: #333; border-radius: 2px; margin-top: 15px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #00d4ff, #e94560); transition: width 0.3s; width: 0%; }
+        .console-output { background: #0a0a1a; border-radius: 8px; padding: 15px; margin-top: 20px; max-height: 200px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 0.85rem; }
+        .console-line { margin-bottom: 5px; color: #888; white-space: pre-wrap; }
+        .console-line.pass { color: #27ae60; }
+        .console-line.fail { color: #e74c3c; }
+        .console-line.info { color: #00d4ff; }
+        .error-details { margin-top: 10px; padding: 10px; background: rgba(231, 76, 60, 0.1); border-radius: 6px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 财务分析工具 v2 - 测试运行器</h1>
+        <p style="color: #888; margin-bottom: 20px;">验证所有分析模块的功能正确性</p>
+
+        <div class="test-panel">
+            <div class="test-header">
+                <span class="test-title">📦 模块加载状态</span>
+                <span class="test-status status-running" id="moduleStatus">检查中...</span>
+            </div>
+            <div class="module-list" id="moduleList"></div>
+        </div>
+
+        <div class="test-panel">
+            <div class="test-header">
+                <span class="test-title">🧪 测试结果</span>
+                <button class="btn" id="runBtn" onclick="runAllTests()">▶ 运行测试</button>
+            </div>
+            <ul class="test-list" id="testList">
+                <li class="loading">
+                    <div class="spinner"></div>
+                    点击"运行测试"开始验证
+                </li>
+            </ul>
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="summary" id="summary" style="display: none;">
+            <h2>📊 测试总结</h2>
+            <div class="stats" id="summaryStats"></div>
+            <p id="summaryMsg" style="margin-top: 10px; color: #888;"></p>
+        </div>
+
+        <div class="console-output" id="consoleOutput" style="display: none;">
+            <h3 style="color: #00d4ff; margin-bottom: 10px;">📋 控制台输出</h3>
+            <div id="consoleLines"></div>
+        </div>
+    </div>
+
+    <script src="js/analyzer/analyzer-engine.js"></script>
+    <script src="js/analyzer/data-importer.js"></script>
+    <script>
+        const modules = [
+            { name: 'analyzer-engine.js', classes: ['AnalyzerUtils', 'AnomalyDetector', 'HealthCalculator', 'FinancialAnalyzer'], check: () => typeof AnalyzerUtils !== 'undefined' && typeof AnomalyDetector !== 'undefined' },
+            { name: 'data-importer.js', classes: ['DataImporter', 'DataStorage'], check: () => typeof DataImporter !== 'undefined' && typeof DataStorage !== 'undefined' }
+        ];
+
+        const testCases = [
+            { name: 'AnalyzerUtils.safeNum - 正常数值', fn: () => { assert.equal(AnalyzerUtils.safeNum(123.45), 123.45); } },
+            { name: 'AnalyzerUtils.safeNum - 字符串转换', fn: () => { assert.equal(AnalyzerUtils.safeNum('123.45'), 123.45); } },
+            { name: 'AnalyzerUtils.safeNum - 空值处理', fn: () => { assert.equal(AnalyzerUtils.safeNum(null), 0); assert.equal(AnalyzerUtils.safeNum(undefined), 0); } },
+            { name: 'AnalyzerUtils.mean - 平均值计算', fn: () => { assert.equal(AnalyzerUtils.mean([10, 20, 30]), 20); } },
+            { name: 'AnalyzerUtils.mean - 边界情况', fn: () => { assert.equal(AnalyzerUtils.mean([]), 0); assert.equal(AnalyzerUtils.mean([100]), 100); } },
+            { name: 'AnalyzerUtils.std - 标准差计算', fn: () => { const std = AnalyzerUtils.std([2, 4, 4, 4, 5, 5, 7, 9]); assert.greaterThan(std, 1.9); assert.lessThan(std, 2.1); } },
+            { name: 'AnalyzerUtils.getCityTier - 城市分级', fn: () => { assert.equal(AnalyzerUtils.getCityTier('承德'), 'tier1'); assert.equal(AnalyzerUtils.getCityTier('围场'), 'tier2'); } },
+            { name: 'AnalyzerUtils.getScore - 评分计算', fn: () => { assert.equal(AnalyzerUtils.getScore(1.5, 1.5, 1.0, 0.5), 100); } },
+            { name: 'AnomalyDetector - 动态阈值', fn: () => { const d = new AnomalyDetector(); const t = d.getDynamicUEThreshold('围场', 'all'); assert.isObject(t); } },
+            { name: 'AnomalyDetector - 亏损检测', fn: () => { const d = new AnomalyDetector(); const r = d.detectCityModuleAnomaly('承德', { key: 'all', ue: -0.08, subsidyRatio: 0.074, deliveryCostRate: 0.35, orders: 529234 }); assert.isTrue(r.isAnomaly); } },
+            { name: 'HealthCalculator - 健康度计算', fn: () => { const h = new HealthCalculator(); const h2 = h.calculateCityHealth({ name: '围场', modules: { all: { ue: 0.73, subsidyRatio: 0.079, deliveryCostRate: 0.30, profitRate: 0.183 } } }); assert.greaterThan(h2.overall, 0); } },
+            { name: 'HealthCalculator - 健康等级', fn: () => { const h = new HealthCalculator(); assert.equal(h.getHealthLevel(85), 'excellent'); assert.equal(h.getHealthLevel(30), 'poor'); } },
+            { name: 'FinancialAnalyzer - 完整分析', fn: () => { const a = new FinancialAnalyzer(); const r = a.analyze(testData); assert.isObject(r); assert.isObject(r.health); assert.isArray(r.anomalies); } },
+            { name: 'FinancialAnalyzer - 生成洞察', fn: () => { const a = new FinancialAnalyzer(); const r = a.analyze(testData); assert.greaterThan(r.insights.length, 0); } },
+            { name: 'DataStorage - 保存和加载', fn: () => { const s = new DataStorage(); const result = s.save({ date: '2026-05-16', cities: [] }); assert.isTrue(result); s.delete('2026-05-16'); } },
+            { name: '数据格式 - 城市结构', fn: () => { const city = testData.cities[0]; assert.isObject(city); assert.isTrue(city.hasOwnProperty('name')); assert.isTrue(city.hasOwnProperty('modules')); } },
+            { name: '边界情况 - 空数据', fn: () => { const a = new FinancialAnalyzer(); const r = a.analyze({ cities: [] }); assert.equal(r.health.overall, 0); } },
+            { name: '边界情况 - 无效数值', fn: () => { assert.equal(AnalyzerUtils.safeNum(NaN), 0); } }
+        ];
+
+        const testData = {
+            cities: [
+                { name: '总商', displayName: '总商', modules: { all: { orders: 1372590, ue: 0.39, subsidyRatio: 0.0803, deliveryCost: 3560120, profit: 382657 } } },
+                { name: '围场', displayName: '围场', modules: { all: { orders: 97345, ue: 0.73, subsidyRatio: 0.079, deliveryCost: 182345, profit: 71111 }, medicine: { orders: 4567, ue: 2.11, subsidyRatio: 0.011, deliveryCost: 34567, profit: 19653 } } },
+                { name: '承德', displayName: '承德', modules: { all: { orders: 529234, ue: -0.08, subsidyRatio: 0.074, deliveryCost: 1356789, profit: -58024 }, flash: { orders: 54234, ue: -1.29, subsidyRatio: 0.03, deliveryCost: 167890, profit: -70333 } } }
+            ]
+        };
+
+        const assert = {
+            equal: (a, b, m) => { if (a !== b) throw new Error(`期望 ${b}，实际 ${a} ${m || ''}`); },
+            greaterThan: (a, b, m) => { if (a <= b) throw new Error(`期望大于 ${b}，实际 ${a} ${m || ''}`); },
+            lessThan: (a, b, m) => { if (a >= b) throw new Error(`期望小于 ${b}，实际 ${a} ${m || ''}`); },
+            isTrue: (v, m) => { if (!v) throw new Error(`期望 true ${m || ''}`); },
+            isFalse: (v, m) => { if (v) throw new Error(`期望 false ${m || ''}`); },
+            isObject: (v, m) => { if (typeof v !== 'object' || v === null) throw new Error(`期望对象 ${m || ''}`); },
+            isArray: (v, m) => { if (!Array.isArray(v)) throw new Error(`期望数组 ${m || ''}`); }
+        };
+
+        function checkModules() {
+            const list = document.getElementById('moduleList');
+            const status = document.getElementById('moduleStatus');
+            let loaded = 0;
+            let failed = [];
+
+            modules.forEach(m => {
+                const ok = m.check();
+                if (ok) loaded++;
+                else failed.push(m);
+
+                const item = document.createElement('div');
+                item.className = 'module-item';
+                item.innerHTML = `<span class="module-icon ${ok ? 'module-ok' : 'module-error'}">${ok ? '✓' : '✗'}</span><span>${m.name} (${m.classes.join(', ')})</span>`;
+                list.appendChild(item);
+            });
+
+            status.textContent = `${loaded}/${modules.length} 已加载`;
+            status.className = 'test-status ' + (failed.length === 0 ? 'status-passed' : 'status-failed');
+
+            return failed.length === 0;
+        }
+
+        async function runAllTests() {
+            const btn = document.getElementById('runBtn');
+            const list = document.getElementById('testList');
+            const summary = document.getElementById('summary');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const consoleOutput = document.getElementById('consoleOutput');
+            const consoleLines = document.getElementById('consoleLines');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ 测试中...';
+            list.innerHTML = '';
+            summary.style.display = 'none';
+            progressBar.style.display = 'block';
+            consoleOutput.style.display = 'block';
+            consoleLines.innerHTML = '';
+
+            let passed = 0, failed = 0;
+
+            function log(msg, type = '') {
+                const line = document.createElement('div');
+                line.className = 'console-line ' + type;
+                line.textContent = msg;
+                consoleLines.appendChild(line);
+                consoleLines.scrollTop = consoleLines.scrollHeight;
+            }
+
+            const allOk = modules.every(m => m.check());
+            if (!allOk) {
+                list.innerHTML = '<li style="color: #e74c3c; padding: 20px;">❌ 模块加载失败，请检查JS文件是否正确引入</li>';
+                btn.disabled = false;
+                btn.textContent = '▶ 运行测试';
+                return;
+            }
+
+            const total = testCases.length;
+            testCases.forEach((test, index) => {
+                const item = document.createElement('li');
+                try {
+                    test.fn();
+                    passed++;
+                    item.className = 'test-item test-pass';
+                    item.innerHTML = `<span class="test-icon">✅</span><span class="test-name">${test.name}</span>`;
+                    log(`✅ ${test.name}`, 'pass');
+                } catch (error) {
+                    failed++;
+                    item.className = 'test-item test-fail';
+                    item.innerHTML = `<span class="test-icon">❌</span><span class="test-name">${test.name}</span><div class="test-error">${error.message}</div>`;
+                    log(`❌ ${test.name}: ${error.message}`, 'fail');
+                }
+                list.appendChild(item);
+                progressFill.style.width = ((index + 1) / total * 100) + '%';
+            });
+
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+                summary.style.display = 'block';
+                document.getElementById('summaryStats').innerHTML = `<span class="${failed === 0 ? 'pass-rate' : 'fail-count'}">${passed}/${total}</span> <span style="color: #888; font-size: 1rem;">通过</span>`;
+                document.getElementById('summaryMsg').textContent = failed === 0 ? '🎉 所有测试通过！系统运行正常。' : `⚠️ ${failed}个测试失败，请检查上述失败的测试项。`;
+                btn.disabled = false;
+                btn.textContent = '▶ 重新运行';
+                log(`\n📊 测试结果: ${passed}/${total} 通过 ${failed === 0 ? '🎉' : `⚠️ ${failed}失败`}`, 'info');
+            }, 500);
+        }
+
+        window.addEventListener('load', () => setTimeout(checkModules, 100));
+    </script>
+</body>
+</html>

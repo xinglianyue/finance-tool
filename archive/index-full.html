@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务分析工具 - 完整整合版</title>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+:root {
+  --primary: #4f46e5; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
+  --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db; --gray-500: #6b7280; --gray-700: #374151;
+  --white: #fff; --bg: #f9fafb; --border: #e5e7eb;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: var(--bg); min-height: 100vh; }
+.container { display: flex; min-height: 100vh; }
+.sidebar { width: 260px; background: var(--white); border-right: 1px solid var(--border); padding: 20px; }
+.sidebar h2 { font-size: 16px; margin-bottom: 20px; }
+.main { flex: 1; padding: 24px; }
+.upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%); transition: all 0.3s; }
+.upload-area:hover { border-color: var(--primary); }
+.upload-area .icon { font-size: 48px; margin-bottom: 16px; }
+.upload-area h3 { font-size: 18px; margin-bottom: 8px; }
+.upload-area p { color: var(--gray-500); }
+#fileInput { display: none; }
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px; }
+.stat-card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); padding: 20px; text-align: center; }
+.stat-card .label { font-size: 13px; color: var(--gray-500); margin-bottom: 8px; }
+.stat-card .value { font-size: 28px; font-weight: 700; }
+.stat-card .value.danger { color: var(--danger); }
+.stat-card .value.success { color: var(--success); }
+.matrix-card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); margin-top: 24px; overflow: hidden; }
+.matrix-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.matrix-header h3 { font-size: 15px; }
+.matrix-table { width: 100%; border-collapse: collapse; }
+.matrix-table th, .matrix-table td { padding: 12px; text-align: center; border-bottom: 1px solid var(--border); }
+.matrix-table th { background: var(--gray-100); }
+.matrix-table td.city { text-align: left; font-weight: 600; }
+.ue-good { background: #dcfce7; color: #166534; font-weight: 700; }
+.ue-warning { background: #fef3c7; color: #92400e; font-weight: 700; }
+.ue-danger { background: #fee2e2; color: #991b1b; font-weight: 700; }
+.hidden { display: none; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+.chart-card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); padding: 20px; }
+.chart-card h4 { font-size: 14px; margin-bottom: 12px; }
+.chart-container { height: 250px; }
+.health-tab { margin-top: 24px; }
+.health-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.health-card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); padding: 16px; cursor: pointer; }
+.health-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.health-card .stars { font-size: 20px; }
+.health-detail { margin-top: 24px; background: var(--white); border-radius: 12px; border: 1px solid var(--border); padding: 20px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+.tab-btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; background: var(--white); border: 1px solid var(--border); }
+.tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* 新增样式 */
+.problem-list { background: var(--white); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; overflow: hidden; }
+.problem-header { background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%); padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.problem-header h3 { font-size: 16px; color: var(--danger); display: flex; align-items: center; gap: 8px; }
+.problem-item { display: grid; grid-template-columns: 60px 1fr 120px 120px 100px; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--gray-100); align-items: center; }
+.problem-item:last-child { border-bottom: none; }
+.problem-rank { font-size: 24px; font-weight: 800; text-align: center; }
+.problem-rank.rank-1 { color: #dc2626; }
+.problem-rank.rank-2 { color: #ea580c; }
+.problem-rank.rank-3 { color: #ca8a04; }
+.problem-city { font-weight: 700; font-size: 15px; }
+.problem-ue { text-align: right; font-weight: 700; }
+.problem-loss { text-align: right; font-weight: 700; color: var(--danger); }
+.problem-btn { padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.problem-btn:hover { background: #4338ca; }
+.diagnosis-card { background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 16px; margin-top: 12px; }
+.diagnosis-card h4 { color: #92400e; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.diagnosis-item { display: flex; gap: 10px; padding: 6px 0; color: var(--gray-700); }
+.diagnosis-item .dot { width: 6px; height: 6px; background: var(--warning); border-radius: 50%; margin-top: 8px; flex-shrink: 0; }
+.suggestion-card { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px; padding: 16px; margin-top: 12px; }
+.suggestion-card h4 { color: #166534; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.suggestion-item { display: flex; gap: 10px; padding: 6px 0; color: var(--gray-700); }
+.suggestion-item .num { width: 22px; height: 22px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.dim-score { display: flex; gap: 16px; padding: 16px; background: var(--gray-50); border-radius: 8px; margin-bottom: 16px; }
+.dim-item { flex: 1; text-align: center; padding: 10px; background: white; border-radius: 6px; }
+.dim-item .dim-label { font-size: 11px; color: var(--gray-500); margin-bottom: 4px; }
+.dim-item .dim-value { font-size: 18px; font-weight: 700; }
+.dim-item .dim-bar { width: 100%; height: 6px; background: var(--gray-200); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+.dim-item .dim-bar-fill { height: 100%; border-radius: 3px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h2>📊 财务分析工具</h2>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:13px;color:var(--gray-500);margin-bottom:8px;display:block;">日期选择</label>
+        <select id="dateSelect" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;">
+          <option value="">请上传文件</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--gray-500);margin-bottom:8px;display:block;">城市筛选</label>
+        <div id="cityFilters" style="max-height:200px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button id="selectAll" style="flex:1;padding:6px;font-size:12px;border:1px solid var(--border);border-radius:4px;cursor:pointer;">全选</button>
+          <button id="deselectAll" style="flex:1;padding:6px;font-size:12px;border:1px solid var(--border);border-radius:4px;cursor:pointer;">取消</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="main">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="overview">概况</button>
+        <button class="tab-btn" data-tab="health">🩺 健康度</button>
+      </div>
+      
+      <div id="welcomeState">
+        <div class="upload-area" id="dropZone">
+          <div class="icon">📁</div>
+          <h3>点击或拖拽上传Excel文件</h3>
+          <p>支持 .xlsx .csv .xls 格式</p>
+        </div>
+      </div>
+      
+      <div id="dashboardState" class="hidden">
+        <div class="tab-content active" id="tabOverview">
+          <!-- 问题城市排行榜 -->
+          <div class="problem-list" id="problemList"></div>
+          
+          <div class="stat-cards" id="statCards"></div>
+          
+          <div class="chart-row">
+            <div class="chart-card">
+              <h4>📊 各城市UE对比</h4>
+              <div class="chart-container"><canvas id="chartUE"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h4>📈 成本构成</h4>
+              <div class="chart-container"><canvas id="chartCost"></canvas></div>
+            </div>
+          </div>
+          
+          <div class="matrix-card">
+            <div class="matrix-header">
+              <h3>10城 x 5模块 UE矩阵</h3>
+              <div style="font-size:12px;color:var(--gray-500);">
+                <span style="margin-right:12px;"><span style="display:inline-block;width:10px;height:10px;background:var(--success);border-radius:2px;"></span>健康</span>
+                <span style="margin-right:12px;"><span style="display:inline-block;width:10px;height:10px;background:var(--warning);border-radius:2px;"></span>预警</span>
+                <span><span style="display:inline-block;width:10px;height:10px;background:var(--danger);border-radius:2px;"></span>严重</span>
+              </div>
+            </div>
+            <table class="matrix-table" id="matrixTable"></table>
+          </div>
+        </div>
+        
+        <div class="tab-content" id="tabHealth">
+          <div class="health-tab">
+            <div class="health-grid" id="healthGrid"></div>
+            <div class="health-detail hidden" id="healthDetail"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <input type="file" id="fileInput" accept=".xlsx,.csv,.xls">
+  
+  <script>
+var state = { currentData: null, selectedCities: new Set(), charts: {} };
+var MODULE_NAMES = { all:'全品类', food:'餐饮', flash:'闪购', medicine:'医药', group:'拼好饭' };
+var CITY_DISPLAY_MAP = { '承德市':'承德', '围场满族蒙古族自治县':'围场', '玉田县':'玉田', '安国市':'安国', '安平':'安平', '献县':'献县', '晋州':'晋州', '威县':'威县', '深泽县':'深泽', '康保县':'康保' };
+
+function fmt(n) {
+  if (n >= 1e8) return (n/1e8).toFixed(2) + '亿';
+  if (n >= 1e4) return (n/1e4).toFixed(1) + '万';
+  return n.toFixed(0);
+}
+
+function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        
+        const cityRow = json[2];
+        const cityMap = {};
+        for (let col = 5; col < cityRow.length; col++) {
+          const name = String(cityRow[col] || '').trim();
+          if (name && name !== '总商') {
+            cityMap[col] = { excelName: name, displayName: CITY_DISPLAY_MAP[name] || name };
+          }
+        }
+        
+        const modulePositions = {};
+        for (let rn = 0; rn < Math.min(500, json.length); rn++) {
+          const row = json[rn];
+          if (!row) continue;
+          const c0 = String(row[0] || '').trim();
+          if (c0.includes('全品类财务指标')) modulePositions.all = rn;
+          if (c0.includes('餐饮财务指标')) modulePositions.food = rn;
+          if (c0.includes('闪购财务指标')) modulePositions.flash = rn;
+          if (c0.includes('医药财务指标')) modulePositions.medicine = rn;
+          if (c0.includes('拼好饭财务指标')) modulePositions.group = rn;
+        }
+        
+        const result = [];
+        for (const [colStr, cityInfo] of Object.entries(cityMap)) {
+          const col = parseInt(colStr);
+          const cityData = { name: cityInfo.excelName, displayName: cityInfo.displayName, modules: {} };
+          for (const [key, startRow] of Object.entries(modulePositions)) {
+            cityData.modules[key] = extractModuleData(json, startRow, col);
+            cityData.modules[key].moduleKey = key;
+          }
+          result.push(cityData);
+        }
+        
+        resolve({ date: parseDate(file.name), cities: result });
+      } catch (err) { reject(err); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function extractModuleData(data, startRow, col) {
+  const result = { orders:0, gmvAmount:0, profit:0, commission:0, deliveryFee:0, subsidyTotal:0 };
+  for (let rn = startRow + 3; rn < Math.min(startRow + 100, data.length); rn++) {
+    const row = data[rn];
+    if (!row) continue;
+    const c0 = String(row[0] || '').trim();
+    const c4 = String(row[4] || '').trim();
+    if (c0 && c0.includes('财务指标')) break;
+    const val = parseFloat(row[col]) || 0;
+    if (c4 === '订单量汇总' && result.orders === 0) result.orders = val;
+    if (c4 === '原价交易额汇总' && result.gmvAmount === 0) result.gmvAmount = val;
+    if (c0 === '毛利' && result.profit === 0) result.profit = val;
+    if (c4 === '抽佣金额汇总' && result.commission === 0) result.commission = val;
+    if (c4 === '配送费汇总' && result.deliveryFee === 0) result.deliveryFee = val;
+    if (c4 === '代补金额花费汇总' && result.subsidyTotal === 0) result.subsidyTotal = val;
+  }
+  result.ue = result.orders > 0 ? result.profit / result.orders : 0;
+  return result;
+}
+
+function parseDate(filename) {
+  const p = filename.match(/(\d{4})[-_]?(0[1-9]|1[0-2])[-_]?(0[1-9]|[12]\d|3[01])/);
+  if (p) return p[1] + '-' + p[2] + '-' + p[3];
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function handleFile(file) {
+  document.getElementById('loadingOverlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'loadingOverlay';
+  overlay.innerHTML = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;"><div style="width:40px;height:40px;border:4px solid #e5e7eb;border-top-color:#4f46e5;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="margin-top:16px;color:#6b7280;">解析数据中...</div></div>';
+  document.body.appendChild(overlay);
+  
+  parseExcel(file).then(data => {
+    state.currentData = data;
+    state.selectedCities = new Set(data.cities.map(c => c.name));
+    overlay.remove();
+    
+    document.getElementById('welcomeState').classList.add('hidden');
+    document.getElementById('dashboardState').classList.remove('hidden');
+    
+    renderDateSelector();
+    renderCityFilters();
+    renderDashboard();
+  }).catch(err => {
+    overlay.remove();
+    alert('解析失败: ' + err.message);
+  });
+}
+
+function renderDateSelector() {
+  const sel = document.getElementById('dateSelect');
+  sel.innerHTML = `<option value="${state.currentData.date}" selected>${state.currentData.date}</option>`;
+}
+
+function renderCityFilters() {
+  const container = document.getElementById('cityFilters');
+  container.innerHTML = state.currentData.cities.map(city => `
+    <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;">
+      <input type="checkbox" value="${city.name}" checked> ${city.displayName}
+    </label>
+  `).join('');
+  
+  container.querySelectorAll('input').forEach(cb => {
+    cb.onchange = () => {
+      if (cb.checked) state.selectedCities.add(cb.value);
+      else state.selectedCities.delete(cb.value);
+      renderDashboard();
+    };
+  });
+  
+  document.getElementById('selectAll').onclick = () => {
+    state.selectedCities = new Set(state.currentData.cities.map(c => c.name));
+    container.querySelectorAll('input').forEach(cb => cb.checked = true);
+    renderDashboard();
+  };
+  
+  document.getElementById('deselectAll').onclick = () => {
+    state.selectedCities.clear();
+    container.querySelectorAll('input').forEach(cb => cb.checked = false);
+    renderDashboard();
+  };
+}
+
+function renderDashboard() {
+  const cities = state.currentData.cities.filter(c => state.selectedCities.has(c.name));
+  renderProblemList(cities);
+  renderStatCards(cities);
+  renderMatrix(cities);
+  renderCharts(cities);
+  renderHealthGrid(cities);
+}
+
+function calculateMonthlyLoss(city) {
+  const all = city.modules.all;
+  if (!all || all.ue >= 0) return 0;
+  return Math.abs(all.ue * all.orders);
+}
+
+function renderProblemList(cities) {
+  const sorted = [...cities].sort((a, b) => {
+    const ueA = a.modules.all?.ue || 0;
+    const ueB = b.modules.all?.ue || 0;
+    return ueA - ueB;
+  });
+  
+  const html = `
+    <div class="problem-header">
+      <h3>🔴 问题城市排行榜（按UE从低到高排序）</h3>
+    </div>
+    ${sorted.slice(0, 5).map((city, idx) => {
+      const all = city.modules.all;
+      const ue = all?.ue || 0;
+      const loss = calculateMonthlyLoss(city);
+      const ueClass = ue >= 0.3 ? 'ue-good' : ue >= 0 ? 'ue-warning' : 'ue-danger';
+      return `
+        <div class="problem-item">
+          <div class="problem-rank rank-${idx + 1}">#${idx + 1}</div>
+          <div class="problem-city">${city.displayName}</div>
+          <div class="problem-ue ${ueClass}">${(ue * 100).toFixed(1)}分</div>
+          <div class="problem-loss">${loss > 0 ? '¥' + fmt(loss) : '✓ 盈利'}</div>
+          <button class="problem-btn" onclick="goToHealth('${city.name}')">分析</button>
+        </div>
+      `;
+    }).join('')}
+  `;
+  document.getElementById('problemList').innerHTML = html;
+}
+
+function goToHealth(cityName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="health"]').classList.add('active');
+  document.getElementById('tabHealth').classList.add('active');
+  
+  const city = state.currentData.cities.find(c => c.name === cityName);
+  if (city) renderHealthDetail(city);
+}
+
+function calculateHealthScore(city) {
+  const all = city.modules.all;
+  const ue = all?.ue || 0;
+  
+  let ueScore = 0;
+  if (ue >= 0.5) ueScore = 100;
+  else if (ue >= 0.3) ueScore = 80;
+  else if (ue >= 0.1) ueScore = 60;
+  else if (ue >= 0) ueScore = 40;
+  else ueScore = 20;
+  
+  const subsidyRate = all?.orders > 0 && all?.gmvAmount > 0 ? (all.subsidyTotal / all.gmvAmount) * 100 : 0;
+  let costScore = 100;
+  if (subsidyRate > 20) costScore = 40;
+  else if (subsidyRate > 15) costScore = 60;
+  else if (subsidyRate > 10) costScore = 80;
+  
+  const moduleUes = Object.values(city.modules).map(m => m?.ue || 0);
+  const badModules = moduleUes.filter(u => u < 0).length;
+  let moduleScore = 100;
+  if (badModules >= 3) moduleScore = 40;
+  else if (badModules >= 2) moduleScore = 60;
+  else if (badModules >= 1) moduleScore = 80;
+  
+  const total = (ueScore * 0.5 + costScore * 0.3 + moduleScore * 0.2);
+  return {
+    total: Math.round(total),
+    ue: ueScore,
+    cost: costScore,
+    module: moduleScore,
+    ueValue: ue,
+    subsidyRate: subsidyRate,
+    badModules: badModules
+  };
+}
+
+function diagnoseProblems(city, scores) {
+  const problems = [];
+  const all = city.modules.all;
+  
+  if (scores.ueValue < 0) {
+    problems.push(`UE维度: 亏损严重 (${(scores.ueValue * 100).toFixed(1)}分/单)`);
+  } else if (scores.ueValue < 0.1) {
+    problems.push(`UE维度: 处于危险区间 (${(scores.ueValue * 100).toFixed(1)}分/单)`);
+  } else if (scores.ueValue < 0.3) {
+    problems.push(`UE维度: 需要关注 (${(scores.ueValue * 100).toFixed(1)}分/单)`);
+  }
+  
+  if (scores.subsidyRate > 15) {
+    problems.push(`成本维度: 代补占比过高 (${scores.subsidyRate.toFixed(1)}%)`);
+  } else if (scores.subsidyRate > 10) {
+    problems.push(`成本维度: 代补占比偏高 (${scores.subsidyRate.toFixed(1)}%)`);
+  }
+  
+  for (const [key, m] of Object.entries(city.modules)) {
+    if (key === 'all') continue;
+    const u = m?.ue || 0;
+    if (u < 0) {
+      problems.push(`模块维度: ${MODULE_NAMES[key]} 拖后腿 (${(u * 100).toFixed(1)}分)`);
+    }
+  }
+  
+  if (problems.length === 0) {
+    problems.push('✓ 整体健康状况良好，继续保持！');
+  }
+  
+  return problems;
+}
+
+function generateSuggestions(city, scores) {
+  const suggestions = [];
+  const all = city.modules.all;
+  
+  const benchmarkCity = state.currentData.cities.find(c => c.name.includes('康保'));
+  if (benchmarkCity && scores.ueValue < 0.3) {
+    suggestions.push(`建议参考康保的代补策略 (当前代补率 ${scores.subsidyRate.toFixed(1)}%)`);
+  }
+  
+  for (const [key, m] of Object.entries(city.modules)) {
+    if (key === 'all') continue;
+    const u = m?.ue || 0;
+    if (u < -0.1) {
+      suggestions.push(`${MODULE_NAMES[key]} 模块需要专项优化，建议找配送总监分析`);
+    }
+  }
+  
+  if (scores.subsidyRate > 10) {
+    suggestions.push('代补费用过高，建议评估补贴的ROI，优化补贴策略');
+  }
+  
+  if (suggestions.length === 0) {
+    suggestions.push('当前策略有效，建议保持并持续监控');
+    suggestions.push('可以尝试小幅提高UE，挑战更高目标');
+  }
+  
+  return suggestions;
+}
+
+function renderHealthGrid(cities) {
+  const grid = document.getElementById('healthGrid');
+  grid.innerHTML = cities.map(city => {
+    const scores = calculateHealthScore(city);
+    const stars = Math.ceil(scores.total / 20);
+    const all = city.modules.all;
+    const ue = all?.ue || 0;
+    
+    return `<div class="health-card" data-city="${city.name}">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-weight:700;">${city.displayName}</span>
+        <span class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(5-stars)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><div style="font-size:11px;color:var(--gray-500);">得分</div><div style="font-weight:700;">${scores.total}</div></div>
+        <div><div style="font-size:11px;color:var(--gray-500);">UE</div><div style="font-weight:700;color:${ue < 0 ? 'var(--danger)' : ue < 0.3 ? 'var(--warning)' : 'var(--success)'};${ue >= 0.3 ? 'ue-good' : ue >= 0 ? 'ue-warning' : 'ue-danger'}">${(ue * 100).toFixed(1)}分</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  grid.querySelectorAll('.health-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const city = state.currentData.cities.find(c => c.name === card.dataset.city);
+      renderHealthDetail(city);
+    });
+  });
+}
+
+function renderHealthDetail(city) {
+  const detail = document.getElementById('healthDetail');
+  const scores = calculateHealthScore(city);
+  const stars = Math.ceil(scores.total / 20);
+  const all = city.modules.all;
+  const ue = all?.ue || 0;
+  const loss = calculateMonthlyLoss(city);
+  const problems = diagnoseProblems(city, scores);
+  const suggestions = generateSuggestions(city, scores);
+  
+  detail.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3>${city.displayName} - 健康度分析</h3>
+      <button onclick="document.getElementById('healthDetail').classList.add('hidden')" style="padding:6px 12px;border:1px solid var(--border);border-radius:4px;cursor:pointer;">关闭</button>
+    </div>
+    
+    <div style="text-align:center;padding:20px;background:var(--gray-100);border-radius:8px;margin-bottom:16px;">
+      <div style="font-size:48px;font-weight:700;">${scores.total}</div>
+      <div style="font-size:20px;margin-top:8px;">${'⭐'.repeat(stars)}${'☆'.repeat(5-stars)}</div>
+    </div>
+    
+    <div class="dim-score">
+      <div class="dim-item">
+        <div class="dim-label">UE维度</div>
+        <div class="dim-value">${scores.ue}</div>
+        <div class="dim-bar"><div class="dim-bar-fill" style="width:${scores.ue}%;background:${scores.ue >= 60 ? '#22c55e' : scores.ue >= 40 ? '#f59e0b' : '#ef4444'}"></div></div>
+      </div>
+      <div class="dim-item">
+        <div class="dim-label">成本维度</div>
+        <div class="dim-value">${scores.cost}</div>
+        <div class="dim-bar"><div class="dim-bar-fill" style="width:${scores.cost}%;background:${scores.cost >= 60 ? '#22c55e' : scores.cost >= 40 ? '#f59e0b' : '#ef4444'}"></div></div>
+      </div>
+      <div class="dim-item">
+        <div class="dim-label">模块维度</div>
+        <div class="dim-value">${scores.module}</div>
+        <div class="dim-bar"><div class="dim-bar-fill" style="width:${scores.module}%;background:${scores.module >= 60 ? '#22c55e' : scores.module >= 40 ? '#f59e0b' : '#ef4444'}"></div></div>
+      </div>
+    </div>
+    
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+      <tr><th>模块</th><th>UE</th><th>订单量</th><th>毛利</th><th>状态</th></tr>
+      ${Object.entries(city.modules).map(([k, m]) => {
+        const u = m?.ue || 0;
+        const cls = u >= 0.3 ? 'ue-good' : u >= 0 ? 'ue-warning' : 'ue-danger';
+        return `<tr><td>${MODULE_NAMES[k]}</td><td class="${cls}">${(u * 100).toFixed(1)}分</td><td style="text-align:right">${fmt(m?.orders || 0)}</td><td style="text-align:right">¥${fmt(m?.profit || 0)}</td><td>${u >= 0.3 ? '🟢 健康' : u >= 0 ? '🟡 关注' : '🔴 问题'}</td></tr>`;
+      }).join('')}
+    </table>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:var(--gray-50);padding:14px;border-radius:8px;text-align:center;">
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">单均UE</div>
+        <div style="font-size:18px;font-weight:700;color:${ue < 0 ? 'var(--danger)' : 'var(--success)'}">${(ue * 100).toFixed(1)}分</div>
+      </div>
+      <div style="background:var(--gray-50);padding:14px;border-radius:8px;text-align:center;">
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">月度测算</div>
+        <div style="font-size:18px;font-weight:700;color:${loss > 0 ? 'var(--danger)' : 'var(--success)'}">${loss > 0 ? '-¥' + fmt(loss) : '+¥' + fmt(Math.abs(all?.profit || 0))}</div>
+      </div>
+      <div style="background:var(--gray-50);padding:14px;border-radius:8px;text-align:center;">
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">代补占比</div>
+        <div style="font-size:18px;font-weight:700;color:${scores.subsidyRate > 15 ? 'var(--danger)' : scores.subsidyRate > 10 ? 'var(--warning)' : 'var(--success)'}">${scores.subsidyRate.toFixed(1)}%</div>
+      </div>
+    </div>
+    
+    <div class="diagnosis-card">
+      <h4>🔍 问题诊断</h4>
+      ${problems.map(p => `
+        <div class="diagnosis-item">
+          <div class="dot"></div>
+          <div>${p}</div>
+        </div>
+      `).join('')}
+    </div>
+    
+    <div class="suggestion-card">
+      <h4>💡 优化建议</h4>
+      ${suggestions.map((s, i) => `
+        <div class="suggestion-item">
+          <div class="num">${i + 1}</div>
+          <div>${s}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  detail.classList.remove('hidden');
+}
+
+function renderStatCards(cities) {
+  const total = cities.reduce((acc, c) => {
+    const m = c.modules.all || {};
+    return { orders: acc.orders + (m.orders || 0), profit: acc.profit + (m.profit || 0), gmv: acc.gmv + (m.gmvAmount || 0) };
+  }, { orders: 0, profit: 0, gmv: 0 });
+  
+  const lossCities = cities.filter(c => (c.modules.all?.ue || 0) < 0).length;
+  
+  document.getElementById('statCards').innerHTML = `
+    <div class="stat-card"><div class="label">总订单量</div><div class="value">${fmt(total.orders)}</div><div style="font-size:12px;color:var(--gray-500);">${cities.length}个城市</div></div>
+    <div class="stat-card"><div class="label">总交易额</div><div class="value">¥${fmt(total.gmv)}</div></div>
+    <div class="stat-card"><div class="label">总毛利</div><div class="value ${total.profit < 0 ? 'danger' : 'success'}">¥${fmt(total.profit)}</div></div>
+    <div class="stat-card"><div class="label">亏损城市</div><div class="value ${lossCities > 0 ? 'danger' : 'success'}">${lossCities}/${cities.length}</div></div>
+  `;
+}
+
+function renderMatrix(cities) {
+  const header = '<tr><th class="city">城市</th>' + Object.keys(MODULE_NAMES).map(k => `<th>${MODULE_NAMES[k]}</th>`).join('') + '</tr>';
+  const body = cities.map(city => '<tr><td class="city">' + city.displayName + '</td>' + 
+    Object.keys(MODULE_NAMES).map(k => {
+      const ue = (city.modules[k]?.ue || 0);
+      const cls = ue >= 0.3 ? 'ue-good' : ue >= 0 ? 'ue-warning' : 'ue-danger';
+      return `<td class="${cls}">${(ue * 100).toFixed(1)}</td>`;
+    }).join('') + '</tr>').join('');
+  document.getElementById('matrixTable').innerHTML = '<thead>' + header + '</thead><tbody>' + body + '</tbody>';
+}
+
+function renderCharts(cities) {
+  if (state.charts.ue) state.charts.ue.destroy();
+  state.charts.ue = new Chart(document.getElementById('chartUE'), {
+    type: 'bar',
+    data: {
+      labels: cities.map(c => c.displayName),
+      datasets: [{
+        label: 'UE (分)',
+        data: cities.map(c => (c.modules.all?.ue || 0) * 100),
+        backgroundColor: cities.map(c => {
+          const ue = c.modules.all?.ue || 0;
+          return ue >= 0.3 ? '#22c55e' : ue >= 0 ? '#f59e0b' : '#ef4444';
+        })
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+  
+  if (state.charts.cost) state.charts.cost.destroy();
+  state.charts.cost = new Chart(document.getElementById('chartCost'), {
+    type: 'doughnut',
+    data: {
+      labels: ['毛利', '配送', '代补', '其他'],
+      datasets: [{ data: [35, 30, 20, 15], backgroundColor: ['#22c55e', '#ef4444', '#f59e0b', '#8b5cf6'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab' + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)).classList.add('active');
+  });
+});
+
+document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('dropZone').addEventListener('dragover', e => e.preventDefault());
+document.getElementById('dropZone').addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+</script>
+</body>
+</html>

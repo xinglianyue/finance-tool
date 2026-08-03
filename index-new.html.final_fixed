@@ -1,5 +1,7 @@
 <!-- v2026-07-27.2 -->
 <!DOCTYPE html>
+<!-- Version 20260731.8 - FINAL FIX -->
+<!-- Version 20260731.5 FIX -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -14,6 +16,7 @@
     <script src="js/data-store.js?v=20260727.2"></script>
     <script src="js/state-manager.js?v=20260727.2"></script>
   <script>
+<!-- Version: 20260731.1785570517 -->
     // ===== 版本自动检测 =====
     (function() {
       var APP_VERSION = '20260727.2';
@@ -1238,10 +1241,7 @@
       border-top-color: var(--danger);
     }
   </style>
-<style>/* FIX: 修复 UI 重复元素 */
-.header .logo-sm { display: none !important; }
-.navbar-btn#navThemeToggle + .navbar-btn, .header-actions .navbar-btn:nth-child(2) { display: none; }
-section-card.redundant-instance, section-card.duplicate { display: none !important; }</style></head>
+</head>
 <body>
   <div class="diagnostic-panel" id="diagnosticPanel" style="display: none;">
     <div class="diagnostic-header">
@@ -1454,54 +1454,10 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
 
   <script>
     // 深色模式切换
-    function toggleTheme() async function switchImportDate(idx) {
-  idx = parseInt(idx);
-  const currentData = DataStore.load();
-  if (!currentData || !currentData.importHistory || idx < 0 || idx >= currentData.importHistory.length) {
-    console.error('[App] 无效的数据切换索引:', idx);
-    showToast('数据不可用', 'error');
-    return;
-  }
-  const selectedDate = currentData.importHistory[idx].monthLabel;
-  const cachedData = DataStore.getCache(selectedDate);
-  if (cachedData) { updateUIWithMerchantData(cachedData); return; }
-  showToast('正在加载 ' + selectedDate + ' 数据...', 'info');
-  try {
-    const dataResponse = await fetch('./shared-data.json');
-    const cloudRecords = await dataResponse.json();
-    const record = cloudRecords.find(r => r.date === selectedDate);
-    if (!record) throw new Error('未找到 ' + selectedDate + ' 的数据记录');
-    const merchantData = parseRecord(record);
-    DataStore.setCache(selectedDate, merchantData);
-    updateUIWithMerchantData(merchantData);
-    showToast('已加载 ' + selectedDate + ' 数据', 'success');
-  } catch (e) {
-    console.error('[App] 加载历史记录失败:', e);
-    showToast('加载失败: ' + e.message, 'error');
-  }
-}unction switchImportDate(idx) {
-      idx = parseInt(idx);
-      if (idx < 0 || idx >= importHistory.length || !importHistory) return;
-      const selectedDate = importHistory[idx].monthLabel;
-      const cachedData = DataStore.getCache(selectedDate);
-      if (cachedData) {
-        updateUIWithMerchantData(cachedData);
-        return;
-      }
-      showToast('正在加载 ' + selectedDate + ' 数据', 'info');
-      try {
-        const dataResponse = await fetch('./shared-data.json');
-        const cloudRecords = await dataResponse.json();
-        const record = cloudRecords.find(r => r.date === selectedDate);
-        if (!record) throw new Error('未找到日期 ' + selectedDate + ' 的数据');
-        const merchantData = parseRecord(record);
-        DataStore.setCache(selectedDate, merchantData);
-        updateUIWithMerchantData(merchantData);
-        showToast('已加载 ' + selectedDate + ' 数据', 'success');
-      } catch (e) {
-        console.error('[App] 加载历史数据失败:', e);
-        showToast('加载失败: ' + e.message, 'error');
-      }
+    function toggleTheme() {
+      const h = document.documentElement;
+      h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('finance-theme', h.dataset.theme);
     }
 
     // 更新版本：清除缓存并强制刷新到最新版本
@@ -2043,7 +1999,7 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
       if (select2) select2.innerHTML = optionsHtml;
     }
 
-    function switchImportDate(dateStr) {
+    async function switchImportDate(dateStr) {
       const idx = importHistory.findIndex(h => h.monthLabel === dateStr);
       if (idx < 0) return;
       
@@ -2458,28 +2414,7 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
      * @param {Array} cloudData - 云端完整数据
      * @returns {Object} - v3 格式的数据
      */
-    function buildV3Data(cloudRecords, cloudIndex) {
-  const metadata = {
-    lastSyncAt: new Date().toISOString(),
-    cloudVersion: cloudIndex?.version || 'v1',
-    availableDates: cloudIndex?.records?.map(r => r.date) || []
-  };
-  const currentData = parseRecord(cloudRecords[0]);
-  const allCitiesData = currentData.all?.cities || [];
-  let totalData = null;
-  const citiesData = [];
-  allCitiesData.forEach(city => {
-    if (city.name === '总商') { totalData = city; } else { citiesData.push(city); }
-  });
-  const formattedCurrentData = {
-    totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-    cities: citiesData
-  };
-  const cache = {};
-  cloudRecords.slice(0, 3).forEach(record => { cache[record.date] = parseRecord(record); });
-  const importHistory = cloudRecords.map(record => ({ monthLabel: record.date, data: null, importedAt: record.updatedAt || record.date, fileName: record.fileName || '' }));
-  return { version: 3, metadata, currentData: formattedCurrentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
-}unction buildV3Data(cloudData) {
+    function buildV3Data(cloudData) {
       // 提取元数据
       const metadata = {
         lastSyncAt: new Date().toISOString(),
@@ -2618,51 +2553,323 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
     }
 
     async function loadFromCloud() {
-  console.log('[App] 开始加载云端数据 (V3模式)');
-  const localData = DataStore.load();
-  if (!localData || !localData.metadata || localData.version !== 3) {
-    try {
-      const indexResponse = await fetch('./index.json');
-      const cloudIndex = await indexResponse.json();
-      const dataResponse = await fetch('./shared-data.json');
-      const cloudRecords = await dataResponse.json();
-      const v3Data = buildV3Data(cloudRecords, cloudIndex);
-      DataStore.save(v3Data);
-      return v3Data;
-    } catch (e) { console.error('[App] 加载云端数据失败:', e); throw e; }
-  }
-  const hasUpdate = await checkCloudForUpdates(localData);
-  if (hasUpdate) {
-    try {
-      const indexResponse = await fetch('./index.json');
-      const cloudIndex = await indexResponse.json();
-      const dataResponse = await fetch('./shared-data.json');
-      const cloudRecords = await dataResponse.json();
-      const v3Data = buildV3Data(cloudRecords, cloudIndex);
-      DataStore.save(v3Data);
-      return v3Data;
-    } catch (e) { console.error('[App] 获取更新数据失败:', e); }
-  }
-  return localData;
-}unction loadFromCloud() async function loadFromCloud() {
-      console.log('[App] 开始从云端加载数据 (V3模式)');
-      const localData = DataStore.load();
-      if (!localData || !localData.metadata || localData.version !== 3) {
+      try {
+        console.log('[App] 正在从云端加载数据...');
+        
+        let cloudData = null;
+        
+        // 优先使用相对路径加载（同一域名，无 CORS 问题）
+        // 不设超时，9.5MB文件在手机慢网络下需要较长时间
+        const localUrl = './shared-data.json';
+        console.log('[App] 尝试从相对路径加载:', localUrl);
+        
         try {
-          const indexResponse = await fetch('./index.json');
-          const cloudIndex = await indexResponse.json();
-          const dataResponse = await fetch('./shared-data.json');
-          const cloudRecords = await dataResponse.json();
-          const v3Data = buildV3Data(cloudRecords, cloudIndex);
-          DataStore.save(v3Data);
-          return v3Data;
-        } catch (e) {
-          console.error('[App] 云端加载失败:', e);
-          throw e;
+          const localResponse = await fetch(localUrl);
+          if (localResponse.ok) {
+            cloudData = await localResponse.json();
+            console.log('[App] 从相对路径加载成功');
+          } else {
+            console.warn('[App] 相对路径加载失败，HTTP状态:', localResponse.status);
+          }
+        } catch (localError) {
+          console.warn('[App] 相对路径加载异常:', localError);
         }
+        
+        // 如果相对路径加载失败，尝试直接下载的方式
+        if (!cloudData) {
+          const directUrl = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
+          console.log('[App] 尝试直接下载:', directUrl);
+          
+          try {
+            const directResponse = await fetch(directUrl, { signal: AbortSignal.timeout(10000) });
+            if (directResponse.ok) {
+              cloudData = await directResponse.json();
+              console.log('[App] 直接下载成功');
+            } else {
+              console.warn('[App] 直接下载失败，尝试 GitHub API');
+            }
+          } catch (directError) {
+            console.warn('[App] 直接下载异常:', directError);
+          }
+        }
+        
+        // 如果直接下载失败，尝试用 GitHub API
+        if (!cloudData) {
+          const apiUrl = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
+          const response = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
+          
+          if (!response.ok) {
+            console.log('[App] GitHub API 请求失败:', response.status);
+            return false;
+          }
+          
+          const githubData = await response.json();
+          console.log('[App] GitHub API响应，文件大小:', githubData.size, '字节');
+        
+          // 如果content字段可用，先尝试解析
+        if (githubData.content && githubData.content.trim() !== '') {
+          try {
+            const base64Content = githubData.content.replace(/\n/g, '');
+
+            const decodedContent = decodeURIComponent(escape(atob(base64Content)));
+            cloudData = JSON.parse(decodedContent);
+            console.log('[App] 从API content字段解析数据成功');
+          } catch (parseError) {
+            console.error('[App] 解析API content失败:', parseError);
+          }
+        }
+        
+        // 如果解析失败，尝试使用download_url
+        if (!cloudData && githubData.download_url) {
+          console.log('[App] 使用download_url下载数据...');
+          const downloadResponse = await fetch(githubData.download_url);
+          if (downloadResponse.ok) {
+            try {
+              cloudData = await downloadResponse.json();
+              console.log('[App] 从download_url下载并解析成功');
+            } catch (parseError) {
+              console.error('[App] 解析download_url内容失败:', parseError);
+            }
+          } else {
+            console.error('[App] download_url下载失败:', downloadResponse.status);
+          }
+        }
+        }
+        
+        if (!cloudData || !Array.isArray(cloudData) || cloudData.length === 0) {
+          console.log('[App] 云端数据为空或解析失败');
+          return false;
+        }
+        
+        console.log('[App] 云端数据加载成功，共' + cloudData.length + '条记录');
+        
+        // 去重逻辑：相同日期只保留最新的（根据 updatedAt 或 version）
+        console.log('[App] 开始去重处理...');
+        const deduplicatedCloudData = [];
+        const dateMap = {}; // date -> {record, updatedAt, version}
+        
+        cloudData.forEach((record, index) => {
+          const recordDate = record.date;
+          const normalizedDate = normalizeDateLabel(recordDate);
+          const updatedAt = record.updatedAt || '';
+          const version = record.version || 1;
+          
+          if (!dateMap[normalizedDate]) {
+            // 第一次见到这个日期，直接添加
+            dateMap[normalizedDate] = {
+              record: record,
+              updatedAt: updatedAt,
+              version: version,
+              index: index
+            };
+            console.log('[App] 添加日期 ' + normalizedDate + ' (记录 ' + index + ')');
+          } else {
+            // 已存在相同日期的记录，比较哪个更新
+            const existing = dateMap[normalizedDate];
+            const isNewer = updatedAt > existing.updatedAt || 
+                           (updatedAt === existing.updatedAt && version > existing.version);
+            
+            if (isNewer) {
+              console.log('[App] 日期 ' + normalizedDate + ': 记录 ' + index + ' 比记录 ' + existing.index + ' 更新，替换');
+              dateMap[normalizedDate] = {
+                record: record,
+                updatedAt: updatedAt,
+                version: version,
+                index: index
+              };
+            } else {
+              console.log('[App] 日期 ' + normalizedDate + ': 记录 ' + index + ' 较旧，跳过');
+            }
+          }
+        });
+        
+        // 从去重后的数据构建 allImportHistory
+        const deduplicatedRecords = Object.values(dateMap).map(item => item.record);
+        console.log('[App] 去重完成，剩余 ' + deduplicatedRecords.length + ' 条记录');
+        
+        const allImportHistory = deduplicatedRecords.map((record, index) => {
+          const normalizedDate = normalizeDateLabel(record.date);
+          
+          // v3 格式：importHistory 只保存元数据，不保存完整 data
+          // data 字段只在 cache 中保存最近 3 条记录
+          return {
+            monthLabel: normalizedDate || '云端数据',
+            importedAt: record.updatedAt || new Date().toISOString(),
+            fileName: record.fileName || ''
+          };
+        });
+        
+        // 按日期排序（最新的在前）
+        allImportHistory.sort((a, b) => b.monthLabel.localeCompare(a.monthLabel));
+        
+        // 使用最新的数据构建allMerchantData
+        // 按日期排序取最新（不依赖isLatest标记，因为db-sync上传的数据可能没有该标记）
+        const sortedByDate = deduplicatedRecords.slice().sort((a, b) => b.date.localeCompare(a.date));
+        let latestRecord = sortedByDate[0];
+        console.log('[App] 选中的最新记录: date=' + latestRecord.date + ', isLatest=' + latestRecord.isLatest + ', version=' + (latestRecord.version || 'N/A'));
+        
+        let latestMerchantData = latestRecord.merchantData || latestRecord.currentData?.merchantData || {};
+        
+        // 如果是旧格式（currentData直接包含cities），需要转换为新格式
+        if (!latestMerchantData.all && latestRecord.currentData?.cities) {
+          console.log('[App] latestRecord检测到旧格式数据，进行格式转换...');
+          latestMerchantData = {
+            all: {
+              date: latestRecord.date,
+              cities: latestRecord.currentData.cities
+            }
+          };
+        }
+        
+        // 对所有商家类型的数据进行毛利自动计算
+        function processAllMerchantTypes(merchantData) {
+          if (!merchantData || typeof merchantData !== 'object') return;
+          
+          const typeKeys = Object.keys(merchantData);
+          
+          typeKeys.forEach(typeKey => {
+            const typeData = merchantData[typeKey];
+            
+            if (!typeData || typeof typeData !== 'object') return;
+            
+            if (!typeData.cities || !Array.isArray(typeData.cities)) return;
+            
+            // 城市白名单过滤：只保留配置中的城市（支持模糊匹配）
+            typeData.cities = typeData.cities.filter(city => {
+              if (!city || !city.name) return false;
+              if (city.name === '总商') return true; // 总商始终保留
+              
+              const cityName = city.name;
+              // 精确匹配
+              if (CONFIG.CITY_DISPLAY_MAP[cityName]) return true;
+              
+              // 模糊匹配：去掉"市"、"县"等后缀再匹配
+              const baseName = cityName.replace(/[市县旗区]$/, '');
+              for (const configuredName of Object.keys(CONFIG.CITY_DISPLAY_MAP)) {
+                const configuredBase = configuredName.replace(/[市县旗区]$/, '');
+                if (baseName === configuredBase) {
+                  return true;
+                }
+              }
+              
+              return false;
+            });
+            typeData.cities.forEach(city => {
+              if (!city || typeof city !== 'object' || !city.modules) return;
+              calculateProfit(city.modules);
+            });
+            
+            // 检查是否有总商数据，如果没有则自动创建
+            const hasTotalCity = typeData.cities.some(city => city.name === '总商');
+            
+            if (!hasTotalCity && typeData.cities.length > 0) {
+              const totalModules = {};
+              
+              typeData.cities.forEach(city => {
+                if (city.modules) {
+                  Object.keys(city.modules).forEach(modKey => {
+                    if (!totalModules[modKey]) {
+                      totalModules[modKey] = {};
+                    }
+                    Object.keys(city.modules[modKey]).forEach(field => {
+                      const value = city.modules[modKey][field];
+                      if (typeof value === 'number' && !isNaN(value)) {
+                        if (field in totalModules[modKey]) {
+                          totalModules[modKey][field] += value;
+                        } else {
+                          totalModules[modKey][field] = value;
+                        }
+                      }
+                    });
+                  });
+                }
+              });
+              
+              calculateProfit(totalModules);
+              
+              typeData.cities.unshift({
+                name: '总商',
+                displayName: '总商',
+                modules: totalModules
+              });
+              
+            }
+          });
+        }
+        
+        // 处理所有商家类型的数据
+        processAllMerchantTypes(latestMerchantData);
+        
+        // 构建currentData - 从merchantData.all.cities中提取总商和城市数据
+        const allCitiesData = latestMerchantData.all?.cities || [];
+        let totalData = null;
+        let citiesData = [];
+        
+        allCitiesData.forEach(city => {
+          if (city.name === '总商') {
+            totalData = city;
+          } else {
+            citiesData.push(city);
+          }
+        });
+        
+        const currentData = {
+          totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
+          cities: citiesData
+        };
+        
+        console.log('[App] currentData构建完成:', {
+          totalsKeys: Object.keys(currentData.totals),
+          citiesCount: currentData.cities.length,
+          hasAllMerchantTypes: {
+            hasAll: !!latestMerchantData.all,
+            hasKa: !!latestMerchantData.ka,
+            hasCity: !!latestMerchantData.city
+          }
+        });
+        
+        // 构建 cache：缓存所有月份的数据到内存（不写入localStorage，避免5MB溢出）
+        const cache = {};
+        cloudData.forEach(record => {
+          cache[record.date] = parseRecord(record);
+        });
+        
+        // 立即写入内存全局变量，供趋势分析和日期切换使用
+        window.financeToolCache = cache;
+        
+        const dataToSave = {
+          version: 3,  // 使用 v3 格式，减少存储空间
+          metadata: {
+            lastSyncAt: new Date().toISOString(),
+            cloudVersion: extractVersionFromData(cloudData),
+            availableDates: cloudData.map(r => r.date)
+          },
+          currentData: currentData,
+          // cache 不写入 localStorage（每条约631KB，9条=5.58MB > 5MB限制）
+          // 趋势分析从 window.financeToolCache 内存变量读取
+          importHistory: allImportHistory,
+          currentImportIndex: 0,
+          currentMerchantType: 'all'
+        };
+        
+        DataStore.save(dataToSave);
+        console.log('[App] 云端数据已保存到本地，共' + allImportHistory.length + '条历史记录');
+        
+        // 保存 cloudData 到全局变量，供 switchImportDate 使用
+        window.cloudData = cloudData;
+        
+        // 初始化应用状态
+        initializeAppState(dataToSave);
+        showToast(`数据加载成功，共${cloudData.length}条记录`, 'success');
+        return true;
+        
+      } catch (e) {
+        console.error('[App] 云端数据加载失败:', e);
+        return false;
       }
-      const hasUpdate = await checkCloudForUpdates(localData);
-      if (hasUpdate) async function checkCloudForUpdates(localData) {
+    }
+
+async function checkCloudForUpdates(localData) {
       try {
         const indexResponse = await fetch('./index.json');
         if (!indexResponse.ok) return false;
@@ -2680,25 +2887,8 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
         return false;
       }
     }
-      return localData;
-    }\n\nasync function checkCloudForUpdates(localData) {
-      try {
-        const indexResponse = await fetch('./index.json');
-        if (!indexResponse.ok) return false;
-        const cloudIndex = await indexResponse.json();
-        const localVersion = localData.metadata?.cloudVersion || '0';
-        const cloudVersion = cloudIndex.version || '0';
-        if (parseInt(cloudVersion) > parseInt(localVersion)) return true;
-        const localDates = new Set(localData.metadata?.availableDates || []);
-        const cloudDates = new Set(cloudIndex.records?.map(r => r.date) || []);
-        const newDates = [...cloudDates].filter(d => !localDates.has(d));
-        if (newDates.length > 0) return true;
-        return false;
-      } catch (e) {
-        console.error('[App] 检查更新失败:', e);
-        return false;
-      }
-    }\n\n
+
+
     
     /**
      * 检查云端是否有新数据
@@ -2738,6 +2928,7 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
           if (githubData.content && githubData.content.trim() !== '') {
             try {
               const base64Content = githubData.content.replace(/\n/g, '');
+
               const decodedContent = decodeURIComponent(escape(atob(base64Content)));
               cloudData = JSON.parse(decodedContent);
               console.log('[App] 从API content解析云端数据成功');
@@ -2911,7 +3102,7 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
       return isNaN(n) ? 0 : n;
     }
 
-    function function extractModuleFromBlock(data, startRowIndex, colIndex, fieldLookup) {
+    function extractModuleFromBlock(data, startRowIndex, colIndex, fieldLookup) {
       const result = {};
       fieldLookup.forEach(fd => result[fd.name] = 0);
       const scanStart = startRowIndex + 3;
@@ -2934,7 +3125,10 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
       }
       const nonZeroCount = Object.values(result).filter(v => v > 0).length;
       return nonZeroCount >= 3 ? result : null;
-    }}\n\nfunction parseExcelData(workbook, fileName) {
+    }
+
+
+function parseExcelData(workbook, fileName) {
       console.log('[parseExcelData] 开始解析 Excel 文件:', fileName);
 
       try {
@@ -3039,7 +3233,8 @@ section-card.redundant-instance, section-card.duplicate { display: none !importa
         console.error('[parseExcelData] 解析失败:', error);
         throw error;
       }
-    }}
+    }
+
 
     /**
      * @description 显示KPI骨架屏，数据加载时展示
@@ -5556,7 +5751,7 @@ function parseRecord(record) {
     merchantData.all.ue = merchantData.all.orders > 0 ? merchantData.all.profit / merchantData.all.orders : 0;
   }
   return merchantData;
-}
+
 
 // 辅助函数：构建 v3 格式数据
 function buildV3Data(cloudRecords, cloudIndex) {
@@ -5570,33 +5765,8 @@ function buildV3Data(cloudRecords, cloudIndex) {
   cloudRecords.slice(0, 3).forEach(r => cache[r.date] = parseRecord(r));
   const importHistory = cloudRecords.map(r => ({ monthLabel: r.date, data: null, importedAt: r.updatedAt || r.date }));
   return { version: 3, metadata, currentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
-}
 
-// 辅助函数：解析记录
-function parseRecord(record) {
-  let merchantData = record.merchantData || record.currentData?.merchantData;
-  if (!merchantData && record.currentData?.cities) {
-    merchantData = { all: { date: record.date, cities: record.currentData.cities } };
-  }
-  if (merchantData?.all) {
-    merchantData.all.profit = merchantData.all.onlineRevenue - merchantData.all.totalExpense;
-    merchantData.all.ue = merchantData.all.orders > 0 ? merchantData.all.profit / merchantData.all.orders : 0;
-  }
-  return merchantData;
 }
-
-// 辅助函数：构建 v3 格式数据
-function buildV3Data(cloudRecords, cloudIndex) {
-  const metadata = {
-    lastSyncAt: new Date().toISOString(),
-    cloudVersion: cloudIndex?.version || 'v1',
-    availableDates: cloudIndex?.records?.map(r => r.date) || []
-  };
-  const currentData = parseRecord(cloudRecords[0]);
-  const cache = {};
-  cloudRecords.slice(0, 3).forEach(r => cache[r.date] = parseRecord(r));
-  const importHistory = cloudRecords.map(r => ({ monthLabel: r.date, data: null, importedAt: r.updatedAt || r.date }));
-  return { version: 3, metadata, currentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
 }</script>
 </body>
 </html>

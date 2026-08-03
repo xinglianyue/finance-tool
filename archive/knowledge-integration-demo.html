@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务分析工具 - 知识库整合版</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-500: #6b7280;
+      --white: #fff;
+      --bg: #f9fafb;
+      --border: #e5e7eb;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: var(--bg); color: #111827; padding: 20px; }
+
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { background: var(--white); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 24px; font-weight: 700; }
+    .header .version { font-size: 13px; color: var(--gray-500); background: var(--gray-100); padding: 4px 12px; border-radius: 999px; }
+
+    .upload-area { background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%); border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 20px; }
+    .upload-area:hover { border-color: var(--primary); background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); transform: translateY(-2px); }
+    .upload-area .icon { font-size: 48px; margin-bottom: 16px; }
+    .upload-area h3 { font-size: 18px; margin-bottom: 8px; }
+    .upload-area p { color: var(--gray-500); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); padding: 20px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .card-header h3 { font-size: 16px; font-weight: 600; }
+
+    .stat-card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); padding: 16px; text-align: center; }
+    .stat-card .label { font-size: 13px; color: var(--gray-500); margin-bottom: 8px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .stat-card .sub-info { font-size: 12px; color: var(--gray-500); }
+
+    .status-good { color: var(--success); }
+    .status-warning { color: var(--warning); }
+    .status-danger { color: var(--danger); }
+
+    .health-score { display: flex; justify-content: space-around; text-align: center; }
+    .health-item { flex: 1; }
+    .health-item .icon { font-size: 32px; margin-bottom: 8px; }
+    .health-item .label { font-size: 13px; color: var(--gray-500); margin-bottom: 4px; }
+    .health-item .status { font-weight: 600; font-size: 14px; }
+
+    .stars { font-size: 24px; letter-spacing: 4px; margin: 8px 0; }
+
+    .city-list { display: flex; flex-direction: column; gap: 12px; }
+    .city-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 8px; background: var(--gray-100); cursor: pointer; transition: all 0.2s; }
+    .city-item:hover { background: var(--gray-200); transform: translateX(4px); }
+    .city-item.selected { background: linear-gradient(90deg, #eef2ff 0%, #e0e7ff 100%); border: 1px solid var(--primary); }
+    .city-name { font-weight: 600; font-size: 15px; }
+    .city-ue { font-weight: 700; font-size: 16px; }
+
+    .problem-list { display: flex; flex-direction: column; gap: 12px; }
+    .problem-item { padding: 12px 16px; border-radius: 8px; border-left: 4px solid; }
+    .problem-item.critical { background: #fef2f2; border-color: var(--danger); }
+    .problem-item.warning { background: #fffbeb; border-color: var(--warning); }
+    .problem-item h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .problem-item p { font-size: 13px; color: var(--gray-500); }
+
+    .recommendation-list { display: flex; flex-direction: column; gap: 12px; }
+    .recommendation-item { padding: 12px 16px; border-radius: 8px; background: #f0fdf4; border-left: 4px solid var(--success); }
+    .recommendation-item h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .recommendation-item p { font-size: 13px; color: var(--gray-500); }
+    .priority-high { border-left-color: var(--danger); background: #fef2f2; }
+    .priority-medium { border-left-color: var(--warning); background: #fffbeb; }
+
+    .module-table { width: 100%; border-collapse: collapse; }
+    .module-table th, .module-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    .module-table th { background: var(--gray-100); font-weight: 600; font-size: 13px; }
+    .module-table td { font-size: 14px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge-good { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+
+    .chart-container { height: 250px; width: 100%; }
+    .demo-section { background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+    .demo-section strong { color: #92400e; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 财务分析工具 - 知识库整合版</h1>
+      <span class="version">v1.0 (含计算引擎+健康度分析)</span>
+    </div>
+
+    <div class="demo-section">
+      <strong>💡 说明：</strong>此页面展示了知识库整合的核心功能 - 计算引擎和健康度分析系统。下方有演示数据，您也可以上传您的Excel文件。
+    </div>
+
+    <div id="uploadArea" class="upload-area">
+      <div class="icon">📁</div>
+      <h3>点击上传Excel文件</h3>
+      <p>支持拖拽或点击选择文件</p>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+
+    <div id="dashboard" class="hidden">
+      <div class="grid-4" style="margin-bottom: 20px;">
+        <div class="stat-card">
+          <div class="label">分析城市数</div>
+          <div class="value" id="cityCount">0</div>
+          <div class="sub-info">含总商</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">模块数</div>
+          <div class="value">5</div>
+          <div class="sub-info">全品类/餐饮/闪购/医药/拼好饭</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">计算指标数</div>
+          <div class="value">15+</div>
+          <div class="sub-info">来自知识库框架</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">问题城市</div>
+          <div class="value status-danger" id="problemCityCount">0</div>
+          <div class="sub-info">自动识别</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3>🏙️ 城市列表（可点击查看）</h3>
+          </div>
+          <div class="city-list" id="cityList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>🩺 健康度分析</h3>
+            <span id="selectedCityName">请选择城市</span>
+          </div>
+          <div id="healthAnalysis" style="min-height: 300px;">
+            <p style="color: var(--gray-500); text-align: center; padding: 60px 20px;">请从左侧选择城市查看健康度分析</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;" class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3>⚠️ 问题诊断</h3>
+          </div>
+          <div id="problemsList" class="problem-list">
+            <p style="color: var(--gray-500); text-align: center; padding: 40px 20px;">选择城市后自动诊断问题</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>💡 优化建议</h3>
+          </div>
+          <div id="recommendationsList" class="recommendation-list">
+            <p style="color: var(--gray-500); text-align: center; padding: 40px 20px;">选择城市后生成建议</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;" class="card">
+        <div class="card-header">
+          <h3>📋 模块指标详情</h3>
+        </div>
+        <div id="moduleDetails" style="overflow-x: auto;">
+          <p style="color: var(--gray-500); text-align: center; padding: 40px 20px;">选择城市后查看各模块指标</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="demoSection" style="margin-top: 20px;">
+      <button id="loadDemoBtn" style="padding: 12px 24px; background: var(--primary); color: var(--white); border: none; border-radius: 8px; font-size: 15px; cursor: pointer;">
+        🎯 加载演示数据（体验功能）
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ===== 模拟的计算引擎和健康度分析（简化版，用于演示）=====
+    class CalculationEngine {
+      calculateAvgOrderValue(data) { return data.gmvAmount && data.orders ? data.gmvAmount / data.orders : 0; }
+      calculateCommissionRate(data) { return data.commission && data.gmvAmount ? data.commission / data.gmvAmount : 0; }
+      calculateModuleMetrics(data) {
+        return {
+          avgOrderValue: this.calculateAvgOrderValue(data),
+          commissionRate: this.calculateCommissionRate(data),
+          ue: data.ue || 0,
+          profit: data.profit || 0,
+          subsidyRatio: data.subsidyRatio || 0,
+          franchiseRatio: data.franchiseGMV && data.gmvAmount ? data.franchiseGMV / data.gmvAmount : 0,
+          fixedCostRate: data.fixedCost && data.onlineRevenue ? data.fixedCost / data.onlineRevenue : 0,
+          onlineGrossMarginRate: data.onlineRevenue && data.gmvAmount ? data.onlineRevenue / data.gmvAmount : 0,
+          raw: data
+        };
+      }
+    }
+
+    class HealthAnalyzer {
+      evaluateUEHealth(ue) {
+        if (ue >= 0.3) return { status: 'good', score: 100, description: 'UE健康', ue };
+        if (ue >= 0) return { status: 'warning', score: 60, description: 'UE预警', ue };
+        return { status: 'danger', score: 30, description: 'UE亏损', ue };
+      }
+      evaluateIncomeHealth(metrics) {
+        const cr = metrics.commissionRate || 0;
+        const dr = (metrics.raw.deliveryFee || 0) / (metrics.raw.gmvAmount || 1);
+        return { status: cr > dr ? 'good' : 'warning', score: cr > dr ? 100 : 60, description: cr > dr ? '收入结构健康' : '收入结构需关注' };
+      }
+      evaluateCostHealth(metrics) {
+        return { status: 'good', score: 80, description: '成本结构正常' };
+      }
+      evaluateModeHealth(metrics) {
+        const fr = metrics.franchiseRatio || 0;
+        return { status: fr > 0.5 ? 'good' : 'warning', score: fr > 0.5 ? 100 : 60, description: fr > 0.5 ? '加盟占比高' : '加盟占比中等' };
+      }
+      evaluateCityHealth(cityAnalysis) {
+        const all = cityAnalysis.modules.all;
+        const ue = this.evaluateUEHealth(all.ue);
+        const income = this.evaluateIncomeHealth(all);
+        const cost = this.evaluateCostHealth(all);
+        const mode = this.evaluateModeHealth(all);
+        return { ue, income, cost, mode, overall: { score: Math.round((ue.score+income.score+cost.score+mode.score)/4), status: 'good', stars: Math.round(((ue.score+income.score+cost.score+mode.score)/4)/20) }};
+      }
+      diagnoseProblems(cityAnalysis) {
+        const problems = [];
+        const ue = cityAnalysis.modules.all.ue;
+        if (ue < 0) problems.push({ type:'ue', severity:'critical', title:'单均亏损', description:`UE为${(ue*100).toFixed(1)}分，每单亏损${Math.abs(ue).toFixed(2)}元` });
+        else if (ue < 0.3) problems.push({ type:'ue', severity:'warning', title:'UE偏低', description:`UE为${(ue*100).toFixed(1)}分，略低于健康线` });
+        return problems;
+      }
+      generateRecommendations() {
+        return [
+          { priority: 'high', title: '优先优化成本结构', content: '建议调整代补和竞价费用' },
+          { priority: 'medium', title: '提升抽佣收入占比', content: '优化定价策略' }
+        ];
+      }
+      classifyCity(cityAnalysis) {
+        const ue = cityAnalysis.modules.all.ue;
+        if (ue >= 0.3) return { type: 'high-profit', description: '高利润城市', strategy: '维持现状' };
+        if (ue >= 0) return { type: 'medium-profit', description: '中等利润城市', strategy: '优化成本' };
+        return { type: 'loss-making', description: '亏损城市', strategy: '重新评估' };
+      }
+    }
+
+    const engine = new CalculationEngine();
+    const analyzer = new HealthAnalyzer();
+
+    // ===== 演示数据 =====
+    const demoData = {
+      cities: [
+        {
+          name: '总商', displayName: '总商',
+          modules: {
+            all: { orders: 156800, gmvAmount: 52800000, profit: 328000, ue: 0.0021, commission: 5280000, deliveryFee: 3860000, franchiseGMV: 31680000, onlineRevenue: 9140000, fixedCost: 2100000, subsidyRatio: 0.12 },
+            food: { orders: 98200, gmvAmount: 35200000, profit: 420000, ue: 0.0043, commission: 3600000, deliveryFee: 2600000, franchiseGMV: 21120000, onlineRevenue: 6200000, fixedCost: 1300000, subsidyRatio: 0.10 },
+            flash: { orders: 34500, gmvAmount: 12300000, profit: -180000, ue: -0.0052, commission: 1100000, deliveryFee: 950000, franchiseGMV: 7380000, onlineRevenue: 2050000, fixedCost: 500000, subsidyRatio: 0.18 },
+            medicine: { orders: 15600, gmvAmount: 3900000, profit: 85000, ue: 0.0054, commission: 420000, deliveryFee: 280000, franchiseGMV: 2340000, onlineRevenue: 700000, fixedCost: 200000, subsidyRatio: 0.08 },
+            group: { orders: 8500, gmvAmount: 1400000, profit: -32000, ue: -0.0038, commission: 160000, deliveryFee: 30000, franchiseGMV: 840000, onlineRevenue: 190000, fixedCost: 100000, subsidyRatio: 0.15 }
+          }
+        },
+        {
+          name: '承德市', displayName: '承德',
+          modules: {
+            all: { orders: 48200, gmvAmount: 15800000, profit: -86000, ue: -0.0018, commission: 1580000, deliveryFee: 1220000, franchiseGMV: 9480000, onlineRevenue: 2800000, fixedCost: 850000, subsidyRatio: 0.22 },
+            food: { orders: 31200, gmvAmount: 10800000, profit: 25000, ue: 0.0008, commission: 1080000, deliveryFee: 820000, franchiseGMV: 6480000, onlineRevenue: 1900000, fixedCost: 500000, subsidyRatio: 0.18 },
+            flash: { orders: 10200, gmvAmount: 3600000, profit: -95000, ue: -0.0093, commission: 320000, deliveryFee: 280000, franchiseGMV: 2160000, onlineRevenue: 600000, fixedCost: 250000, subsidyRatio: 0.28 },
+            medicine: { orders: 4800, gmvAmount: 1100000, profit: -12000, ue: -0.0025, commission: 110000, deliveryFee: 90000, franchiseGMV: 660000, onlineRevenue: 200000, fixedCost: 80000, subsidyRatio: 0.18 },
+            group: { orders: 2000, gmvAmount: 300000, profit: -4000, ue: -0.0020, commission: 30000, deliveryFee: 30000, franchiseGMV: 180000, onlineRevenue: 60000, fixedCost: 20000, subsidyRatio: 0.25 }
+          }
+        },
+        {
+          name: '围场满族蒙古族自治县', displayName: '围场',
+          modules: {
+            all: { orders: 18500, gmvAmount: 6200000, profit: 42000, ue: 0.0023, commission: 620000, deliveryFee: 480000, franchiseGMV: 3720000, onlineRevenue: 1100000, fixedCost: 380000, subsidyRatio: 0.14 },
+            food: { orders: 12200, gmvAmount: 4200000, profit: 38000, ue: 0.0031, commission: 420000, deliveryFee: 340000, franchiseGMV: 2520000, onlineRevenue: 760000, fixedCost: 240000, subsidyRatio: 0.12 },
+            flash: { orders: 3800, gmvAmount: 1300000, profit: 2000, ue: 0.0005, commission: 130000, deliveryFee: 100000, franchiseGMV: 780000, onlineRevenue: 230000, fixedCost: 100000, subsidyRatio: 0.16 },
+            medicine: { orders: 2000, gmvAmount: 500000, profit: 3500, ue: 0.0018, commission: 50000, deliveryFee: 32000, franchiseGMV: 300000, onlineRevenue: 82000, fixedCost: 30000, subsidyRatio: 0.10 },
+            group: { orders: 500, gmvAmount: 200000, profit: -1500, ue: -0.0030, commission: 20000, deliveryFee: 8000, franchiseGMV: 120000, onlineRevenue: 28000, fixedCost: 10000, subsidyRatio: 0.18 }
+          }
+        }
+      ]
+    };
+
+    // ===== UI 逻辑 =====
+    let currentData = null;
+    let selectedCityIndex = 0;
+
+    function formatMoney(amount) {
+      if (Math.abs(amount) >= 100000000) return (amount/100000000).toFixed(2) + '亿';
+      if (Math.abs(amount) >= 10000) return (amount/10000).toFixed(1) + '万';
+      return amount.toFixed(0);
+    }
+
+    function getStatusClass(value) {
+      if (value < 0) return 'status-danger';
+      if (value < 0.3) return 'status-warning';
+      return 'status-good';
+    }
+
+    function getStatusIcon(status) {
+      if (status === 'good') return '🟢';
+      if (status === 'warning') return '🟡';
+      if (status === 'danger') return '🔴';
+      return '⚪';
+    }
+
+    function getBadgeClass(status) {
+      if (status === 'good') return 'badge-good';
+      if (status === 'warning') return 'badge-warning';
+      if (status === 'danger') return 'badge-danger';
+      return '';
+    }
+
+    function getStars(stars) { return '⭐'.repeat(stars) + '☆'.repeat(5-stars); }
+
+    function renderCityList() {
+      const container = document.getElementById('cityList');
+      container.innerHTML = currentData.cities.map((city, idx) => {
+        const all = city.modules.all;
+        const ue = all.ue || 0;
+        return `
+          <div class="city-item ${idx === selectedCityIndex ? 'selected' : ''}" data-idx="${idx}">
+            <div class="city-name">${city.displayName}</div>
+            <div class="city-ue ${getStatusClass(ue)}">${(ue * 100).toFixed(1)}分</div>
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.city-item').forEach(el => {
+        el.addEventListener('click', () => {
+          selectedCityIndex = parseInt(el.dataset.idx);
+          renderCityList();
+          renderCityDetail();
+        });
+      });
+    }
+
+    function renderCityDetail() {
+      const city = currentData.cities[selectedCityIndex];
+      
+      const cityAnalysis = {
+        name: city.name,
+        displayName: city.displayName,
+        modules: {}
+      };
+
+      for (const [key, data] of Object.entries(city.modules)) {
+        cityAnalysis.modules[key] = engine.calculateModuleMetrics(data);
+      }
+
+      const healthEval = analyzer.evaluateCityHealth(cityAnalysis);
+      const classification = analyzer.classifyCity(cityAnalysis);
+      const problems = analyzer.diagnoseProblems(cityAnalysis);
+      const recommendations = analyzer.generateRecommendations();
+
+      document.getElementById('selectedCityName').textContent = city.displayName;
+
+      document.getElementById('healthAnalysis').innerHTML = `
+        <div class="health-score">
+          <div class="health-item">
+            <div class="icon">💵</div>
+            <div class="label">UE健康</div>
+            <div class="status">${getStatusIcon(healthEval.ue.status)} ${healthEval.ue.description}</div>
+            <div>${healthEval.ue.score}分</div>
+          </div>
+          <div class="health-item">
+            <div class="icon">📊</div>
+            <div class="label">收入健康</div>
+            <div class="status">${getStatusIcon(healthEval.income.status)} ${healthEval.income.description}</div>
+            <div>${healthEval.income.score}分</div>
+          </div>
+          <div class="health-item">
+            <div class="icon">💰</div>
+            <div class="label">成本健康</div>
+            <div class="status">${getStatusIcon(healthEval.cost.status)} ${healthEval.cost.description}</div>
+            <div>${healthEval.cost.score}分</div>
+          </div>
+          <div class="health-item">
+            <div class="icon">🏭</div>
+            <div class="label">模式健康</div>
+            <div class="status">${getStatusIcon(healthEval.mode.status)} ${healthEval.mode.description}</div>
+            <div>${healthEval.mode.score}分</div>
+          </div>
+        </div>
+        <div style="margin-top:20px; text-align:center; border-top:1px solid var(--border); padding-top:20px;">
+          <div style="font-size:13px; color:var(--gray-500); margin-bottom:4px;">综合健康度</div>
+          <div class="stars">${getStars(healthEval.overall.stars)}</div>
+          <div style="font-size:24px; font-weight:700;">${healthEval.overall.score}分</div>
+          <div style="margin-top:12px; padding:12px; background:var(--gray-100); border-radius:8px;">
+            <div style="font-size:14px; font-weight:600;">城市分类：${classification.description}</div>
+            <div style="font-size:13px; color:var(--gray-500); margin-top:4px;">策略建议：${classification.strategy}</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('problemsList').innerHTML = problems.length ? problems.map(p => `
+        <div class="problem-item ${p.severity}">
+          <h4>${p.title}</h4>
+          <p>${p.description}</p>
+        </div>
+      `).join('') : '<p style="color:var(--success); text-align:center; padding:40px 20px;">✅ 暂未发现明显问题</p>';
+
+      document.getElementById('recommendationsList').innerHTML = recommendations.map(r => `
+        <div class="recommendation-item priority-${r.priority}">
+          <h4>${r.title}</h4>
+          <p>${r.content}</p>
+        </div>
+      `).join('');
+
+      const moduleNames = { all:'全品类', food:'餐饮', flash:'闪购', medicine:'医药', group:'拼好饭' };
+      document.getElementById('moduleDetails').innerHTML = `
+        <table class="module-table">
+          <thead>
+            <tr>
+              <th>模块</th>
+              <th>UE</th>
+              <th>单均价</th>
+              <th>抽佣率</th>
+              <th>加盟占比</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(cityAnalysis.modules).map(([key, metrics]) => {
+              const ue = metrics.ue;
+              let badgeStatus = ue >=0.3 ? 'good' : ue >=0 ? 'warning' : 'danger';
+              return `
+                <tr>
+                  <td style="font-weight:600;">${moduleNames[key] || key}</td>
+                  <td class="${getStatusClass(ue)}" style="font-weight:700;">${(ue*100).toFixed(1)}分</td>
+                  <td>¥${metrics.avgOrderValue ? metrics.avgOrderValue.toFixed(1) : '-'}</td>
+                  <td>${(metrics.commissionRate*100).toFixed(1)}%</td>
+                  <td>${(metrics.franchiseRatio*100).toFixed(1)}%</td>
+                  <td><span class="badge ${getBadgeClass(badgeStatus)}">${badgeStatus === 'good' ? '健康' : badgeStatus === 'warning' ? '关注' : '问题'}</span></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      let problemCount = currentData.cities.filter(c => c.modules.all.ue < 0.3).length;
+      document.getElementById('problemCityCount').textContent = problemCount;
+    }
+
+    function loadDemo() {
+      currentData = demoData;
+      document.getElementById('cityCount').textContent = currentData.cities.length;
+      document.getElementById('uploadArea').classList.add('hidden');
+      document.getElementById('demoSection').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      selectedCityIndex = 0;
+      renderCityList();
+      renderCityDetail();
+    }
+
+    document.getElementById('loadDemoBtn').addEventListener('click', loadDemo);
+    document.getElementById('uploadArea').addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      if (e.target.files[0]) alert('文件上传功能需要后端支持，当前使用演示数据展示新功能！\n\n点击"加载演示数据"按钮查看新功能效果。');
+    });
+  </script>
+</body>
+</html>

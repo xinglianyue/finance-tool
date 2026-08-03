@@ -3102,7 +3102,7 @@ async function checkCloudForUpdates(localData) {
       return isNaN(n) ? 0 : n;
     }
 
-    function function extractModuleFromBlock(data, startRowIndex, colIndex, fieldLookup) {
+    function extractModuleFromBlock(data, startRowIndex, colIndex, fieldLookup) {
       const result = {};
       fieldLookup.forEach(fd => result[fd.name] = 0);
       const scanStart = startRowIndex + 3;
@@ -3125,7 +3125,8 @@ async function checkCloudForUpdates(localData) {
       }
       const nonZeroCount = Object.values(result).filter(v => v > 0).length;
       return nonZeroCount >= 3 ? result : null;
-    }}
+    }
+
 
 function parseExcelData(workbook, fileName) {
       console.log('[parseExcelData] 开始解析 Excel 文件:', fileName);
@@ -3232,7 +3233,8 @@ function parseExcelData(workbook, fileName) {
         console.error('[parseExcelData] 解析失败:', error);
         throw error;
       }
-    }}
+    }
+
 
     /**
      * @description 显示KPI骨架屏，数据加载时展示

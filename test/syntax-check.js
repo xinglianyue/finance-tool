@@ -1,0 +1,1 @@
+// Syntax check script\nconsole.log("Syntax check script created");\n

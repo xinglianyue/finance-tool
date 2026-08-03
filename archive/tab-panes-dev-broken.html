@@ -1,0 +1,386 @@
+Tab1: Overview -->
+      <div class="tab-pane" id="paneOverview" role="tabpanel">
+        <!-- Merchant Type Switcher -->
+        
+
+        <div class="kpi-cards-row" id="kpiCardsRow" style="display:none;"></div>
+
+        <!-- ===== Section 1: 核心指标 ===== -->
+        <div class="section-card" id="secOverviewKPI">
+          <div class="section-title"><i class="fas fa-chart-line" style="margin-right:6px;color:var(--primary);"></i>核心指标</div>
+          <div class="section-body">
+            <div class="stat-cards" id="statCards">
+              <!-- Dynamic: 3 KPI cards rendered by renderStatCards() -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Section 2: 异常预警 (折叠) ===== -->
+        <div class="section-card" id="secOverviewAnomaly">
+          <div class="section-title section-title-collapsible" onclick="this.parentElement.classList.toggle('section-collapsed')">
+            <i class="fas fa-exclamation-triangle" style="margin-right:6px;color:var(--warning);"></i>异常预警
+            <span class="section-toggle-icon">&#9660;</span>
+          </div>
+          <div class="section-body">
+            <div class="anomaly-alert-bar" id="anomalyAlertBar">
+              <div class="alert-title">需关注城市 <span id="anomalyBadge" class="hidden" style="background:var(--danger);color:var(--white);border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-left:6px;"></span></div>
+              <div class="anomaly-alert-items" id="anomalyAlertItems">
+                <!-- Dynamic -->
+              </div>
+              <div id="anomalyList" style="display:none;margin-top:12px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Section 3: 智能洞察 ===== -->
+        <div class="section-card" id="secOverviewInsights">
+          <div class="section-title"><i class="fas fa-lightbulb" style="margin-right:6px;color:var(--warning);"></i>智能洞察</div>
+          <div class="section-body">
+            <div id="insightsPanel">
+              <div class="empty-state"><div class="empty-text">加载数据后自动生成洞察</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="section-card" id="secDetailMatrix">
+          <div class="section-title section-title-collapsible" onclick="this.parentElement.classList.toggle('section-collapsed')">
+            <i class="fas fa-th" style="margin-right:6px;color:var(--primary);"></i>UE矩阵
+            <span style="margin-left:auto;margin-right:12px;">
+              <div class="export-bar" style="display:inline-flex;margin-right:8px;">
+                <button class="export-btn" onclick="exportMatrixExcel()"><i class="fas fa-table"></i> 导出矩阵</button>
+              </div>
+            </span>
+            <div class="section-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div>严重</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div>预警</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>健康</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>缺失</div>
+            </div>
+            <span class="section-toggle-icon">&#9660;</span>
+          </div>
+          <div class="section-body">
+            <div class="matrix-wrap">
+              <table class="matrix-table data-table" id="matrixTable">
+                <!-- Dynamic -->
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="section-card" id="secDetailCharts">
+          <div class="section-title section-title-collapsible" onclick="this.parentElement.classList.toggle('section-collapsed')">
+            <i class="fas fa-chart-bar" style="margin-right:6px;color:var(--primary);"></i>全局图表
+            <span class="section-toggle-icon">&#9660;</span>
+          </div>
+          <div class="section-body">
+            <div class="chart-row" id="overviewCharts" style="display:none;">
+              <div class="chart-card">
+                <h4><i class="fas fa-chart-bar" style="margin-right:6px;color:var(--primary);"></i>各城市UE对比</h4>
+                <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartUE')" title="下载图表" aria-label="下载chartUE图表">&#128249; PNG</button>
+        <canvas id="chartUE" role="img" aria-label="chartUE图表" height="280"></canvas></div>
+              </div>
+              <div class="chart-card">
+                <h4><i class="fas fa-layer-group" style="margin-right:6px;color:var(--warning-dark);"></i>成本构成对比</h4>
+                <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartCost')" title="下载图表" aria-label="下载chartCost图表">&#128249; PNG</button>
+        <canvas id="chartCost" role="img" aria-label="chartCost图表" height="280"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section-card" id="secDetailAdvanced">
+          <div class="section-title section-title-collapsible section-collapsed" onclick="this.parentElement.classList.toggle('section-collapsed')">
+            <i class="fas fa-cubes" style="margin-right:6px;color:var(--info, #3b82f6);"></i>高级分析
+            <span class="section-toggle-icon">&#9654;</span>
+          </div>
+          <div class="section-body">
+            <div class="matrix-card" id="envOverviewContainer" style="display:none;"></div>
+            <div class="matrix-card" id="periodCompareContainer" style="display:none;"></div>
+            <div class="matrix-card" id="cityRankingChangeContainer" style="display:none;"></div>
+          </div>
+        </div>
+    </div><div class="tab-pane hidden" id="paneDetail">
+        <div class="detail-selector">
+          <select id="detailCity"></select>
+          <select id="detailModule">
+            <option value="all">全品类</option>
+            <option value="food">餐饮</option>
+            <option value="flash">闪购</option>
+            <option value="medicine">医药</option>
+            <option value="group">拼好饭</option>
+          </select>
+        </div>
+        <div style="margin-top:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--text-secondary);font-weight:500;">对比期数:</label>
+          <select id="trendPeriodCount" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;">
+            <option value="3">最近3期</option>
+            <option value="6" selected>最近6期</option>
+            <option value="12">最近12期</option>
+            <option value="0">全部</option>
+          </select>
+          <label style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-left:12px;">对比方式:</label>
+          <select id="trendCompareType" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;">
+            <option value="period">期度对比</option>
+            <option value="yoy">同比</option>
+            <option value="qoq">环比</option>
+          </select>
+        </div>
+        <!-- ===== Section 6: 多期趋势分析 ===== -->
+        <div class="section-card" id="secDetailTrend">
+          <div class="section-title section-title-collapsible" onclick="this.parentElement.classList.toggle('section-collapsed')">
+            <i class="fas fa-chart-line" style="margin-right:6px;color:var(--primary);"></i>多期趋势分析
+            <span class="section-toggle-icon">&#9660;</span>
+          </div>
+          <div class="section-body">
+            <div id="trendCompare"></div>
+            <div class="chart-row" id="trendCharts" style="display:none;">
+              <div class="chart-card">
+                <h4><i class="fas fa-chart-line" style="margin-right:6px;color:var(--primary);"></i>UE趋势</h4>
+                <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartTrendUE')" title="下载图表" aria-label="chartTrendUE图表">&#128249; PNG</button>
+        <canvas id="chartTrendUE" role="img" aria-label="chartTrendUE图表" height="260"></canvas></div>
+              </div>
+              <div class="chart-card">
+                <h4><i class="fas fa-chart-bar" style="margin-right:6px;color:var(--success);"></i>收入 vs 成本</h4>
+                <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartTrendRevenue')" title="下载图表" aria-label="chartTrendRevenue图表">&#128249; PNG</button>
+        <canvas id="chartTrendRevenue" role="img" aria-label="chartTrendRevenue图表" height="260"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="detailContent">
+          <!-- renderDetailTab() 动态渲染: 核心指标/诊断/补贴/对比/品类/敏感度/同比/WhatIf -->
+        </div>
+
+        <!-- ===== Section 7: UE分解分析 ===== -->
+        <div class="section-card" id="secDetailUEDecomp">
+          <div class="section-title section-title-collapsible" onclick="this.parentElement.classList.toggle('section-collapsed')">
+            <i class="fas fa-project-diagram" style="margin-right:6px;color:var(--purple, #8b5cf6);"></i>UE分解分析
+            <span class="section-toggle-icon">&#9660;</span>
+          </div>
+          <div class="section-body">
+            <div id="ueDecomposition">
+              <div class="empty-state"><div class="empty-text">选择城市后自动展示UE分解</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><div class="tab-pane hidden" id="paneCost">
+        <div class="cost-selector">
+          <label style="font-size:13px;font-weight:600;color:var(--text-secondary);">城市:</label>
+          <select id="costCity"></select>
+          <label style="font-size:13px;font-weight:600;color:var(--text-secondary);">模块:</label>
+          <select id="costModule">
+            <option value="all">全品类</option>
+            <option value="food">餐饮</option>
+            <option value="flash">闪购</option>
+            <option value="medicine">医药</option>
+            <option value="group">拼好饭</option>
+          </select>
+        </div>
+        <div class="efficiency-cards" id="effCards"></div>
+        <!-- Phase 1.3: Section Card 信息架构重构 -->
+        <!-- Section 1: 收支概览 -->
+        <div class="section-card" id="costSectionOverview">
+          <div class="section-title section-title-collapsible" onclick="toggleSection('costSectionOverview')">
+            <i class="fas fa-chart-pie" style="color:var(--primary);margin-right:6px;"></i>收支概览
+            <div class="section-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:var(--primary);"></span>收入</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--danger);"></span>支出</span>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </div>
+          <div class="section-body">
+            <div class="cost-layout">
+              <div class="cost-panel">
+                <h3>收入结构</h3>
+                <div id="costIncome"></div>
+              </div>
+              <div class="cost-panel">
+                <h3>支出结构</h3>
+                <div id="costExpense"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: 补贴与配送 -->
+        <div class="section-card" id="costSectionSubsidy">
+          <div class="section-title section-title-collapsible" onclick="toggleSection('costSectionSubsidy')">
+            <i class="fas fa-hand-holding-usd" style="color:var(--warning, #f59e0b);margin-right:6px;"></i>补贴与配送
+            <div class="section-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:var(--warning, #f59e0b);"></span>补贴</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--teal, #14b8a6);"></span>配送</span>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </div>
+          <div class="section-body">
+            <div class="cost-layout">
+              <div class="cost-panel">
+                <h3>补贴拆分</h3>
+                <div id="costSubsidy"></div>
+              </div>
+              <div class="cost-panel">
+                <h3>配送成本拆分</h3>
+                <div id="costDelivery"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: 平台与固定成本 -->
+        <div class="section-card" id="costSectionPlatform">
+          <div class="section-title section-title-collapsible" onclick="toggleSection('costSectionPlatform')">
+            <i class="fas fa-building" style="color:var(--info, #3b82f6);margin-right:6px;"></i>平台与固定成本
+            <div class="section-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:var(--info, #3b82f6);"></span>平台</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--text-secondary, #6b7280);"></span>固定</span>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </div>
+          <div class="section-body">
+            <div class="cost-layout">
+              <div class="cost-panel">
+                <h3>平台成本拆分</h3>
+                <div id="costPlatform"></div>
+              </div>
+              <div class="cost-panel">
+                <h3>固定/附加成本拆分</h3>
+                <div id="costFixedAdditional"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: KA城商与运力 -->
+        <div class="section-card" id="costSectionKA">
+          <div class="section-title section-title-collapsible" onclick="toggleSection('costSectionKA')">
+            <i class="fas fa-store" style="color:var(--success, #10b981);margin-right:6px;"></i>KA城商与运力
+            <div class="section-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:var(--success, #10b981);"></span>KA/城商</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--primary);"></span>运力</span>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </div>
+          <div class="section-body">
+            <div class="cost-layout">
+              <div class="cost-panel">
+                <h3>KA vs 城商拆分</h3>
+                <div id="kaCityCompare"></div>
+              </div>
+            </div>
+            <div class="cost-layout" style="margin-top:16px;">
+              <div class="cost-panel">
+                <h3>城商占比（城市商家/全量）</h3>
+                <div id="cityRatio"></div>
+                <!-- V13: 城商占比图表 -->
+                <div class="chart-card" style="margin-top:12px;">
+                  <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartCityRatio')" title="下载图表" aria-label="下载chartCityRatio图表">&#128249; PNG</button>
+                  <canvas id="chartCityRatio" role="img" aria-label="chartCityRatio图表" height="200"></canvas></div>
+                </div>
+              </div>
+              <div class="cost-panel">
+                <h3>运力数据</h3>
+                <div id="capacityData"></div>
+                <!-- V13: 运力数据图表 -->
+                <div class="chart-card" style="margin-top:12px;">
+                  <h4><i class="fas fa-chart-line" style="margin-right:6px;color:var(--primary);"></i>运力结构(单均邮资 vs 订单量)</h4>
+                  <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartCapacity')" title="下载图表" aria-label="下载chartCapacity图表">&#128249; PNG</button>
+                  <canvas id="chartCapacity" role="img" aria-label="chartCapacity图表" height="200"></canvas></div>
+                </div>
+                <!-- T12运力趋势图(多期) -->
+                <div class="chart-card" style="margin-top:12px;">
+                  <h4><i class="fas fa-chart-area" style="margin-right:6px;color:var(--teal, #14b8a6);"></i>运力渠道趋势(近8期)</h4>
+                  <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartCapacityTrend')" title="下载图表" aria-label="下载运力趋势图表">&#128249; PNG</button>
+                  <canvas id="chartCapacityTrend" role="img" aria-label="运力渠道趋势图表" height="220"></canvas></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: 图表分析与城市对比 -->
+        <div class="section-card" id="costSectionCharts">
+          <div class="section-title section-title-collapsible" onclick="toggleSection('costSectionCharts')">
+            <i class="fas fa-chart-bar" style="color:var(--purple, #8b5cf6);margin-right:6px;"></i>图表分析与城市对比
+            <div class="section-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:var(--primary);"></span>配送对比</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--purple, #8b5cf6);"></span>瀑布图</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--teal, #14b8a6);"></span>贡献度</span>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </div>
+          <div class="section-body">
+            <!-- V13: 配送成本图表 -->
+            <div class="chart-card" style="margin-bottom:16px;">
+              <h4><i class="fas fa-truck" style="margin-right:6px;color:var(--primary);"></i>配送成本三渠道对比</h4>
+              <div class="chart-container"><button class="chart-export-btn" onclick="exportChartPNG('chartDeliveryCost')" title="下载图表" aria-label="下载costDeliveryCost图表">&#128249; PNG</button>
+              <canvas id="chartDeliveryCost" role="img" aria-label="costDeliveryCost图表" height="260"></canvas></div>
+            </div>
+
+            <!-- V13.2: 瀑布图 -->
+            <div class="chart-card" style="margin-bottom:16px;">
+              <h4><i class="fas fa-water" style="margin-right:6px;color:var(--purple, #8b5cf6);"></i>成本变化瀑布图
+                <span style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-left:8px;">需选择两期数据</span>
+              </h4>
+              <div class="chart-container" style="height:260px;">
+                <button class="chart-export-btn" onclick="exportChartPNG('chartWaterfall')" title="下载图表" aria-label="下载瀑布图">&#128249; PNG</button>
+                <canvas id="chartWaterfall" role="img" aria-label="成本变化瀑布图" height="260"></canvas>
+              </div>
+            </div>
+
+            <!-- V13.2: 贡献度分析 -->
+            <div class="chart-card" style="margin-bottom:16px;">
+              <h4><i class="fas fa-city" style="margin-right:6px;color:var(--teal, #14b8a6);"></i>城市贡献度分析
+                <span style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-left:8px;">需选择两期数据</span>
+              </h4>
+              <div id="contributionPanel">
+                <div class="empty-state"><div class="empty-text">请选择两期数据进行对比</div></div>
+              </div>
+            </div>
+
+            <!-- 关键指标对比 -->
+            <div class="cost-compare-section">
+              <h4><i class="fas fa-balance-scale" style="margin-right:6px;color:var(--primary);"></i>关键指标对比（各城市）</h4>
+              <div id="costCompare"></div>
+            </div>
+          </div>
+        </div>
+      <!-- V11: 补贴拆分趋势容器 -->
+      <div id="subsidyBreakdownContainer" style="display:none;"></div>
+
+      </div>
+      <!-- V11: 成本下钻容器 -->
+      <div id="costDrillDownContainer" class="v11-container" style="display:none;"></div>
+      <!-- V11: 成本下钻详情 -->
+      <div id="costDrillDown" style="display:none;margin-top:12px;"></div>
+      <!-- V11: KA城商对比容器 -->
+      <div id="kaCityCompareContainer" class="v11-container" style="display:none;"></div>
+      <!-- V11: 多期日期容器 -->
+      <div id="periodDateContainer" class="v11-container" style="display:none;">
+      <div class="matrix-card" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-weight:600;font-size:13px;">多期对比</span>
+          <select id="periodDate1" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;min-width:130px;"></select>
+          <span style="color:var(--text-secondary);">vs</span>
+          <select id="periodDate2" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;min-width:130px;"></select>
+        </div>
+      </div>
+    </div>
+      <div class="tab-pane hidden" id="paneReport">
+        <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin:0;">UE分析报告</h3>
+          <div>
+            <button id="btnGenerateReport" class="btn" style="background:var(--success);color:var(--white);padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:14px;margin-right:8px;">生成报告</button>
+            <button id="btnCopyReport" class="btn" style="background:var(--purple);color:var(--white);padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:14px;margin-right:8px;display:none;">复制到剪贴板</button>
+            <button id="btnDownloadReport" class="btn" style="background:var(--warning);color:var(--white);padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:14px;display:none;">下载.md</button>
+          </div>
+        </div>
+        <div id="reportContent" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:24px;font-size:14px;line-height:1.8;white-space:pre-wrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-height:70vh;overflow-y:auto;">
+          <p style="color:var(--text-secondary);text-align:center;padding:60px 0;">点击"生成报告"一键输出UE分析报告</p>
+        </div>
+      </div>
+    </div><div class="tab-pane hidden" id="paneRawdata">
+        <div style="padding: 16px;">
+          <h3>原始数据校验</h3>
+          <p>此页面展示所有解析后的原始数据，用于校验数据准确性。</p>
+          <div id="rawdataContent"></div>
+        </div>
+      </div>
