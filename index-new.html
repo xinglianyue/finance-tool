@@ -3125,7 +3125,8 @@ async function checkCloudForUpdates(localData) {
       }
       const nonZeroCount = Object.values(result).filter(v => v > 0).length;
       return nonZeroCount >= 3 ? result : null;
-    }}
+    }
+
 
 function parseExcelData(workbook, fileName) {
       console.log('[parseExcelData] 开始解析 Excel 文件:', fileName);
@@ -3232,7 +3233,8 @@ function parseExcelData(workbook, fileName) {
         console.error('[parseExcelData] 解析失败:', error);
         throw error;
       }
-    }}
+    }
+
 
     /**
      * @description 显示KPI骨架屏，数据加载时展示
@@ -5763,7 +5765,9 @@ function buildV3Data(cloudRecords, cloudIndex) {
   cloudRecords.slice(0, 3).forEach(r => cache[r.date] = parseRecord(r));
   const importHistory = cloudRecords.map(r => ({ monthLabel: r.date, data: null, importedAt: r.updatedAt || r.date }));
   return { version: 3, metadata, currentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
-</script>
+
+}
+}</script>
 </body>
 </html>
 
