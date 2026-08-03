@@ -3102,7 +3102,7 @@ async function checkCloudForUpdates(localData) {
       return isNaN(n) ? 0 : n;
     }
 
-    function function extractModuleFromBlock(data, startRowIndex, colIndex, fieldLookup) {
+    function extractModuleFromBlock(data, startRowIndex, colIndex, fieldLookup) {
       const result = {};
       fieldLookup.forEach(fd => result[fd.name] = 0);
       const scanStart = startRowIndex + 3;
