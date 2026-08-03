@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>财务仪表盘 · 真实数据原型</title>
+<style>
+/* ========== 设计令牌 ========== */
+:root {
+  --font-cn: 'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --font-num: -apple-system,'Helvetica Neue',Arial,sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --ease: cubic-bezier(.4,0,.2,1);
+  --dur: .2s;
+  --bg-page: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-stripe: #f9fafb;
+  --bg-hover: #eff6ff;
+  --bg-header: #f0f4ff;
+  --text-1: rgba(0,0,0,.88);
+  --text-2: rgba(0,0,0,.6);
+  --text-3: rgba(0,0,0,.38);
+  --border: rgba(0,0,0,.06);
+  --positive: #10b981;
+  --positive-bg: #ecfdf5;
+  --negative: #ef4444;
+  --negative-bg: #fef2f2;
+  --neutral-bg: #f1f5f9;
+  --blue: #4f46e5;
+  --blue-bg: #eef2ff;
+  --amber: #f59e0b;
+  --amber-bg: #fffbeb;
+  --kpi-value: 28px;
+  --kpi-label: 12px;
+  --kpi-delta: 12px;
+  --section-title: 16px;
+  --th-size: 11px;
+  --td-size: 13px;
+  --row-h: 42px;
+  --page-pad: 16px;
+  --card-pad: 16px;
+  --gap: 12px;
+  --section-gap: 24px;
+}
+[data-theme="dark"] {
+  --bg-page: #0f1117;
+  --bg-card: #1a1b23;
+  --bg-stripe: #1e1f28;
+  --bg-hover: #252733;
+  --bg-header: #1e2040;
+  --text-1: rgba(255,255,255,.9);
+  --text-2: rgba(255,255,255,.55);
+  --text-3: rgba(255,255,255,.3);
+  --border: rgba(255,255,255,.08);
+  --positive: #34d399;
+  --positive-bg: rgba(16,185,129,.12);
+  --negative: #f87171;
+  --negative-bg: rgba(239,68,68,.12);
+  --neutral-bg: rgba(255,255,255,.06);
+  --blue: #818cf8;
+  --blue-bg: rgba(79,70,229,.15);
+  --amber: #fbbf24;
+  --amber-bg: rgba(245,158,11,.12);
+}
+@media(max-width:576px){
+  :root{--kpi-value:22px;--td-size:12px;--row-h:38px;--page-pad:12px;--card-pad:12px;--gap:8px;--section-gap:18px}
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-cn);background:var(--bg-page);color:var(--text-1);line-height:1.5;-webkit-font-smoothing:antialiased;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.page{max-width:1200px;margin:0 auto;padding:var(--page-pad)}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+
+/* 顶栏 */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-bottom:var(--section-gap);border-bottom:1px solid var(--border)}
+.topbar h1{font-size:var(--section-title);font-weight:700}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.theme-toggle{width:40px;height:24px;border-radius:12px;background:var(--blue);position:relative;cursor:pointer;border:none;transition:background var(--dur)}
+.theme-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform var(--dur) var(--ease)}
+[data-theme="dark"] .theme-toggle::after{transform:translateX(16px)}
+select.date-sel{font-size:13px;padding:6px 26px 6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text-1);font-family:var(--font-cn);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 4l3 3 3-3' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:var(--section-gap)}
+@media(max-width:768px){.kpi-row{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--bg-card);border-radius:var(--radius);padding:var(--card-pad);border:1px solid var(--border);position:relative;overflow:hidden;transition:box-shadow var(--dur),transform var(--dur)}
+.kpi:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.kpi .accent{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:3px 0 0 3px}
+.kpi .accent.blue{background:var(--blue)}.kpi .accent.green{background:var(--positive)}.kpi .accent.red{background:var(--negative)}.kpi .accent.amber{background:var(--amber)}
+.kpi-label{font-size:var(--kpi-label);color:var(--text-3);font-weight:500;margin-bottom:2px}
+.kpi-val{font-size:var(--kpi-value);font-weight:700;line-height:1.2}
+.kpi-delta{font-size:var(--kpi-delta);margin-top:3px;font-weight:600;display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:4px}
+.kpi-delta.up{color:var(--positive);background:var(--positive-bg)}
+.kpi-delta.down{color:var(--negative);background:var(--negative-bg)}
+.kpi-spark{position:absolute;right:10px;bottom:8px;opacity:.25}
+
+/* 区块标题 */
+.sec-title{font-size:var(--section-title);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.sec-title .tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;background:var(--blue-bg);color:var(--blue)}
+
+/* 标签页 */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px}
+.tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;user-select:none}
+.tab:hover{color:var(--text-2)}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* 城市筛选 */
+.dim-bar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.dim-chip{font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:16px;cursor:pointer;user-select:none;transition:all .15s;background:var(--bg-card);color:var(--text-2)}
+.dim-chip:hover{border-color:var(--blue);color:var(--blue)}
+.dim-chip.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue);font-weight:600}
+
+/* 表格 */
+.tbl-wrap{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-bottom:var(--section-gap)}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:var(--th-size);font-weight:600;color:var(--text-3);text-align:right;padding:8px 12px;background:var(--bg-header);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:5;letter-spacing:.2px}
+thead th:first-child{text-align:left;min-width:80px}
+tbody td{font-size:var(--td-size);color:var(--text-2);text-align:right;padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;height:var(--row-h);vertical-align:middle;transition:background .1s}
+tbody td:first-child{text-align:left;font-weight:600;color:var(--text-1)}
+tbody tr:nth-child(even){background:var(--bg-stripe)}
+tbody tr:hover td{background:var(--bg-hover)}
+tbody tr.row-total td{background:var(--blue-bg);font-weight:700;color:var(--text-1);border-top:2px solid rgba(79,70,229,.2)}
+.sticky{position:sticky;left:0;z-index:4;background:inherit}
+thead th.sticky{background:var(--bg-header)}
+tbody tr:nth-child(even) .sticky{background:var(--bg-stripe)}
+tbody tr:hover .sticky{background:var(--bg-hover)}
+tbody tr.row-total .sticky{background:var(--blue-bg)}
+.v-pos{color:var(--positive);font-weight:600}
+.v-neg{color:var(--negative);font-weight:600}
+
+/* 迷你进度条 */
+.mini-bar{display:inline-block;width:44px;height:5px;border-radius:3px;background:var(--neutral-bg);vertical-align:middle;margin-left:4px;overflow:hidden}
+.mini-bar-fill{height:100%;border-radius:3px;transition:width .6s var(--ease)}
+.mini-bar-fill.green{background:var(--positive)}
+.mini-bar-fill.red{background:var(--negative)}
+
+/* 趋势徽章 */
+.badge-trend{display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.badge-trend.good{background:var(--positive-bg);color:var(--positive)}
+.badge-trend.bad{background:var(--negative-bg);color:var(--negative)}
+.badge-trend.flat{background:var(--neutral-bg);color:var(--text-3)}
+
+/* Sparkline */
+.spark-cell{min-width:72px}
+.spark-cell svg{display:block}
+
+/* 折叠组 */
+.collapse{margin-bottom:4px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);background:var(--bg-card)}
+.collapse-hd{display:flex;justify-content:space-between;align-items:center;padding:10px var(--card-pad);cursor:pointer;font-size:13px;font-weight:700;color:var(--text-1);transition:background .15s;user-select:none}
+.collapse-hd:hover{background:var(--bg-hover)}
+.collapse-hd .arrow{transition:transform var(--dur) var(--ease);color:var(--text-3);font-size:10px}
+.collapse.open .collapse-hd .arrow{transform:rotate(180deg)}
+.collapse-bd{max-height:0;overflow:hidden;transition:max-height .35s var(--ease)}
+.collapse.open .collapse-bd{max-height:800px}
+.collapse-inner{padding:0 var(--card-pad) 12px}
+.collapse-inner table{width:100%}
+.collapse-inner td{font-size:12px;padding:4px 6px;border-bottom:1px solid var(--border)}
+.collapse-inner td:first-child{color:var(--text-2);font-weight:400}
+.collapse-inner td:last-child{text-align:right;font-weight:600;color:var(--text-1)}
+
+/* Tooltip */
+.tip{position:relative}
+.tip::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%) scale(.9);background:var(--text-1);color:var(--bg-card);font-size:10px;padding:3px 8px;border-radius:4px;white-space:nowrap;opacity:0;pointer-events:none;transition:all .15s;font-weight:500;z-index:99}
+.tip:hover::after{opacity:1;transform:translateX(-50%) scale(1)}
+
+/* 移动端预览 */
+.device-bar{position:fixed;bottom:16px;right:16px;z-index:999;display:flex;gap:6px}
+.device-btn{width:36px;height:36px;border-radius:50%;background:var(--blue);color:#fff;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);transition:transform .15s}
+.device-btn:hover{transform:scale(1.1)}
+
+.fade-in{animation:fadeIn .3s var(--ease)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+  <!-- 顶栏 -->
+  <div class="topbar">
+    <h1>财务数据分析</h1>
+    <div class="topbar-actions">
+      <select class="date-sel" id="dateSel"></select>
+      <button class="theme-toggle" id="themeBtn" aria-label="切换深色模式"></button>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-row fade-in" id="kpiRow"></div>
+
+  <!-- 维度下钻 -->
+  <div class="sec-title">维度下钻 <span class="tag" id="dimTag">全量商家</span></div>
+  <div class="dim-bar" id="dimBar"></div>
+  <div class="tbl-wrap">
+    <div class="tbl-scroll">
+      <table id="dimTable"><thead><tr></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <!-- 趋势分析 -->
+  <div class="sec-title">趋势分析</div>
+  <div class="tabs" id="trendTabs">
+    <div class="tab on" data-tab="all">全量商家</div>
+    <div class="tab" data-tab="ka">KA商家</div>
+    <div class="tab" data-tab="city">城市商家</div>
+  </div>
+  <div class="tbl-wrap">
+    <div class="tbl-scroll">
+      <table id="trendTable"><thead><tr></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <!-- 折叠组 -->
+  <div class="sec-title">详细指标</div>
+  <div id="collapseGroup"></div>
+
+</div>
+
+<div class="device-bar">
+  <button class="device-btn tip" data-tip="移动端预览" onclick="toggleMobile()">📱</button>
+</div>
+
+<script>
+/* ========== 真实数据 ========== */
+const RAW = {
+  "2026-05-31": {
+    cities: [
+      {name:"总商",orders:3063240,gmv:12422.9,profit:135.5,profitRate:5.0,ue:0.44,onlineRevenue:2711.9,deliveryCost:940.9,subsidyTotal:1017.7,commission:1746.3,deliveryFee:950.6,platformCost:427.7,fixedCost:108.0,franchiseOrders:2603058,selfOrders:443603,enterpriseOrders:16579,franchiseGMV:9707.9,selfGMV:2714.9,franchiseDelivery:561.2,crowdDelivery:122.6,yuepaoDelivery:249.3,subsidyB:204.4,subsidyC:811.4,officeRent:6.4,teamCost:101.6,crowdOrders:406103,yuepaoOrders:808300,otherRevenue:27.5,franchiseCommission:1584.4,selfCommission:160.9,enterpriseCommission:1.0,franchiseDeliveryFee:926.5,secondDeliveryFee:0.2,enterpriseDeliveryFee:23.4,urgentDeliveryFee:0.4,specialSubsidy:1.9,crowdSubsidyAdjust:0.7,platformCommissionCost:0,afterSaleCost:4.0,careFund:2.5,insuranceCost:9.4,biddingCost:13.2,penalty:25.9,franchiseAvgPostage:41.26,franchiseActivityCost:0.1,crowdBasePostage:23.01,crowdActivityCost:1.8,yuepaoBasePostage:22.70,yuepaoActivityCost:13.1,weatherSubsidy:7.9,thirdPartyServiceCost:30.2,socialInsurance:18.8,taxCost:27.4,additionalCost:76.4,utilityCost:3.7,travelCost:2.0,otherCost:5.7,onlineExpense:1445.4,offlineExpense:1131.0,totalExpense:2576.4,totalRevenue:2711.9},
+      {name:"承德市",orders:1159688,gmv:5438.8,profit:-1.4,profitRate:-0.1,ue:-0.01},
+      {name:"围场",orders:203664,gmv:803.7,profit:15.6,profitRate:8.6,ue:0.77},
+      {name:"玉田",orders:371768,gmv:1459.7,profit:13.8,profitRate:4.2,ue:0.37},
+      {name:"安国",orders:315323,gmv:1025.9,profit:36.3,profitRate:13.9,ue:1.15},
+      {name:"安平",orders:272215,gmv:1046.3,profit:17.4,profitRate:6.8,ue:0.64},
+      {name:"献县",orders:252562,gmv:865.2,profit:21.0,profitRate:9.9,ue:0.83},
+      {name:"晋州",orders:210109,gmv:682.0,profit:18.0,profitRate:10.3,ue:0.86},
+      {name:"威县",orders:159600,gmv:622.7,profit:8.1,profitRate:5.9,ue:0.51},
+      {name:"深泽",orders:69598,gmv:274.9,profit:3.1,profitRate:4.8,ue:0.45},
+      {name:"康保",orders:48713,gmv:203.8,profit:3.6,profitRate:7.3,ue:0.73}
+    ]
+  },
+  "2026-05-25": {cities:[{name:"总商",orders:2497524,gmv:10158.1,profit:112.1,profitRate:5.1,ue:0.45}]},
+  "2026-05-19": {cities:[{name:"总商",orders:1895221,gmv:7712.5,profit:75.9,profitRate:4.5,ue:0.40}]},
+  "2026-05-10": {cities:[{name:"总商",orders:878487,gmv:3002.4,profit:57.5,profitRate:6.1,ue:0.65}]},
+  "2026-05-05": {cities:[{name:"总商",orders:574308,gmv:2430.0,profit:23.0,profitRate:4.4,ue:0.40}]},
+  "2026-04-30": {cities:[{name:"总商",orders:2738555,gmv:10888.4,profit:144.9,profitRate:5.9,ue:0.53}]},
+  "2026-04-15": {cities:[{name:"总商",orders:1372848,gmv:5466.3,profit:53.8,profitRate:4.4,ue:0.39}]},
+  "2026-04-11": {cities:[{name:"总商",orders:1034477,gmv:4149.1,profit:40.9,profitRate:4.4,ue:0.40}]},
+  "2026-03-31": {cities:[{name:"总商",orders:2889507,gmv:11489.5,profit:162.6,profitRate:6.1,ue:0.56}]}
+};
+
+const DATES = Object.keys(RAW).sort().reverse();
+const CITY_NAMES = RAW["2026-05-31"].cities.map(c=>c.name);
+let selectedDate = DATES[0];
+let selectedCities = [0,1,2,3];
+
+/* ========== 工具 ========== */
+function wan(v){return v>=10000?(v/10000).toFixed(1)+'亿':v.toFixed(1)+'万'}
+function pct(v){return v.toFixed(1)+'%'}
+function intFmt(v){return v.toLocaleString()}
+function sparkSVG(vals,color){
+  const w=64,h=18,pad=2;
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+  const pts=vals.map((v,i)=>`${pad+i*(w-2*pad)/(vals.length-1)},${h-pad-(v-min)/range*(h-2*pad)}`).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/></svg>`;
+}
+function trendBadge(type){
+  if(type==='good') return '<span class="badge-trend good">↑ 向好</span>';
+  if(type==='bad') return '<span class="badge-trend bad">↓ 恶化</span>';
+  return '<span class="badge-trend flat">→ 持平</span>';
+}
+function getTrend(vals,isCost){
+  if(vals.length<2) return 'flat';
+  const last=vals[0],prev=vals[1];
+  const diff=last-prev;
+  const pct=Math.abs(prev)>0?Math.abs(diff/prev)*100:0;
+  if(pct<2) return 'flat';
+  if(isCost) return diff<0?'good':'bad';
+  return diff>0?'good':'bad';
+}
+
+/* ========== 日期选择器 ========== */
+function renderDateSel(){
+  const sel=document.getElementById('dateSel');
+  sel.innerHTML=DATES.map(d=>`<option value="${d}"${d===selectedDate?' selected':''}>${d}</option>`).join('');
+  sel.onchange=()=>{selectedDate=sel.value;renderAll()};
+}
+
+/* ========== KPI ========== */
+function renderKPI(){
+  const d=RAW[selectedDate]?.cities[0];
+  if(!d) return;
+  const prev=RAW[DATES[DATES.indexOf(selectedDate)+1]]?.cities[0];
+  const calcDelta=(cur,pre)=>{
+    if(!pre||!pre.orders) return '';
+    const pct=((cur-pre)/Math.abs(pre)*100).toFixed(1);
+    const up=cur>=pre;
+    return `<span class="kpi-delta ${up?'up':'down'} num">${up?'▲':'▼'} ${Math.abs(pct)}%</span>`;
+  };
+  // sparkline数据：取最近5个日期的值
+  const sparkData=(key)=>DATES.slice(0,5).map(dt=>RAW[dt]?.cities[0]?.[key]||0).reverse();
+  const sparkHTML=(key,color)=>{
+    const vals=sparkData(key);
+    const w=56,h=20,pad=2;
+    const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+    const pts=vals.map((v,i)=>`${pad+i*(w-2*pad)/(vals.length-1)},${h-pad-(v-min)/range*(h-2*pad)}`).join(' ');
+    return `<svg class="kpi-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/></svg>`;
+  };
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi"><div class="accent blue"></div>
+      <div class="kpi-label">原价交易额</div>
+      <div class="kpi-val num">¥${wan(d.gmv)}</div>
+      ${calcDelta(d.gmv,prev?.gmv)}
+      ${sparkHTML('gmv','var(--blue)')}</div>
+    <div class="kpi"><div class="accent blue"></div>
+      <div class="kpi-label">订单量</div>
+      <div class="kpi-val num">${intFmt(d.orders)}</div>
+      ${calcDelta(d.orders,prev?.orders)}
+      ${sparkHTML('orders','var(--blue)')}</div>
+    <div class="kpi"><div class="accent ${d.profit>=0?'green':'red'}"></div>
+      <div class="kpi-label">毛利</div>
+      <div class="kpi-val num ${d.profit>=0?'v-pos':'v-neg'}">¥${wan(Math.abs(d.profit))}</div>
+      ${calcDelta(d.profit,prev?.profit)}
+      ${sparkHTML('profit',d.profit>=0?'var(--positive)':'var(--negative)')}</div>
+    <div class="kpi"><div class="accent ${d.ue>=0?'green':'amber'}"></div>
+      <div class="kpi-label">单均UE</div>
+      <div class="kpi-val num ${d.ue>=0?'v-pos':'v-neg'}">${d.ue.toFixed(2)}</div>
+      ${prev?`<span class="kpi-delta ${d.ue>=prev.ue?'up':'down'} num">${d.ue>=prev.ue?'▲':'▼'} ${Math.abs(d.ue-prev.ue).toFixed(2)}</span>`:''}
+      ${sparkHTML('ue',d.ue>=0?'var(--positive)':'var(--amber)')}</div>
+  `;
+}
+
+/* ========== 维度下钻 ========== */
+function renderDimBar(){
+  const bar=document.getElementById('dimBar');
+  bar.innerHTML=CITY_NAMES.map((c,i)=>
+    `<span class="dim-chip${selectedCities.includes(i)?' on':''}" data-idx="${i}">${c}</span>`
+  ).join('');
+  bar.querySelectorAll('.dim-chip').forEach(el=>{
+    el.onclick=()=>{
+      const idx=+el.dataset.idx;
+      if(selectedCities.includes(idx)) selectedCities=selectedCities.filter(x=>x!==idx);
+      else selectedCities.push(idx);
+      renderDimBar();renderDimTable();
+    };
+  });
+}
+function renderDimTable(){
+  const data=RAW["2026-05-31"];// 维度下钻固定用5-31完整城市数据
+  const thead=document.querySelector('#dimTable thead tr');
+  thead.innerHTML='<th class="sticky">指标</th>'+selectedCities.map(i=>`<th>${CITY_NAMES[i]}</th>`).join('');
+  const rows=[
+    {name:'订单量',key:'orders',fmt:'int'},
+    {name:'原价交易额(万)',key:'gmv',fmt:'wan'},
+    {name:'线上收入(万)',key:'onlineRevenue',fmt:'wan'},
+    {name:'毛利(万)',key:'profit',fmt:'wan',signed:true},
+    {name:'利润率',key:'profitRate',fmt:'pct',signed:true,bar:true},
+    {name:'单均UE',key:'ue',fmt:'dec',signed:true},
+    {name:'配送成本(万)',key:'deliveryCost',fmt:'wan',neg:true},
+    {name:'补贴总额(万)',key:'subsidyTotal',fmt:'wan',neg:true},
+    {name:'佣金(万)',key:'commission',fmt:'wan'},
+    {name:'配送费(万)',key:'deliveryFee',fmt:'wan'},
+    {name:'平台成本(万)',key:'platformCost',fmt:'wan',neg:true},
+    {name:'固定成本(万)',key:'fixedCost',fmt:'wan',neg:true},
+  ];
+  const tbody=document.getElementById('dimTable').querySelector('tbody');
+  tbody.innerHTML=rows.map((r,ri)=>{
+    const isTotal=ri<2;
+    const cls=isTotal?' class="row-total"':'';
+    return `<tr${cls}><td class="sticky">${r.name}</td>${selectedCities.map(ci=>{
+      const c=data.cities[ci];
+      const v=c[r.key];
+      if(v===undefined) return '<td>-</td>';
+      let cell='';
+      if(r.fmt==='int') cell=intFmt(v);
+      else if(r.fmt==='wan') cell='¥'+v.toFixed(1);
+      else if(r.fmt==='pct') cell=v.toFixed(1)+'%';
+      else if(r.fmt==='dec') cell=v.toFixed(2);
+      let extra='';
+      if(r.signed&&v<0) cell=`<span class="v-neg">${cell}</span>`;
+      else if(r.signed&&v>0) cell=`<span class="v-pos">${cell}</span>`;
+      if(r.neg) cell=`<span class="v-neg">${cell}</span>`;
+      if(r.bar&&r.fmt==='pct'){
+        const pct=Math.min(Math.abs(v)/15*100,100);
+        const bc=v>=0?'green':'red';
+        extra=`<span class="mini-bar"><span class="mini-bar-fill ${bc}" style="width:${pct}%"></span></span>`;
+      }
+      return `<td>${cell}${extra}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+}
+
+/* ========== 趋势分析 ========== */
+function renderTrend(){
+  const trendKeys=[
+    {name:'订单量',key:'orders',fmt:'int'},
+    {name:'原价交易额(万)',key:'gmv',fmt:'wan'},
+    {name:'线上收入(万)',key:'onlineRevenue',fmt:'wan'},
+    {name:'毛利(万)',key:'profit',fmt:'wan',signed:true},
+    {name:'利润率',key:'profitRate',fmt:'pct'},
+    {name:'单均UE',key:'ue',fmt:'dec'},
+    {name:'配送成本(万)',key:'deliveryCost',fmt:'wan',isCost:true},
+    {name:'补贴总额(万)',key:'subsidyTotal',fmt:'wan',isCost:true},
+    {name:'佣金(万)',key:'commission',fmt:'wan'},
+  ];
+  const thead=document.querySelector('#trendTable thead tr');
+  thead.innerHTML='<th class="sticky" style="min-width:90px">指标</th>'+DATES.slice(0,5).map((d,i)=>
+    `<th${i===0?' style="background:var(--amber-bg)"':''}>${d.slice(5)}</th>`
+  ).join('')+`<th style="min-width:140px;background:var(--blue-bg)">趋势</th>`;
+
+  const tbody=document.getElementById('trendTable').querySelector('tbody');
+  tbody.innerHTML=trendKeys.map((r,ri)=>{
+    const isTotal=ri<2;
+    const cls=isTotal?' class="row-total"':'';
+    const vals=DATES.slice(0,5).map(d=>RAW[d]?.cities[0]?.[r.key]||0);
+    const trend=getTrend(vals,r.isCost);
+    const sparkColor=trend==='good'?'var(--positive)':trend==='bad'?'var(--negative)':'var(--text-3)';
+    return `<tr${cls}><td class="sticky">${r.name}</td>${vals.map((v,di)=>{
+      let cell='';
+      if(r.fmt==='int') cell=intFmt(v);
+      else if(r.fmt==='wan') cell=v.toFixed(1);
+      else if(r.fmt==='pct') cell=v.toFixed(1)+'%';
+      else if(r.fmt==='dec') cell=v.toFixed(2);
+      if(r.signed&&v<0) cell=`<span class="v-neg">${cell}</span>`;
+      else if(r.signed&&v>0) cell=`<span class="v-pos">${cell}</span>`;
+      if(r.isCost) cell=`<span class="v-neg">${cell}</span>`;
+      return `<td>${cell}</td>`;
+    }).join('')}<td class="spark-cell">${sparkSVG(vals,sparkColor)} ${trendBadge(trend)}</td></tr>`;
+  }).join('');
+}
+
+/* ========== 折叠组 ========== */
+function renderCollapses(){
+  const d=RAW[selectedDate]?.cities[0];
+  if(!d) return;
+  const groups=[
+    {title:'收入指标',items:[
+      ['订单量',intFmt(d.orders)],
+      ['加盟订单',intFmt(d.franchiseOrders)],
+      ['自营订单',intFmt(d.selfOrders)],
+      ['企事业订单',intFmt(d.enterpriseOrders)],
+      ['原价交易额','¥'+wan(d.gmv)],
+      ['加盟GMV','¥'+wan(d.franchiseGMV)],
+      ['自营GMV','¥'+wan(d.selfGMV)],
+      ['线上收入','¥'+wan(d.onlineRevenue)],
+      ['佣金','¥'+wan(d.commission)],
+      ['加盟佣金','¥'+wan(d.franchiseCommission)],
+      ['自营佣金','¥'+wan(d.selfCommission)],
+      ['配送费','¥'+wan(d.deliveryFee)],
+      ['加盟配送费','¥'+wan(d.franchiseDeliveryFee)],
+      ['企事业配送费','¥'+wan(d.enterpriseDeliveryFee)],
+      ['加急配送费','¥'+wan(d.urgentDeliveryFee)],
+      ['其他收入','¥'+wan(d.otherRevenue)],
+    ]},
+    {title:'补贴支出',items:[
+      ['补贴总额','¥'+wan(d.subsidyTotal)],
+      ['B端补贴','¥'+wan(d.subsidyB)],
+      ['C端补贴','¥'+wan(d.subsidyC)],
+      ['专项补贴','¥'+wan(d.specialSubsidy)],
+      ['众包补贴调整','¥'+wan(d.crowdSubsidyAdjust)],
+      ['天气补贴','¥'+wan(d.weatherSubsidy)],
+    ]},
+    {title:'配送成本',items:[
+      ['配送成本合计','¥'+wan(d.deliveryCost)],
+      ['加盟配送','¥'+wan(d.franchiseDelivery)],
+      ['加盟均邮',d.franchiseAvgPostage?.toFixed(2)||'-'],
+      ['加盟活动成本','¥'+wan(d.franchiseActivityCost)],
+      ['众包配送','¥'+wan(d.crowdDelivery)],
+      ['众包基础邮费',d.crowdBasePostage?.toFixed(2)||'-'],
+      ['众包活动成本','¥'+wan(d.crowdActivityCost)],
+      ['越跑配送','¥'+wan(d.yuepaoDelivery)],
+      ['越跑基础邮费',d.yuepaoBasePostage?.toFixed(2)||'-'],
+      ['越跑活动成本','¥'+wan(d.yuepaoActivityCost)],
+    ]},
+    {title:'平台及固定成本',items:[
+      ['平台成本','¥'+wan(d.platformCost)],
+      ['平台佣金成本','¥'+wan(d.platformCommissionCost)],
+      ['售后成本','¥'+wan(d.afterSaleCost)],
+      ['关爱基金','¥'+wan(d.careFund)],
+      ['保险成本','¥'+wan(d.insuranceCost)],
+      ['竞价成本','¥'+wan(d.biddingCost)],
+      ['罚款','¥'+wan(d.penalty)],
+      ['固定成本','¥'+wan(d.fixedCost)],
+      ['办公租金','¥'+wan(d.officeRent)],
+      ['团队成本','¥'+wan(d.teamCost)],
+      ['第三方服务','¥'+wan(d.thirdPartyServiceCost)],
+      ['社保','¥'+wan(d.socialInsurance)],
+      ['税费','¥'+wan(d.taxCost)],
+      ['附加成本','¥'+wan(d.additionalCost)],
+      ['水电费','¥'+wan(d.utilityCost)],
+      ['差旅费','¥'+wan(d.travelCost)],
+      ['其他成本','¥'+wan(d.otherCost)],
+    ]},
+  ];
+  const wrap=document.getElementById('collapseGroup');
+  wrap.innerHTML=groups.map(g=>
+    `<div class="collapse"><div class="collapse-hd"><span>${g.title} (${g.items.length}项)</span><span class="arrow">▼</span></div><div class="collapse-bd"><div class="collapse-inner"><table>${g.items.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td></tr>`).join('')}</table></div></div></div>`
+  ).join('');
+  wrap.querySelectorAll('.collapse-hd').forEach(hd=>{
+    hd.onclick=()=>hd.parentElement.classList.toggle('open');
+  });
+}
+
+/* ========== 标签页 ========== */
+document.getElementById('trendTabs').addEventListener('click',e=>{
+  if(!e.target.classList.contains('tab')) return;
+  document.querySelectorAll('#trendTabs .tab').forEach(t=>t.classList.remove('on'));
+  e.target.classList.add('on');
+  document.getElementById('dimTag').textContent=e.target.textContent;
+});
+
+/* ========== 深色模式 ========== */
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const h=document.documentElement;
+  h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';
+});
+
+/* ========== 移动端预览 ========== */
+let isMobile=false;
+function toggleMobile(){
+  isMobile=!isMobile;
+  const app=document.getElementById('app');
+  app.style.maxWidth=isMobile?'375px':'1200px';
+  app.style.boxShadow=isMobile?'0 0 40px rgba(0,0,0,.15)':'none';
+}
+
+/* ========== 渲染 ========== */
+function renderAll(){renderKPI();renderDimTable();renderCollapses()}
+renderDateSel();
+renderDimBar();
+renderAll();
+renderTrend();
+</script>
+</body>
+</html>

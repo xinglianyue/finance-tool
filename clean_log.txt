@@ -1,0 +1,19 @@
+Original size: 227276
+Removed duplicate parseRecord
+Removed duplicate buildV3Data
+Removed duplicate checkCloudForUpdates
+Fixed double function typo
+
+=== VERIFICATION ===
+Brace balance: 1384 open, 1383 close, diff 1
+Literal backslash-n: 0
+switchTab: OK (1)
+updateVersion: OK (1)
+loadFromCloud: OK (1)
+switchImportDate: OK (1)
+checkCloudForUpdates: OK (1)
+buildV3Data: OK (2)
+parseRecord: OK (2)
+
+Written to: index-new.html.FINAL_CLEAN
+Final size: 218700

@@ -1,0 +1,3011 @@
+function buildV3Data(cloudRecords, cloudIndex) {
+  const metadata = {
+    lastSyncAt: new Date().toISOString(),
+    cloudVersion: cloudIndex?.version || 'v1',
+    availableDates: cloudIndex?.records?.map(r => r.date) || []
+  };
+  const currentData = parseRecord(cloudRecords[0]);
+  const allCitiesData = currentData.all?.cities || [];
+  let totalData = null;
+  const citiesData = [];
+  allCitiesData.forEach(city => {
+    if (city.name === '总商') { totalData = city; } else { citiesData.push(city); }
+  });
+  const formattedCurrentData = {
+    totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
+    cities: citiesData
+  };
+  const cache = {};
+  cloudRecords.slice(0, 3).forEach(record => { cache[record.date] = parseRecord(record); });
+  const importHistory = cloudRecords.map(record => ({ monthLabel: record.date, data: null, importedAt: record.updatedAt || record.date, fileName: record.fileName || '' }));
+  return { version: 3, metadata, currentData: formattedCurrentData, cache, importHistory, currentImportIndex: 0, currentMerchantType: 'all' };
+}}
+    
+    /**
+     * 初始化应用状态
+     * @param {Object} data - v3 格式的数据
+     */
+    function initializeAppState(data) {
+      // 从 window.financeToolCache（内存）或 data.cache 获取 allMerchantData
+      const currentRecord = data.importHistory[data.currentImportIndex];
+      let localAllMerchantData = window.financeToolCache?.[currentRecord.monthLabel] || data.cache?.[currentRecord.monthLabel];
+      
+      // 如果 cache 中没有，从 importHistory 读取（兼容旧数据）
+      if (!localAllMerchantData && currentRecord.data) {
+        localAllMerchantData = currentRecord.data;
+      }
+      
+      // 如果还是没有，使用当前数据反向构建
+      if (!localAllMerchantData) {
+        console.warn('[App] 无法从 cache 或 importHistory 获取数据，使用当前数据');
+        localAllMerchantData = {
+          all: {
+            cities: [
+              { name: '总商', displayName: '总商', modules: { all: data.currentData.totals } },
+              ...data.currentData.cities.map(c => ({ name: c.displayName, displayName: c.displayName, modules: { all: c.modules?.all || {} } }))
+            ]
+          }
+        };
+      }
+      
+      // 更新全局变量和局部变量（使用不同的变量名避免混淆）
+      window.allMerchantData = localAllMerchantData;
+      window.importHistory = data.importHistory;
+      window.currentData = data.currentData;
+      window.currentImportIndex = data.currentImportIndex;
+      window.currentMerchantType = data.currentMerchantType;
+      // 不覆盖已有的内存缓存（window.financeToolCache 在云端加载时已设置）
+      if (!window.financeToolCache || Object.keys(window.financeToolCache).length === 0) {
+        window.financeToolCache = data.cache || {};
+      }
+      
+      // 同时更新外部定义的变量（供内部函数使用）
+      allMerchantData = localAllMerchantData;
+      importHistory = data.importHistory;
+      currentData = data.currentData;
+      currentImportIndex = data.currentImportIndex;
+      currentMerchantType = data.currentMerchantType;
+      
+      console.log('[App] 全局变量和局部变量已设置，allMerchantData:', !!allMerchantData);
+      
+      // 初始化状态管理器
+      StateManager.init({
+        currentData: data.currentData,
+        allMerchantData: localAllMerchantData,
+        importHistory: data.importHistory,
+        currentImportIndex: data.currentImportIndex,
+        currentMerchantType: data.currentMerchantType
+      });
+      
+      // 订阅 StateManager 状态变更，自动同步全局变量
+      StateManager.subscribe('*', (key, newValue, oldValue) => {
+        console.log('[StateManager] 状态变更订阅触发:', key);
+        if (key === 'allMerchantData' || key === '*') {
+          window.allMerchantData = newValue;
+          console.log('[StateManager] 已同步全局 allMerchantData');
+        }
+        if (key === 'currentData' || key === '*') {
+          window.currentData = newValue;
+        }
+      });
+      
+      console.log('[App] StateManager 初始化完成，allMerchantData:', !!StateManager.get('allMerchantData'));
+      
+      // 渲染 UI（确保 allMerchantData 已设置）
+      // 趋势分析延迟到切换tab时再渲染，避免初始化时生成大量HTML
+      renderImportSelector();
+      renderOverview();
+      renderDimension();
+      
+      console.log('[App] 应用状态初始化完成', {
+        hasData: !!allMerchantData,
+        historyCount: data.importHistory.length,
+        cacheSize: Object.keys(data.cache || {}).length
+      });
+    }
+
+    async function loadFromCloud() {
+  console.log('[App] 开始加载云端数据 (V3模式)');
+  const localData = DataStore.load();
+  if (!localData || !localData.metadata || localData.version !== 3) {
+    try {
+      const indexResponse = await fetch('./index.json');
+      const cloudIndex = await indexResponse.json();
+      const dataResponse = await fetch('./shared-data.json');
+      const cloudRecords = await dataResponse.json();
+      const v3Data = buildV3Data(cloudRecords, cloudIndex);
+      DataStore.save(v3Data);
+      return v3Data;
+    } catch (e) { console.error('[App] 加载云端数据失败:', e); throw e; }
+  }
+  const hasUpdate = await checkCloudForUpdates(localData);
+  if (hasUpdate) {
+    try {
+      const indexResponse = await fetch('./index.json');
+      const cloudIndex = await indexResponse.json();
+      const dataResponse = await fetch('./shared-data.json');
+      const cloudRecords = await dataResponse.json();
+      const v3Data = buildV3Data(cloudRecords, cloudIndex);
+      DataStore.save(v3Data);
+      return v3Data;
+    } catch (e) { console.error('[App] 获取更新数据失败:', e); }
+  }
+  return localData;
+}}\n\nasync function checkCloudForUpdates(localData) {
+      try {
+        const indexResponse = await fetch('./index.json');
+        if (!indexResponse.ok) return false;
+        const cloudIndex = await indexResponse.json();
+        const localVersion = localData.metadata?.cloudVersion || '0';
+        const cloudVersion = cloudIndex.version || '0';
+        if (parseInt(cloudVersion) > parseInt(localVersion)) return true;
+        const localDates = new Set(localData.metadata?.availableDates || []);
+        const cloudDates = new Set(cloudIndex.records?.map(r => r.date) || []);
+        const newDates = [...cloudDates].filter(d => !localDates.has(d));
+        if (newDates.length > 0) return true;
+        return false;
+      } catch (e) {
+        console.error('[App] 检查更新失败:', e);
+        return false;
+      }
+    }\n\n
+    
+    /**
+     * 检查云端是否有新数据
+     * @param {Object} localData - 本地数据
+     * @returns {Promise<boolean>} - 是否有新数据
+     */
+    function checkCloudForUpdates(localData) {
+      try {
+        console.log('[App] 检查云端更新...');
+        
+        let cloudData = null;
+        
+        // 优先使用直接下载的方式（更稳定，不受 GitHub API 限流影响）
+        const directUrl = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
+        try {
+          const directResponse = await fetch(directUrl);
+          if (directResponse.ok) {
+            cloudData = await directResponse.json();
+            console.log('[App] 从直接下载获取云端数据成功');
+          }
+        } catch (directError) {
+          console.warn('[App] 直接下载失败，尝试 GitHub API');
+        }
+        
+        // 如果直接下载失败，尝试用 GitHub API
+        if (!cloudData) {
+          const apiUrl = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/shared-data.json';
+          const response = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
+          
+          if (!response.ok) {
+            console.log('[App] 无法连接云端');
+            return false;
+          }
+          
+          const githubData = await response.json();
+          
+          if (githubData.content && githubData.content.trim() !== '') {
+            try {
+              const base64Content = githubData.content.replace(/\n/g, '');
+              const decodedContent = decodeURIComponent(escape(atob(base64Content)));
+              cloudData = JSON.parse(decodedContent);
+              console.log('[App] 从API content解析云端数据成功');
+            } catch (parseError) {
+              console.log('[App] 尝试download_url...');
+            }
+          }
+          
+          if (!cloudData && githubData.download_url) {
+            const downloadResponse = await fetch(githubData.download_url);
+            if (downloadResponse.ok) {
+              cloudData = await downloadResponse.json();
+              console.log('[App] 从download_url下载云端数据成功');
+            }
+          }
+        }
+        
+        if (!cloudData || !Array.isArray(cloudData) || cloudData.length === 0) {
+          console.log('[App] 云端数据为空');
+          return false;
+        }
+        
+        // 对比本地和云端的日期列表
+        const localDates = (localData.importHistory || []).map(r => r.monthLabel);
+        const cloudDates = cloudData.map(r => normalizeDateLabel(r.date));
+        const cloudRecordsNormalized = cloudData.map(r => ({
+          ...r,
+          normalizedDate: normalizeDateLabel(r.date)
+        }));
+        
+        console.log('[App] 本地日期:', localDates);
+        console.log('[App] 云端日期 (原始):', cloudData.map(r => r.date));
+        console.log('[App] 云端日期 (标准化):', cloudDates);
+        
+        // 检查是否有新的日期
+        const newDates = cloudDates.filter(d => !localDates.includes(d));
+        if (newDates.length > 0) {
+          console.log('[App] 发现新日期:', newDates);
+          return true;
+        }
+        
+        // 检查相同日期的更新时间是否变化
+        for (const localRecord of localData.importHistory || []) {
+          const cloudRecord = cloudRecordsNormalized.find(c => c.normalizedDate === localRecord.monthLabel);
+          if (cloudRecord && cloudRecord.updatedAt && localRecord.importedAt) {
+            const cloudTime = new Date(cloudRecord.updatedAt);
+            const localTime = new Date(localRecord.importedAt);
+            if (cloudTime > localTime) {
+              console.log('[App] 发现已有记录更新:', localRecord.monthLabel);
+              return true;
+            }
+          }
+        }
+        
+        console.log('[App] 云端数据未更新');
+        return false;
+        
+      } catch (e) {
+        console.error('[App] 检查更新失败:', e);
+        return false;
+      }
+    }
+
+    // 性能优化：防抖保存，避免切换数据时同步阻塞UI
+    let _saveTimer = null;
+    function saveToLocalStorage() {
+      if (_saveTimer) clearTimeout(_saveTimer);
+      _saveTimer = setTimeout(() => {
+        _saveTimer = null;
+        const data = StateManager.getDataToSave();
+        const success = DataStore.save(data);
+        if (!success) {
+          console.error('数据保存失败');
+          showToast('数据保存失败，请检查存储空间', 'error');
+        }
+      }, 300);
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const data = DataStore.load();
+        if (data) {
+          // 验证数据完整性
+          const validation = DataStore.validate(data);
+          if (!validation.valid) {
+            console.error('数据验证失败:', validation.errors);
+            showToast('数据可能已损坏，尝试从备份恢复...', 'warning');
+            const restored = DataStore.restoreFromBackup();
+            if (restored) {
+              data = restored;
+              showToast('已从备份恢复数据', 'success');
+            } else {
+              showToast('数据恢复失败，请重新导入', 'error');
+              return false;
+            }
+          }
+          
+          // 显示警告
+          if (validation.warnings?.length > 0) {
+            console.warn('数据警告:', validation.warnings);
+          }
+          
+          // 初始化状态管理器
+          StateManager.init(data);
+          
+          // 同步全局变量（兼容性）
+          currentData = StateManager.get('currentData');
+          allMerchantData = StateManager.get('allMerchantData');
+          importHistory = StateManager.get('importHistory');
+          currentImportIndex = StateManager.get('currentImportIndex');
+          currentMerchantType = StateManager.get('currentMerchantType');
+          
+          // 恢复缓存到全局变量（供趋势分析使用）
+      if (data.cache) {
+        window.financeToolCache = data.cache;
+      }
+      
+      // 如果缓存为空但导入历史有数据，尝试从其他来源重建缓存
+      if (!window.financeToolCache || Object.keys(window.financeToolCache).length === 0 && importHistory.length > 0) {
+        console.log('[App] 缓存为空，尝试从其他来源重建...');
+        
+        // 1. 尝试从已有的所有merchantData构建缓存（针对当前选中的日期）
+        if (allMerchantData) {
+          const currentRecord = importHistory[currentImportIndex];
+          if (currentRecord) {
+            window.financeToolCache = window.financeToolCache || {};
+            window.financeToolCache[currentRecord.monthLabel] = allMerchantData;
+            console.log('[App] 从 allMerchantData 重建缓存，日期:', currentRecord.monthLabel);
+          }
+        }
+        
+        // 2. 如果仍然为空，尝试从云端数据中获取（如果有cloudData全局变量）
+        if (!window.financeToolCache || Object.keys(window.financeToolCache).length === 0 && window.cloudData) {
+          importHistory.forEach(record => {
+            const cloudRecord = window.cloudData.find(r => r.date === record.monthLabel);
+            if (cloudRecord) {
+              const merchantData = cloudRecord.merchantData || cloudRecord.currentData?.merchantData;
+              if (merchantData) {
+                // 兼容旧格式
+                if (!merchantData.all && merchantData.cities) {
+                  merchantData.all = { date: record.monthLabel, cities: merchantData.cities };
+                }
+                window.financeToolCache = window.financeToolCache || {};
+                window.financeToolCache[record.monthLabel] = merchantData;
+              }
+            }
+          });
+          if (Object.keys(window.financeToolCache).length > 0) {
+            console.log('[App] 从 cloudData 重建缓存，共 ' + Object.keys(window.financeToolCache).length + ' 个日期');
+          }
+        }
+      }
+      
+      // 恢复导入日期选择器
+      if (importHistory.length > 0) {
+        renderImportSelector();
+      }
+          
+          return true;
+        }
+      } catch (e) {
+        console.error('加载失败:', e);
+        showToast('数据加载失败: ' + e.message, 'error');
+      }
+      return false;
+    }
+
+    function num(v) {
+      if (v === null || v === undefined || v === '' || v === '-') return 0;
+      const n = parseFloat(String(v).replace(/,/g, ''));
+      return isNaN(n) ? 0 : n;
+    }
+
+    function function extractModuleFromBlock(data, startRowIndex, colIndex, fieldLookup) {
+      const result = {};
+      fieldLookup.forEach(fd => result[fd.name] = 0);
+      const scanStart = startRowIndex + 3;
+      const scanEnd = Math.min(startRowIndex + 120, data.length);
+      
+      for (let rn = scanStart; rn < scanEnd; rn++) {
+        const row = data[rn];
+        if (!row) continue;
+        const c3 = String(row[3] || '').trim();
+        if (c3 && c3.includes('财务指标')) break;
+        const val = colIndex < row.length ? row[colIndex] : 0;
+        const numVal = Number(val);
+        if (isNaN(numVal) || numVal <= 0) continue;
+        const row0 = String(row[0] || '').toLowerCase();
+        for (const fd of fieldLookup) {
+          if (fd.keys && fd.keys.some(k => row0.includes(k.toLowerCase()))) {
+            if (result[fd.name] === 0) result[fd.name] = numVal;
+          }
+        }
+      }
+      const nonZeroCount = Object.values(result).filter(v => v > 0).length;
+      return nonZeroCount >= 3 ? result : null;
+    }}\n\nfunction parseExcelData(workbook, fileName) {
+      console.log('[parseExcelData] 开始解析 Excel 文件:', fileName);
+
+      try {
+        const MODULE_DEFS = [
+          { searchName: '全品类财务指标', key: 'all', label: '全品类' },
+          { searchName: '餐饮财务指标', key: 'food', label: '餐饮' },
+          { searchName: '闪购财务指标', key: 'flash', label: '闪购' },
+          { searchName: '医药财务指标', key: 'medicine', label: '医药' },
+          { searchName: '拼好饭财务指标', key: 'group', label: '拼好饭' }
+        ];
+
+        const FIELD_LOOKUP = [
+          { keys: ['orders', '订单量'], name: 'orders' },
+          { keys: ['gmvAmount', '原价交易额'], name: 'gmvAmount' },
+          { keys: ['onlineRevenue', '线上收入'], name: 'onlineRevenue' },
+          { keys: ['profit', '毛利'], name: 'profit' },
+          { keys: ['commission', '抽佣金额'], name: 'commission' },
+          { keys: ['deliveryFee', '配送费'], name: 'deliveryFee' },
+          { keys: ['subsidyTotal', '代补金额'], name: 'subsidyTotal' },
+          { keys: ['platformCost', '平台成本'], name: 'platformCost' },
+          { keys: ['deliveryCost', '配送成本'], name: 'deliveryCost' },
+          { keys: ['fixedCost', '固定成本'], name: 'fixedCost' },
+          { keys: ['additionalCost', '附加成本'], name: 'additionalCost' },
+          { keys: ['totalExpense', '支出汇总'], name: 'totalExpense' }
+        ];
+
+        const dataSheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!dataSheet) throw new Error('未找到工作表');
+
+        const jsonData = XLSX.utils.sheet_to_json(dataSheet, { header: 1 });
+        
+        // 动态搜索模块位置
+        const modulePositions = {};
+        for (let rn = 0; rn < Math.min(500, jsonData.length); rn++) {
+          const row = jsonData[rn];
+          if (!row || !row[0]) continue;
+          const cell0 = String(row[0] || '').trim();
+          for (const md of MODULE_DEFS) {
+            if (cell0.includes(md.searchName)) {
+              modulePositions[md.key] = rn;
+            }
+          }
+        }
+
+        console.log('[parseExcelData] 找到的模块:', Object.keys(modulePositions));
+        if (Object.keys(modulePositions).length === 0) {
+          throw new Error('未识别到任何财务指标模块');
+        }
+
+        const cityRow = jsonData[2];
+        if (!cityRow) throw new Error('未找到城市信息行');
+
+        const result = {
+          totals: { orders: 0, gmvAmount: 0, onlineRevenue: 0, profit: 0, ue: 0, profitRate: 0 },
+          cities: []
+        };
+
+        for (let col = 5; col < cityRow.length; col++) {
+          const excelName = String(cityRow[col] || '').trim();
+          if (!excelName || excelName === '总商') continue;
+
+          const cityData = { name: excelName, modules: {} };
+
+          for (const md of MODULE_DEFS) {
+            if (!modulePositions[md.key]) continue;
+
+            const moduleStartRow = modulePositions[md.key];
+            const moduleFields = extractModuleFromBlock(jsonData, moduleStartRow, col, FIELD_LOOKUP);
+
+            if (moduleFields && Object.keys(moduleFields).length > 0) {
+              cityData.modules[md.key] = { ...moduleFields, moduleName: md.label, moduleKey: md.key };
+              const m = cityData.modules[md.key];
+              m.ue = m.orders > 0 ? m.profit / m.orders : 0;
+              m.subsidyRatio = m.gmvAmount > 0 ? (m.subsidyTotal || 0) / m.gmvAmount : 0;
+              m.profitRate = m.onlineRevenue > 0 ? m.profit / m.onlineRevenue : 0;
+            }
+          }
+
+          result.cities.push(cityData);
+        }
+
+        if (result.cities.length > 0) {
+          for (const modKey in result.cities[0].modules) {
+            result.cities.forEach(c => {
+              if (c.modules[modKey]) {
+                const m = c.modules[modKey];
+                result.totals.orders += m.orders || 0;
+                result.totals.gmvAmount += m.gmvAmount || 0;
+                result.totals.onlineRevenue += m.onlineRevenue || 0;
+                result.totals.profit += m.profit || 0;
+              }
+            });
+          }
+          result.totals.ue = result.totals.orders > 0 ? result.totals.profit / result.totals.orders : 0;
+          result.totals.profitRate = result.totals.onlineRevenue > 0 ? result.totals.profit / result.totals.onlineRevenue : 0;
+        }
+
+        console.log('[parseExcelData] 解析完成！城市数:', result.cities.length);
+        return result;
+
+      } catch (error) {
+        console.error('[parseExcelData] 解析失败:', error);
+        throw error;
+      }
+    }}
+
+    /**
+     * @description 显示KPI骨架屏，数据加载时展示
+     */
+    function showSkeleton() {
+      const kpiCards = document.getElementById('kpiCards');
+      if (!kpiCards) return;
+      let html = '';
+      for (let i = 0; i < 7; i++) {
+        html += '<div class="skeleton-card"><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-value"></div></div>';
+      }
+      kpiCards.innerHTML = html;
+    }
+
+    /**
+     * @description 切换KPI详情面板的显示/隐藏
+     * @param {number} index - KPI卡片索引
+     */
+    function toggleKpiDetail(index) {
+      const panel = document.getElementById('kpiDetailPanel');
+      const grid = document.getElementById('kpiCards');
+      if (panel && panel.dataset.index === String(index)) {
+        panel.remove();
+        return;
+      }
+      if (panel) panel.remove();
+
+      const totals = currentData?.totals;
+      if (!totals) return;
+
+      const kpiDetails = [
+        { label: '原价交易额', value: formatMoney(totals.gmvAmount), rows: [
+          { label: '加盟GMV', value: formatMoney(totals.franchiseGMV) },
+          { label: '自营GMV', value: formatMoney(totals.selfGMV) }
+        ]},
+        { label: '订单量', value: formatNumber(totals.orders), rows: [
+          { label: '加盟订单', value: formatNumber(totals.franchiseOrders) },
+          { label: '自营订单', value: formatNumber(totals.selfOrders) }
+        ]},
+        { label: '单均收入', value: (parseFloat(totals.avgRevenuePerOrder) || 0).toFixed(2), rows: [] },
+        { label: '单均支出', value: (parseFloat(totals.avgCostPerOrder) || 0).toFixed(2), rows: [] },
+        { label: '单均UE', value: (parseFloat(totals.ue) || 0).toFixed(2), rows: [
+          { label: '健康状态', value: parseFloat(totals.ue) >= 0.5 ? '✅ 健康' : parseFloat(totals.ue) >= 0.1 ? '⚠️ 预警' : '🚨 危险' },
+          { label: 'UE进度', value: Math.min(parseFloat(totals.ue) / 1.0 * 100, 100).toFixed(0) + '%' }
+        ]},
+        { label: '毛利率', value: formatPercent(totals.profitRate), rows: [
+          { label: '健康状态', value: parseFloat(totals.profitRate) >= 0.2 ? '✅ 健康' : parseFloat(totals.profitRate) >= 0.1 ? '⚠️ 预警' : '🚨 危险' },
+          { label: '利率进度', value: Math.min(parseFloat(totals.profitRate) / 0.3 * 100, 100).toFixed(0) + '%' }
+        ]},
+        { label: '毛利总额', value: formatMoney(totals.profit), rows: [] }
+      ];
+
+      const detail = kpiDetails[index];
+      if (!detail) return;
+
+      let html = '<div class="kpi-detail-panel" id="kpiDetailPanel" data-index="' + index + '">';
+      html += '<div class="kpi-detail-title"><span>' + detail.label + '</span><span class="kpi-detail-close" onclick="closeKpiDetail()">✕</span></div>';
+      html += '<div class="kpi-detail-row"><span class="kpi-detail-row-label">当前值</span><span class="kpi-detail-row-value">' + detail.value + '</span></div>';
+      detail.rows.forEach(row => {
+        html += '<div class="kpi-detail-row"><span class="kpi-detail-row-label">' + row.label + '</span><span class="kpi-detail-row-value">' + row.value + '</span></div>';
+      });
+      // UE进度条
+      if (index === 4) {
+        const uePct = Math.min(Math.max(parseFloat(totals.ue) / 1.0 * 100, 0), 100);
+        const ueColor = parseFloat(totals.ue) >= 0.5 ? 'var(--success)' : parseFloat(totals.ue) >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+        html += '<div style="margin-top:8px;height:6px;border-radius:3px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:' + uePct + '%;border-radius:3px;background:' + ueColor + ';transition:width .6s var(--ease);"></div></div>';
+      }
+      // 毛利率进度条
+      if (index === 5) {
+        const prPct = Math.min(Math.max(parseFloat(totals.profitRate) / 0.3 * 100, 0), 100);
+        const prColor = parseFloat(totals.profitRate) >= 0.2 ? 'var(--success)' : parseFloat(totals.profitRate) >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+        html += '<div style="margin-top:8px;height:6px;border-radius:3px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:' + prPct + '%;border-radius:3px;background:' + prColor + ';transition:width .6s var(--ease);"></div></div>';
+      }
+      html += '</div>';
+
+      // 插入到点击的KPI卡片后面
+      const cards = grid.querySelectorAll('.kpi-compact');
+      if (cards[index]) {
+        cards[index].insertAdjacentHTML('afterend', html);
+      }
+    }
+
+    /**
+     * @description 关闭KPI详情面板
+     */
+    function closeKpiDetail() {
+      const panel = document.getElementById('kpiDetailPanel');
+      if (panel) panel.remove();
+    }
+
+    const _renderOverview = function renderOverview() {
+      if (!currentData) return;
+
+      document.getElementById('overviewEmpty').classList.add('hidden');
+      document.getElementById('overviewData').classList.remove('hidden');
+
+      const totals = currentData.totals;
+
+      const ueLevel = parseFloat(totals.ue) >= 0.5 ? 'success' : parseFloat(totals.ue) >= 0.1 ? 'warning' : 'danger';
+      const profitRateLevel = parseFloat(totals.profitRate) >= 0.2 ? 'success' : parseFloat(totals.profitRate) >= 0.1 ? 'warning' : 'danger';
+
+      // UE进度条
+      const ueVal = parseFloat(totals.ue) || 0;
+      const uePct = Math.min(Math.max(ueVal / 1.0 * 100, 0), 100);
+      const ueBarColor = ueVal >= 0.5 ? 'var(--success)' : ueVal >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+
+      // 毛利率进度条
+      const prVal = parseFloat(totals.profitRate) || 0;
+      const prPct = Math.min(Math.max(prVal / 0.3 * 100, 0), 100);
+      const prBarColor = prVal >= 0.2 ? 'var(--success)' : prVal >= 0.1 ? 'var(--warning)' : 'var(--danger)';
+
+      const dotSuccess = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--success);"></span>';
+      const dotWarning = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--warning);"></span>';
+      const dotDanger = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--danger);"></span>';
+      const dotPrimary = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--primary);"></span>';
+
+      const isMobileView = window.innerWidth <= 576;
+
+      if (isMobileView) {
+        // 移动端紧凑网格
+        const kpis = [
+          { label: '交易额', value: formatMoney(totals.gmvAmount), badge: '', cls: '' },
+          { label: '订单量', value: formatNumber(totals.orders), badge: '', cls: '' },
+          { label: '单均收入', value: (parseFloat(totals.avgRevenuePerOrder) || 0).toFixed(2), badge: '', cls: '' },
+          { label: '单均支出', value: (parseFloat(totals.avgCostPerOrder) || 0).toFixed(2), badge: '', cls: '' },
+          { label: 'UE', value: (parseFloat(totals.ue) || 0).toFixed(2), badge: ueLevel === 'success' ? '✅' : ueLevel === 'warning' ? '⚠️' : '🚨', cls: ueLevel },
+          { label: '毛利率', value: formatPercent(totals.profitRate), badge: profitRateLevel === 'success' ? '✅' : profitRateLevel === 'warning' ? '⚠️' : '🚨', cls: profitRateLevel },
+          { label: '毛利', value: formatMoney(totals.profit), badge: '', cls: '' }
+        ];
+        let mobileHtml = '';
+        kpis.forEach((kpi, i) => {
+          mobileHtml += '<div class="kpi-compact' + (kpi.cls ? ' highlight ' + kpi.cls : '') + '" onclick="toggleKpiDetail(' + i + ')">';
+          mobileHtml += '<span class="kpi-compact-label">' + kpi.label + '</span>';
+          mobileHtml += '<span class="kpi-compact-value">' + kpi.value + '</span>';
+          if (kpi.badge) {
+            const badgeCls = kpi.cls === 'success' ? 'up' : kpi.cls === 'warning' ? 'warn' : 'down';
+            mobileHtml += '<span class="kpi-compact-badge ' + badgeCls + '">' + kpi.badge + '</span>';
+          }
+          mobileHtml += '</div>';
+        });
+        document.getElementById('kpiCards').innerHTML = mobileHtml;
+        document.getElementById('kpiCards').classList.add('compact');
+      } else {
+        // 桌面端原有KPI渲染
+        document.getElementById('kpiCards').classList.remove('compact');
+        document.getElementById('kpiCards').innerHTML = `
+        <div class="kpi-card">
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}原价交易额</div>
+          <div class="kpi-value">${formatMoney(totals.gmvAmount)}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}订单量</div>
+          <div class="kpi-value">${formatNumber(totals.orders)}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}单均收入</div>
+          <div class="kpi-value">${(parseFloat(totals.avgRevenuePerOrder) || 0).toFixed(2)}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent"></div>
+          <div class="kpi-label">${dotPrimary}单均支出</div>
+          <div class="kpi-value">${(parseFloat(totals.avgCostPerOrder) || 0).toFixed(2)}</div>
+        </div>
+        <div class="kpi-card ${ueLevel}">
+          <div class="accent"></div>
+          <div class="kpi-label">${ueLevel === 'success' ? dotSuccess : ueLevel === 'warning' ? dotWarning : dotDanger}单均UE</div>
+          <div class="kpi-value">${(parseFloat(totals.ue) || 0).toFixed(2)}</div>
+          <div class="kpi-change ${parseFloat(totals.ue) >= 0.5 ? 'up' : 'down'}">
+            ${parseFloat(totals.ue) >= 0.5 ? '✅ 健康' : parseFloat(totals.ue) >= 0.1 ? '⚠️ 预警' : '🚨 危险'}
+          </div>
+          <div style="margin-top:6px;height:4px;border-radius:2px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:${uePct}%;border-radius:2px;background:${ueBarColor};transition:width .6s var(--ease);"></div></div>
+        </div>
+        <div class="kpi-card ${profitRateLevel}">
+          <div class="accent"></div>
+          <div class="kpi-label">${profitRateLevel === 'success' ? dotSuccess : profitRateLevel === 'warning' ? dotWarning : dotDanger}毛利率</div>
+          <div class="kpi-value">${formatPercent(totals.profitRate)}</div>
+          <div class="kpi-change ${parseFloat(totals.profitRate) >= 0.2 ? 'up' : 'down'}">
+            ${parseFloat(totals.profitRate) >= 0.2 ? '✅ 健康' : parseFloat(totals.profitRate) >= 0.1 ? '⚠️ 预警' : '🚨 危险'}
+          </div>
+          <div style="margin-top:6px;height:4px;border-radius:2px;background:var(--neutral-bg);overflow:hidden;"><div style="height:100%;width:${prPct}%;border-radius:2px;background:${prBarColor};transition:width .6s var(--ease);"></div></div>
+        </div>
+        <div class="kpi-card success">
+          <div class="accent"></div>
+          <div class="kpi-label">${dotSuccess}毛利总额</div>
+          <div class="kpi-value">${formatMoney(totals.profit)}</div>
+        </div>
+        `;
+      }
+
+      renderCityRankTable();
+    }
+
+    function updateHealthScore() {
+      if (!currentData) return;
+
+      let good = 0, warning = 0, danger = 0;
+
+      currentData.cities.forEach(city => {
+        const mod = city.modules.all || {};
+        const ue = parseFloat(mod.ue) || 0;
+        const profitRate = parseFloat(mod.profitRate) || 0;
+
+        if (ue >= 0.5 && profitRate >= 0.2) good++;
+        else if (ue >= 0.1 && profitRate >= 0.1) warning++;
+        else danger++;
+      });
+
+      document.getElementById('healthGood').textContent = good;
+      document.getElementById('healthWarning').textContent = warning;
+      document.getElementById('healthDanger').textContent = danger;
+
+      const total = currentData.cities.length || 1;
+      const score = Math.round(((good * 100) + (warning * 50)) / total);
+      document.getElementById('healthScore').textContent = score;
+
+      const circumference = 2 * Math.PI * 70;
+      const offset = circumference - (score / 100) * circumference;
+      document.getElementById('healthRing').setAttribute('stroke-dashoffset', offset);
+    }
+
+    function renderAnomalyList() {
+      const anomalyList = document.getElementById('anomalyList');
+      let html = '';
+
+      currentData.cities.forEach(city => {
+        const mod = city.modules.all || {};
+        const ue = parseFloat(mod.ue) || 0;
+        const profitRate = parseFloat(mod.profitRate) || 0;
+
+        if (ue < 0.1) {
+          html += `<div class="collapsible"><div class="collapsible-header">🚨 ${getCityDisplayName(city.displayName)} - UE危险 <span class="text-danger">${ue.toFixed(3)}</span></div><div class="collapsible-content"><p>UE低于0.1元，处于危险区间，建议立即排查成本结构</p></div></div>`;
+        } else if (ue < 0.5) {
+          html += `<div class="collapsible"><div class="collapsible-header">⚠️ ${getCityDisplayName(city.displayName)} - UE预警 <span class="text-warning">${ue.toFixed(3)}</span></div><div class="collapsible-content"><p>UE低于0.5元，建议关注成本优化</p></div></div>`;
+        }
+
+        if (profitRate < 0.1) {
+          html += `<div class="collapsible"><div class="collapsible-header">🚨 ${getCityDisplayName(city.displayName)} - 毛利率危险 <span class="text-danger">${(profitRate * 100).toFixed(1)}%</span></div><div class="collapsible-content"><p>毛利率低于10%，需要重点关注收入和成本结构</p></div></div>`;
+        }
+      });
+
+      anomalyList.innerHTML = html || '<div class="empty-state"><div>✅ 暂无严重异常</div></div>';
+
+      anomalyList.querySelectorAll('.collapsible-header').forEach(header => {
+        header.addEventListener('click', () => header.parentElement.classList.toggle('collapsed'));
+      });
+    }
+
+    /**
+     * @description 切换城市排名项的展开/折叠状态
+     * @param {HTMLElement} el - 被点击的city-rank-item元素
+     */
+    function toggleCityRankExpand(el) {
+      const detail = el.querySelector('.city-rank-detail');
+      if (!detail) return;
+      const isExpanded = el.classList.contains('expanded');
+      el.classList.toggle('expanded');
+      detail.style.display = isExpanded ? 'none' : 'block';
+    }
+
+    function renderCityRankTable() {
+      const cities = currentData.cities.map(city => ({
+        city: city,
+        ue: parseFloat(city.modules.all?.ue) || 0,
+        profitRate: parseFloat(city.modules.all?.profitRate) || 0
+      }));
+
+      function getQuartiles(values) {
+        const sorted = [...values].sort((a, b) => a - b);
+        const q1 = sorted[Math.floor(sorted.length * 0.25)];
+        const q2 = sorted[Math.floor(sorted.length * 0.5)];
+        const q3 = sorted[Math.floor(sorted.length * 0.75)];
+        return { q1, q2, q3, min: sorted[0], max: sorted[sorted.length - 1] };
+      }
+
+      const ueStats = getQuartiles(cities.map(c => c.ue));
+      const profitStats = getQuartiles(cities.map(c => c.profitRate));
+
+      const ueDangerThreshold = ueStats.q1 || 0.1;
+      const ueWarningThreshold = ueStats.q3 || 0.5;
+      const profitDangerThreshold = profitStats.q1 || 0.1;
+      const profitWarningThreshold = profitStats.q3 || 0.2;
+
+      const sortedCities = [...cities].sort((a, b) => b.ue - a.ue);
+
+      // 移动端可展开行视图
+      const isMobile = window.innerWidth <= 576;
+      if (isMobile) {
+        let mobileHtml = '<div class="city-rank-list">';
+        sortedCities.forEach((item, idx) => {
+          const city = item.city;
+          const mod = city.modules?.all || {};
+          const ue = item.ue;
+          const profitRate = item.profitRate;
+
+          const uePct = Math.min(Math.max(ue / 1.0 * 100, 0), 100);
+          const ueColor = ue >= ueWarningThreshold ? 'var(--success)' : ue >= ueDangerThreshold ? 'var(--warning)' : 'var(--danger)';
+          const healthIcon = (ue >= ueWarningThreshold && profitRate >= profitWarningThreshold) ? '✅' : (ue < ueDangerThreshold || profitRate < profitDangerThreshold) ? '🚨' : '⚠️';
+
+          mobileHtml += '<div class="city-rank-item" onclick="toggleCityRankExpand(this)">';
+          mobileHtml += '<div class="city-rank-summary">';
+          mobileHtml += '<span class="rank-badge">' + (idx + 1) + '</span>';
+          mobileHtml += '<span class="rank-city">' + getCityDisplayName(city?.displayName || '') + '</span>';
+          mobileHtml += '<div class="rank-bars">';
+          mobileHtml += '<div class="rank-bar-row"><span class="rank-bar-label">UE ' + ue.toFixed(2) + '</span><div class="rank-bar"><div class="rank-bar-fill" style="width:' + uePct + '%;background:' + ueColor + ';"></div></div></div>';
+          const prPct = Math.min(Math.max(profitRate / 0.3 * 100, 0), 100);
+          const prColor = profitRate >= profitWarningThreshold ? 'var(--success)' : profitRate >= profitDangerThreshold ? 'var(--warning)' : 'var(--danger)';
+          mobileHtml += '<div class="rank-bar-row"><span class="rank-bar-label">利率 ' + formatPercent(profitRate) + '</span><div class="rank-bar"><div class="rank-bar-fill" style="width:' + prPct + '%;background:' + prColor + ';"></div></div></div>';
+          mobileHtml += '</div>';
+          mobileHtml += '<span class="rank-health">' + healthIcon + '</span>';
+          mobileHtml += '<span class="rank-expand-icon">▸</span>';
+          mobileHtml += '</div>';
+
+          // 展开详情
+          mobileHtml += '<div class="city-rank-detail" style="display:none;">';
+          mobileHtml += '<div class="detail-grid">';
+          const detailItems = [
+            { label: '订单量', value: formatNumber(mod?.orders) },
+            { label: '交易额', value: formatMoney(mod?.gmvAmount) },
+            { label: '单均收入', value: (parseFloat(mod?.avgRevenuePerOrder) || 0).toFixed(2) },
+            { label: '单均支出', value: (parseFloat(mod?.avgCostPerOrder) || 0).toFixed(2) },
+            { label: 'UE', value: ue.toFixed(3) },
+            { label: '毛利率', value: formatPercent(profitRate) },
+            { label: '毛利总额', value: formatMoney(mod?.profit) }
+          ];
+          detailItems.forEach(d => {
+            mobileHtml += '<div class="detail-item"><span class="detail-label">' + d.label + '</span><span class="detail-value">' + d.value + '</span></div>';
+          });
+          mobileHtml += '</div></div>';
+          mobileHtml += '</div>';
+        });
+
+        // 动态阈值说明
+        mobileHtml += '<div style="padding: 8px 12px; font-size: 11px; color: var(--text-secondary);">';
+        mobileHtml += '<strong>动态阈值：</strong>UE危险<' + ueDangerThreshold.toFixed(3) + '，预警<' + ueWarningThreshold.toFixed(3) + '；毛利率危险<' + formatPercent(profitDangerThreshold) + '，预警<' + formatPercent(profitWarningThreshold);
+        mobileHtml += '</div>';
+
+        mobileHtml += '</div>';
+        document.getElementById('cityRankTable').innerHTML = mobileHtml;
+        return;
+      }
+
+      let html = '<table style="width:100%;border-collapse:collapse;"><thead><tr><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">排名</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:left;">城市</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">订单量</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">交易额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均收入</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">单均支出</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">UE</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利率</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:right;">毛利总额</th><th style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg-header);text-align:center;">健康度</th></tr></thead><tbody>';
+
+      sortedCities.forEach((item, idx) => {
+        const city = item.city;
+        const mod = city.modules.all || {};
+        const ue = item.ue;
+        const profitRate = item.profitRate;
+        
+        let healthStatus = '';
+        let healthIcon = '✅';
+        let healthClass = 'text-success';
+        
+        const ueIsDanger = ue < ueDangerThreshold;
+        const profitIsDanger = profitRate < profitDangerThreshold;
+        const ueIsWarning = ue < ueWarningThreshold;
+        const profitIsWarning = profitRate < profitWarningThreshold;
+        
+        if (ueIsDanger || profitIsDanger) {
+          healthStatus = '危险';
+          healthIcon = '🚨';
+          healthClass = 'text-danger';
+        } else if (ueIsWarning || profitIsWarning) {
+          healthStatus = '预警';
+          healthIcon = '⚠️';
+          healthClass = 'text-warning';
+        } else {
+          healthStatus = '健康';
+        }
+
+        const ueClass = ue >= ueWarningThreshold ? 'text-success' : ue >= ueDangerThreshold ? 'text-warning' : 'text-danger';
+        const profitClass = profitRate >= profitWarningThreshold ? 'text-success' : profitRate >= profitDangerThreshold ? 'text-warning' : 'text-danger';
+
+        html += '<tr>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:center;">' + (idx + 1) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;font-weight:600;">' + getCityDisplayName(city.displayName) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + formatNumber(mod.orders) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + formatMoney(mod.gmvAmount) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + (mod.avgRevenuePerOrder ? mod.avgRevenuePerOrder.toFixed(2) : '-') + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + (mod.avgCostPerOrder ? mod.avgCostPerOrder.toFixed(2) : '-') + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;" class="' + ueClass + '">' + ue.toFixed(3) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;" class="' + profitClass + '">' + formatPercent(profitRate) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;">' + formatMoney(mod.profit) + '</td>';
+        html += '<td style="padding:6px 10px;font-size:12px;text-align:center;" class="' + healthClass + '">' + healthIcon + ' ' + healthStatus + '</td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody>';
+      
+      html += '<tfoot><tr><td colspan="10" style="padding: 12px; font-size: 11px; color: var(--text-secondary); background: var(--bg-header); border-top: 1px solid var(--border);">';
+      html += '<strong>动态阈值说明：</strong> ';
+      html += 'UE阈值：危险<' + ueDangerThreshold.toFixed(3) + '，预警<' + ueWarningThreshold.toFixed(3) + '，健康≥' + ueWarningThreshold.toFixed(3) + '；';
+      html += '毛利率阈值：危险<' + formatPercent(profitDangerThreshold) + '，预警<' + formatPercent(profitWarningThreshold) + '，健康≥' + formatPercent(profitWarningThreshold);
+      html += '</td></tr></tfoot></table>';
+
+      document.getElementById('cityRankTable').innerHTML = html;
+    }
+
+    const _renderDimension = function renderDimension() {
+      if (!currentData) return;
+
+      document.getElementById('dimensionEmpty').classList.add('hidden');
+      document.getElementById('dimensionData').classList.remove('hidden');
+
+      const cityCheckboxes = document.getElementById('cityCheckboxes');
+      let checkboxHtml = '<label class="checkbox-label checked"><input type="checkbox" value="总商" checked onchange="renderDimensionTable()"> 总商</label>';
+      
+      currentData.cities.slice(0, 3).forEach(city => {
+        checkboxHtml += `<label class="checkbox-label checked"><input type="checkbox" value="${city.name}" checked onchange="renderDimensionTable()"> ${getCityDisplayName(city.displayName)}</label>`;
+      });
+
+      currentData.cities.slice(3).forEach(city => {
+        checkboxHtml += `<label class="checkbox-label"><input type="checkbox" value="${city.name}" onchange="renderDimensionTable()"> ${getCityDisplayName(city.displayName)}</label>`;
+      });
+
+      cityCheckboxes.innerHTML = checkboxHtml;
+      renderDimensionTable();
+    }
+
+    // 为每个业务模块定义不同的指标组
+    const METRIC_GROUPS_BY_MODULE = {
+      all: [ // 全品类 - 完整指标
+        {
+          name: '订单指标',
+          metrics: [
+            { key: 'orders', label: '订单量汇总', format: 'number' },
+            { key: 'franchiseOrders', label: '加盟订单量', format: 'number' },
+            { key: 'selfOrders', label: '自配订单量', format: 'number' },
+            { key: 'enterpriseOrders', label: '企客订单量', format: 'number' }
+          ]
+        },
+        {
+          name: 'GMV指标',
+          metrics: [
+            { key: 'gmvAmount', label: '原价交易额汇总', format: 'money' },
+            { key: 'franchiseGMV', label: '加盟原价交易额', format: 'money' },
+            { key: 'selfGMV', label: '自配原价交易额', format: 'money' }
+          ]
+        },
+        {
+          name: '收入指标',
+          metrics: [
+            { key: 'onlineRevenue', label: '线上收入', format: 'money' },
+            { key: 'commission', label: '抽佣金额汇总', format: 'money' },
+            { key: 'franchiseCommission', label: '加盟抽佣金额', format: 'money' },
+            { key: 'selfCommission', label: '自配抽佣金额', format: 'money' },
+            { key: 'enterpriseCommission', label: '企客商家抽佣金额', format: 'money' },
+            { key: 'deliveryFee', label: '配送费汇总', format: 'money' },
+            { key: 'franchiseDeliveryFee', label: '加盟配送费', format: 'money' },
+            { key: 'secondDeliveryFee', label: '二次配送费', format: 'money' },
+            { key: 'enterpriseDeliveryFee', label: '企客配送费', format: 'money' },
+            { key: 'urgentDeliveryFee', label: '一对一急送配送费', format: 'money' },
+            { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
+          ]
+        },
+        {
+          name: '补贴支出',
+          metrics: [
+            { key: 'subsidyTotal', label: '代补金额花费汇总', format: 'money' },
+            { key: 'subsidyB', label: 'B端代补金额', format: 'money' },
+            { key: 'subsidyC', label: 'C端代补金额', format: 'money' },
+            { key: 'subsidyDiff', label: '账单-代补差额', format: 'money' },
+            { key: 'pinDanSubsidy', label: '拼单补贴', format: 'money' },
+            { key: 'pinHaoFanSubsidy', label: '拼好饭补贴', format: 'money' },
+            { key: 'specialSubsidy', label: '专项补贴', format: 'money' },
+            { key: 'crowdSubsidyAdjust', label: '众包补贴调账', format: 'money' }
+          ]
+        },
+        {
+          name: '平台成本',
+          metrics: [
+            { key: 'platformCost', label: '平台成本汇总', format: 'money' },
+            { key: 'platformCommissionCost', label: '平台抽佣金额', format: 'money' },
+            { key: 'afterSaleCost', label: '合作商售后赔付费用', format: 'money' },
+            { key: 'careFund', label: '关爱基金', format: 'money' },
+            { key: 'insuranceCost', label: '保险费用', format: 'money' },
+            { key: 'biddingCost', label: '竞价', format: 'money' },
+            { key: 'penalty', label: '罚款', format: 'money' }
+          ]
+        },
+        {
+          name: '配送成本',
+          metrics: [
+            { key: 'deliveryCost', label: '配送成本汇总', format: 'money' },
+            // 加盟配送拆分
+            { key: 'franchiseDeliverOrders', label: '加盟承接订单量', format: 'number' },
+            { key: 'franchiseAvgPostage', label: '加盟单均邮资', format: 'money' },
+            { key: 'franchiseActivityCost', label: '加盟活动花费', format: 'money' },
+            { key: 'franchiseDelivery', label: '加盟邮资', format: 'money' },
+            // 普众众包拆分
+            { key: 'crowdOrders', label: '普众众包订单量', format: 'number' },
+            { key: 'crowdBasePostage', label: '普众众包基础邮资', format: 'money' },
+            { key: 'crowdActivityCost', label: '普众众包活动花费', format: 'money' },
+            { key: 'crowdDelivery', label: '普众众包邮资', format: 'money' },
+            // 悦跑拆分
+            { key: 'yuepaoOrders', label: '悦跑订单量', format: 'number' },
+            { key: 'yuepaoBasePostage', label: '悦跑基础邮资', format: 'money' },
+            { key: 'yuepaoActivityCost', label: '悦跑活动花费', format: 'money' },
+            { key: 'yuepaoDelivery', label: '悦跑邮资', format: 'money' },
+            // 其他
+            { key: 'weatherSubsidy', label: '众包天气补贴', format: 'money' }
+          ]
+        },
+        {
+          name: '固定成本',
+          metrics: [
+            { key: 'fixedCost', label: '固定成本汇总', format: 'money' },
+            { key: 'officeRent', label: '办公室房租', format: 'money' },
+            { key: 'teamCost', label: '业务团队', format: 'money' }
+          ]
+        },
+        {
+          name: '附加成本',
+          metrics: [
+            { key: 'additionalCost', label: '附加成本汇总', format: 'money' },
+            { key: 'thirdPartyServiceCost', label: '三方服务费', format: 'money' },
+            { key: 'socialInsurance', label: '社保', format: 'money' },
+            { key: 'taxCost', label: '税', format: 'money' }
+          ]
+        },
+        {
+          name: '其他成本',
+          metrics: [
+            { key: 'otherCost', label: '其他成本汇总', format: 'money' },
+            { key: 'operationBoostCost', label: '外卖运营增单', format: 'money' },
+            { key: 'utilityCost', label: '水电电话网物料费', format: 'money' },
+            { key: 'travelCost', label: '差旅招待', format: 'money' },
+            { key: 'otherMiscCost', label: '其他成本', format: 'money' }
+          ]
+        },
+        {
+          name: '利润指标',
+          metrics: [
+            { key: 'profit', label: '毛利', format: 'money' },
+            { key: 'ue', label: 'UE', format: 'ue' },
+            { key: 'profitRate', label: '利润率', format: 'percent' },
+            { key: 'subsidyRatio', label: '补贴率', format: 'percent' },
+            { key: 'avgRevenuePerOrder', label: '单均收入', format: 'money' },
+            { key: 'avgCostPerOrder', label: '单均支出', format: 'money' },
+            { key: 'deliveryCostRate', label: '配送成本率', format: 'percent' },
+            { key: 'fixedCostRate', label: '固定成本率', format: 'percent' }
+          ]
+        }
+      ],
+      food: [ // 餐饮 - 完整指标，去掉拼好饭专属补贴
+        {
+          name: '订单指标',
+          metrics: [
+            { key: 'orders', label: '订单量汇总', format: 'number' },
+            { key: 'franchiseOrders', label: '加盟订单量', format: 'number' },
+            { key: 'selfOrders', label: '自配订单量', format: 'number' },
+            { key: 'enterpriseOrders', label: '企客订单量', format: 'number' }
+          ]
+        },
+        {
+          name: 'GMV指标',
+          metrics: [
+            { key: 'gmvAmount', label: '原价交易额汇总', format: 'money' },
+            { key: 'franchiseGMV', label: '加盟原价交易额', format: 'money' },
+            { key: 'selfGMV', label: '自配原价交易额', format: 'money' }
+          ]
+        },
+        {
+          name: '收入指标',
+          metrics: [
+            { key: 'onlineRevenue', label: '线上收入', format: 'money' },
+            { key: 'commission', label: '抽佣金额汇总', format: 'money' },
+            { key: 'franchiseCommission', label: '加盟抽佣金额', format: 'money' },
+            { key: 'selfCommission', label: '自配抽佣金额', format: 'money' },
+            { key: 'enterpriseCommission', label: '企客商家抽佣金额', format: 'money' },
+            { key: 'deliveryFee', label: '配送费汇总', format: 'money' },
+            { key: 'franchiseDeliveryFee', label: '加盟配送费', format: 'money' },
+            { key: 'secondDeliveryFee', label: '二次配送费', format: 'money' },
+            { key: 'enterpriseDeliveryFee', label: '企客配送费', format: 'money' },
+            { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
+          ]
+        },
+        {
+          name: '补贴支出',
+          metrics: [
+            { key: 'subsidyTotal', label: '代补金额花费汇总', format: 'money' },
+            { key: 'subsidyB', label: 'B端代补金额', format: 'money' },
+            { key: 'subsidyC', label: 'C端代补金额', format: 'money' },
+            { key: 'subsidyDiff', label: '账单-代补差额', format: 'money' },
+            { key: 'pinDanSubsidy', label: '拼单补贴', format: 'money' },
+            { key: 'specialSubsidy', label: '专项补贴', format: 'money' },
+            { key: 'crowdSubsidyAdjust', label: '众包补贴调账', format: 'money' }
+          ]
+        },
+        {
+          name: '平台成本',
+          metrics: [
+            { key: 'platformCost', label: '平台成本汇总', format: 'money' },
+            { key: 'platformCommissionCost', label: '平台抽佣金额', format: 'money' },
+            { key: 'afterSaleCost', label: '合作商售后赔付费用', format: 'money' },
+            { key: 'careFund', label: '关爱基金', format: 'money' },
+            { key: 'insuranceCost', label: '保险费用', format: 'money' },
+            { key: 'biddingCost', label: '竞价', format: 'money' },
+            { key: 'penalty', label: '罚款', format: 'money' }
+          ]
+        },
+        {
+          name: '配送成本',
+          metrics: [
+            { key: 'deliveryCost', label: '配送成本汇总', format: 'money' },
+            { key: 'franchiseDeliverOrders', label: '加盟承接订单量', format: 'number' },
+            { key: 'franchiseAvgPostage', label: '加盟单均邮资', format: 'money' },
+            { key: 'franchiseActivityCost', label: '加盟活动花费', format: 'money' },
+            { key: 'franchiseDelivery', label: '加盟邮资', format: 'money' },
+            { key: 'crowdOrders', label: '普众众包订单量', format: 'number' },
+            { key: 'crowdBasePostage', label: '普众众包基础邮资', format: 'money' },
+            { key: 'crowdActivityCost', label: '普众众包活动花费', format: 'money' },
+            { key: 'crowdDelivery', label: '普众众包邮资', format: 'money' },
+            { key: 'yuepaoOrders', label: '悦跑订单量', format: 'number' },
+            { key: 'yuepaoBasePostage', label: '悦跑基础邮资', format: 'money' },
+            { key: 'yuepaoActivityCost', label: '悦跑活动花费', format: 'money' },
+            { key: 'yuepaoDelivery', label: '悦跑邮资', format: 'money' },
+            { key: 'weatherSubsidy', label: '众包天气补贴', format: 'money' }
+          ]
+        },
+        {
+          name: '固定成本',
+          metrics: [
+            { key: 'fixedCost', label: '固定成本汇总', format: 'money' },
+            { key: 'officeRent', label: '办公室房租', format: 'money' },
+            { key: 'teamCost', label: '业务团队', format: 'money' }
+          ]
+        },
+        {
+          name: '附加成本',
+          metrics: [
+            { key: 'additionalCost', label: '附加成本汇总', format: 'money' },
+            { key: 'thirdPartyServiceCost', label: '三方服务费', format: 'money' },
+            { key: 'socialInsurance', label: '社保', format: 'money' },
+            { key: 'taxCost', label: '税', format: 'money' }
+          ]
+        },
+        {
+          name: '其他成本',
+          metrics: [
+            { key: 'otherCost', label: '其他成本汇总', format: 'money' },
+            { key: 'operationBoostCost', label: '外卖运营增单', format: 'money' },
+            { key: 'utilityCost', label: '水电电话网物料费', format: 'money' },
+            { key: 'travelCost', label: '差旅招待', format: 'money' },
+            { key: 'otherMiscCost', label: '其他成本', format: 'money' }
+          ]
+        },
+        {
+          name: '利润指标',
+          metrics: [
+            { key: 'profit', label: '毛利', format: 'money' },
+            { key: 'ue', label: 'UE', format: 'ue' },
+            { key: 'profitRate', label: '利润率', format: 'percent' },
+            { key: 'subsidyRatio', label: '补贴率', format: 'percent' },
+            { key: 'avgRevenuePerOrder', label: '单均收入', format: 'money' },
+            { key: 'avgCostPerOrder', label: '单均支出', format: 'money' },
+            { key: 'deliveryCostRate', label: '配送成本率', format: 'percent' },
+            { key: 'fixedCostRate', label: '固定成本率', format: 'percent' }
+          ]
+        }
+      ],
+      flash: [ // 闪购 - 完整指标
+        {
+          name: '订单指标',
+          metrics: [
+            { key: 'orders', label: '闪购订单量', format: 'number' },
+            { key: 'franchiseOrders', label: '加盟订单量', format: 'number' },
+            { key: 'selfOrders', label: '自配订单量', format: 'number' }
+          ]
+        },
+        {
+          name: 'GMV指标',
+          metrics: [
+            { key: 'gmvAmount', label: '闪购交易额', format: 'money' },
+            { key: 'franchiseGMV', label: '加盟交易额', format: 'money' },
+            { key: 'selfGMV', label: '自配交易额', format: 'money' }
+          ]
+        },
+        {
+          name: '收入指标',
+          metrics: [
+            { key: 'onlineRevenue', label: '闪购线上收入', format: 'money' },
+            { key: 'commission', label: '抽佣金额汇总', format: 'money' },
+            { key: 'franchiseCommission', label: '加盟抽佣金额', format: 'money' },
+            { key: 'selfCommission', label: '自配抽佣金额', format: 'money' },
+            { key: 'deliveryFee', label: '配送费汇总', format: 'money' },
+            { key: 'franchiseDeliveryFee', label: '加盟配送费', format: 'money' },
+            { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
+          ]
+        },
+        {
+          name: '补贴支出',
+          metrics: [
+            { key: 'subsidyTotal', label: '代补金额花费汇总', format: 'money' },
+            { key: 'subsidyB', label: 'B端代补金额', format: 'money' },
+            { key: 'subsidyC', label: 'C端代补金额', format: 'money' },
+            { key: 'specialSubsidy', label: '专项补贴', format: 'money' }
+          ]
+        },
+        {
+          name: '平台成本',
+          metrics: [
+            { key: 'platformCost', label: '闪购平台成本', format: 'money' },
+            { key: 'afterSaleCost', label: '售后赔付费用', format: 'money' },
+            { key: 'insuranceCost', label: '保险费用', format: 'money' }
+          ]
+        },
+        {
+          name: '配送成本',
+          metrics: [
+            { key: 'deliveryCost', label: '闪购配送成本', format: 'money' },
+            { key: 'franchiseDelivery', label: '加盟邮资', format: 'money' },
+            { key: 'crowdDelivery', label: '普众众包邮资', format: 'money' },
+            { key: 'yuepaoDelivery', label: '悦跑邮资', format: 'money' }
+          ]
+        },
+        {
+          name: '固定成本',
+          metrics: [
+            { key: 'fixedCost', label: '固定成本汇总', format: 'money' }
+          ]
+        },
+        {
+          name: '利润指标',
+          metrics: [
+            { key: 'profit', label: '闪购毛利', format: 'money' },
+            { key: 'ue', label: '闪购UE', format: 'ue' },
+            { key: 'profitRate', label: '利润率', format: 'percent' },
+            { key: 'subsidyRatio', label: '补贴率', format: 'percent' },
+            { key: 'avgRevenuePerOrder', label: '单均收入', format: 'money' },
+            { key: 'avgCostPerOrder', label: '单均支出', format: 'money' }
+          ]
+        }
+      ],
+      medicine: [ // 医药 - 完整指标
+        {
+          name: '订单指标',
+          metrics: [
+            { key: 'orders', label: '医药订单量', format: 'number' },
+            { key: 'franchiseOrders', label: '加盟订单量', format: 'number' },
+            { key: 'selfOrders', label: '自配订单量', format: 'number' }
+          ]
+        },
+        {
+          name: 'GMV指标',
+          metrics: [
+            { key: 'gmvAmount', label: '医药交易额', format: 'money' },
+            { key: 'franchiseGMV', label: '加盟交易额', format: 'money' },
+            { key: 'selfGMV', label: '自配交易额', format: 'money' }
+          ]
+        },
+        {
+          name: '收入指标',
+          metrics: [
+            { key: 'onlineRevenue', label: '医药线上收入', format: 'money' },
+            { key: 'commission', label: '抽佣金额汇总', format: 'money' },
+            { key: 'franchiseCommission', label: '加盟抽佣金额', format: 'money' },
+            { key: 'selfCommission', label: '自配抽佣金额', format: 'money' },
+            { key: 'deliveryFee', label: '配送费汇总', format: 'money' },
+            { key: 'franchiseDeliveryFee', label: '加盟配送费', format: 'money' },
+            { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
+          ]
+        },
+        {
+          name: '补贴支出',
+          metrics: [
+            { key: 'subsidyTotal', label: '代补金额花费汇总', format: 'money' },
+            { key: 'subsidyB', label: 'B端代补金额', format: 'money' },
+            { key: 'subsidyC', label: 'C端代补金额', format: 'money' },
+            { key: 'specialSubsidy', label: '专项补贴', format: 'money' }
+          ]
+        },
+        {
+          name: '平台成本',
+          metrics: [
+            { key: 'platformCost', label: '医药平台成本', format: 'money' },
+            { key: 'afterSaleCost', label: '售后赔付费用', format: 'money' },
+            { key: 'insuranceCost', label: '保险费用', format: 'money' }
+          ]
+        },
+        {
+          name: '配送成本',
+          metrics: [
+            { key: 'deliveryCost', label: '医药配送成本', format: 'money' },
+            { key: 'franchiseDelivery', label: '加盟邮资', format: 'money' },
+            { key: 'crowdDelivery', label: '普众众包邮资', format: 'money' },
+            { key: 'yuepaoDelivery', label: '悦跑邮资', format: 'money' }
+          ]
+        },
+        {
+          name: '固定成本',
+          metrics: [
+            { key: 'fixedCost', label: '固定成本汇总', format: 'money' }
+          ]
+        },
+        {
+          name: '利润指标',
+          metrics: [
+            { key: 'profit', label: '医药毛利', format: 'money' },
+            { key: 'ue', label: '医药UE', format: 'ue' },
+            { key: 'profitRate', label: '利润率', format: 'percent' },
+            { key: 'subsidyRatio', label: '补贴率', format: 'percent' },
+            { key: 'avgRevenuePerOrder', label: '单均收入', format: 'money' },
+            { key: 'avgCostPerOrder', label: '单均支出', format: 'money' }
+          ]
+        }
+      ],
+      group: [ // 拼好饭 - 专属指标
+        {
+          name: '订单指标',
+          metrics: [
+            { key: 'orders', label: '拼好饭订单量', format: 'number' },
+            { key: 'franchiseOrders', label: '加盟订单量', format: 'number' },
+            { key: 'selfOrders', label: '自配订单量', format: 'number' }
+          ]
+        },
+        {
+          name: 'GMV指标',
+          metrics: [
+            { key: 'gmvAmount', label: '拼好饭交易额', format: 'money' },
+            { key: 'franchiseGMV', label: '加盟交易额', format: 'money' },
+            { key: 'selfGMV', label: '自配交易额', format: 'money' }
+          ]
+        },
+        {
+          name: '收入指标',
+          metrics: [
+            { key: 'onlineRevenue', label: '拼好饭线上收入', format: 'money' },
+            { key: 'commission', label: '抽佣金额汇总', format: 'money' },
+            { key: 'franchiseCommission', label: '加盟抽佣金额', format: 'money' },
+            { key: 'selfCommission', label: '自配抽佣金额', format: 'money' },
+            { key: 'deliveryFee', label: '配送费汇总', format: 'money' },
+            { key: 'franchiseDeliveryFee', label: '加盟配送费', format: 'money' },
+            { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
+          ]
+        },
+        {
+          name: '补贴支出',
+          metrics: [
+            { key: 'subsidyTotal', label: '拼好饭补贴总花费', format: 'money' },
+            { key: 'subsidyB', label: 'B端代补金额', format: 'money' },
+            { key: 'subsidyC', label: 'C端代补金额', format: 'money' },
+            { key: 'subsidyDiff', label: '账单-代补差额', format: 'money' },
+            { key: 'pinHaoFanSubsidy', label: '拼好饭专属补贴', format: 'money' },
+            { key: 'pinDanSubsidy', label: '拼单补贴', format: 'money' },
+            { key: 'specialSubsidy', label: '专项补贴', format: 'money' },
+            { key: 'crowdSubsidyAdjust', label: '众包补贴调账', format: 'money' }
+          ]
+        },
+        {
+          name: '平台成本',
+          metrics: [
+            { key: 'platformCost', label: '拼好饭平台成本', format: 'money' },
+            { key: 'platformCommissionCost', label: '平台抽佣金额', format: 'money' },
+            { key: 'afterSaleCost', label: '售后赔付费用', format: 'money' },
+            { key: 'insuranceCost', label: '保险费用', format: 'money' },
+            { key: 'biddingCost', label: '竞价', format: 'money' },
+            { key: 'penalty', label: '罚款', format: 'money' }
+          ]
+        },
+        {
+          name: '配送成本',
+          metrics: [
+            { key: 'deliveryCost', label: '拼好饭配送成本', format: 'money' },
+            { key: 'franchiseDeliverOrders', label: '加盟承接订单量', format: 'number' },
+            { key: 'franchiseAvgPostage', label: '加盟单均邮资', format: 'money' },
+            { key: 'franchiseActivityCost', label: '加盟活动花费', format: 'money' },
+            { key: 'franchiseDelivery', label: '加盟邮资', format: 'money' },
+            { key: 'crowdOrders', label: '普众众包订单量', format: 'number' },
+            { key: 'crowdBasePostage', label: '普众众包基础邮资', format: 'money' },
+            { key: 'crowdActivityCost', label: '普众众包活动花费', format: 'money' },
+            { key: 'crowdDelivery', label: '普众众包邮资', format: 'money' },
+            { key: 'yuepaoOrders', label: '悦跑订单量', format: 'number' },
+            { key: 'yuepaoBasePostage', label: '悦跑基础邮资', format: 'money' },
+            { key: 'yuepaoActivityCost', label: '悦跑活动花费', format: 'money' },
+            { key: 'yuepaoDelivery', label: '悦跑邮资', format: 'money' },
+            { key: 'weatherSubsidy', label: '众包天气补贴', format: 'money' }
+          ]
+        },
+        {
+          name: '固定成本',
+          metrics: [
+            { key: 'fixedCost', label: '固定成本汇总', format: 'money' },
+            { key: 'officeRent', label: '办公室房租', format: 'money' },
+            { key: 'teamCost', label: '业务团队', format: 'money' }
+          ]
+        },
+        {
+          name: '附加成本',
+          metrics: [
+            { key: 'additionalCost', label: '附加成本汇总', format: 'money' },
+            { key: 'thirdPartyServiceCost', label: '三方服务费', format: 'money' },
+            { key: 'socialInsurance', label: '社保', format: 'money' },
+            { key: 'taxCost', label: '税', format: 'money' }
+          ]
+        },
+        {
+          name: '其他成本',
+          metrics: [
+            { key: 'otherCost', label: '其他成本汇总', format: 'money' },
+            { key: 'operationBoostCost', label: '外卖运营增单', format: 'money' },
+            { key: 'utilityCost', label: '水电电话网物料费', format: 'money' },
+            { key: 'travelCost', label: '差旅招待', format: 'money' },
+            { key: 'otherMiscCost', label: '其他成本', format: 'money' }
+          ]
+        },
+        {
+          name: '利润指标',
+          metrics: [
+            { key: 'profit', label: '拼好饭毛利', format: 'money' },
+            { key: 'ue', label: '拼好饭UE', format: 'ue' },
+            { key: 'profitRate', label: '利润率', format: 'percent' },
+            { key: 'subsidyRatio', label: '补贴率', format: 'percent' },
+            { key: 'avgRevenuePerOrder', label: '单均收入', format: 'money' },
+            { key: 'avgCostPerOrder', label: '单均支出', format: 'money' },
+            { key: 'deliveryCostRate', label: '配送成本率', format: 'percent' },
+            { key: 'fixedCostRate', label: '固定成本率', format: 'percent' }
+          ]
+        }
+      ]
+    };
+    // 默认使用全品类的指标
+    const METRIC_GROUPS = METRIC_GROUPS_BY_MODULE.all;
+
+    // 移动端维度表Tab分组状态
+    let currentMobileMetricTab = 'revenue';
+
+    /**
+     * @description 切换移动端维度表的指标Tab
+     * @param {string} tabKey - Tab键名(revenue/cost/efficiency/all)
+     */
+    function switchMobileMetricTab(tabKey) {
+      currentMobileMetricTab = tabKey;
+      renderDimensionTable();
+    }
+
+    const _renderDimensionTable = function renderDimensionTable() {
+    // ===== FIX: Try multiple data sources for robustness =====
+  let allMerchantData = null;
+
+  // 优先级1：直接从全局窗口对象获取（由 switchImportDateDim 或 StateManager 设置）
+  if (window.allMerchantData && Object.keys(window.allMerchantData).length > 0) {
+    allMerchantData = window.allMerchantData;
+    console.log('[renderDimensionTable] 从 window.allMerchantData 获取数据');
+  } 
+  // 优先级2：从缓存尝试获取兜底
+  else if (window.financeToolCache) {
+    const currentMonthLabel = importHistory && importHistory[currentImportIndex] ? importHistory[currentImportIndex].monthLabel : null;
+    if (currentMonthLabel && window.financeToolCache[currentMonthLabel]) {
+      allMerchantData = window.financeToolCache[currentMonthLabel];
+      console.log('[renderDimensionTable] 从 financeToolCache 获取兜底数据:', currentMonthLabel);
+    }
+  }
+  // 优先级3：从云端数据兜底
+  else if (window.cloudData && window.cloudData.length > 0) {
+    allMerchantData = window.cloudData[window.cloudData.length - 1].merchantData;
+    console.log('[renderDimensionTable] 从 cloudData 获取兜底数据');
+  }
+  // 最终检查：如果没有数据，返回并显示错误
+  if (!allMerchantData || Object.keys(allMerchantData).length === 0) {
+    console.error('[renderDimensionTable]: 无法获取任何数据源，allMerchantData 为空');
+    showToast('数据未加载，请先选择有效的日期和数据', 'warning');
+    
+    const tableEl = document.getElementById('dimensionTable');
+    if (tableEl) {
+      tableEl.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">无法显示数据表：没有找到可用的商家数据<br/>请先通过上方的"选择数据"下拉框选择一个日期</div>';
+    }
+    return;
+  }
+
+  // 使用获取到的数据
+  console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', Object.keys(allMerchantData));
+
+  // 获取实际存在的商家类型
+// 使用窗体上所有商数据
+  allMerchantData = window.allMerchantData;
+  console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', Object.keys(allMerchantData));
+  
+  // 获取实际存在的商家类型
+      const availableMerchantTypes = Object.keys(allMerchantData);
+      console.log('[App] 实际可用的商家类型:', availableMerchantTypes);
+
+      // 给每个商家类型一个背景色
+      const typeStyles = {
+        all: { bg: 'var(--primary-bg)', label: '全量' },
+        ka: { bg: 'var(--positive-bg)', label: 'KA' },
+        city: { bg: 'var(--warning-bg)', label: '城市' }
+      };
+      
+      // 如果是未知类型，给默认样式
+      const getTypeStyle = (type) => {
+        return typeStyles[type] || { bg: 'var(--bg-hover)', label: type };
+      };
+
+      const checkboxes = document.querySelectorAll('#cityCheckboxes input[type="checkbox"]:checked');
+      const selectedCities = Array.from(checkboxes).map(cb => cb.value);
+      
+      const module = document.getElementById('moduleSelect').value;
+      // 获取当前业务模块对应的指标组
+      const currentMetricGroups = METRIC_GROUPS_BY_MODULE[module] || METRIC_GROUPS_BY_MODULE.all;
+
+      let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+      
+      if (selectedCities.length === 0) {
+        html += '<p style="padding: 16px; text-align: center; color: var(--text-secondary);">请至少选择一个城市</p>';
+        document.getElementById('dimensionTable').innerHTML = html;
+        return;
+      }
+
+      // 移动端Tab指标分组+表格视图
+      const isMobile = window.innerWidth <= 576;
+      if (isMobile) {
+        // 渲染Tab按钮
+        const tabs = [
+          { key: 'revenue', label: '收入' },
+          { key: 'cost', label: '成本' },
+          { key: 'efficiency', label: '效率' },
+          { key: 'all', label: '全部' }
+        ];
+        html += '<div class="metric-tabs">';
+        tabs.forEach(t => {
+          html += '<button class="metric-tab' + (currentMobileMetricTab === t.key ? ' active' : '') + '" onclick="switchMobileMetricTab(\'' + t.key + '\')">' + t.label + '</button>';
+        });
+        html += '</div>';
+
+        // 根据Tab过滤分组
+        const tabGroupMap = {
+          revenue: ['订单指标', 'GMV指标', '收入指标'],
+          cost: ['补贴支出', '平台成本', '配送成本', '固定成本', '附加成本', '其他成本'],
+          efficiency: ['利润指标'],
+          all: null
+        };
+        const allowedGroups = tabGroupMap[currentMobileMetricTab] || null;
+        const filteredGroups = allowedGroups
+          ? currentMetricGroups.filter(g => allowedGroups.includes(g.name))
+          : currentMetricGroups;
+
+        // 用filteredGroups渲染表格（和桌面端相同的表格渲染逻辑）
+        filteredGroups.forEach((group, groupIdx) => {
+          html += '<div class="collapsible' + (groupIdx > 0 ? ' collapsed' : '') + '">';
+          html += '<div class="collapsible-header" onclick="toggleDimensionGroup(this.parentElement)">';
+          html += '<span>' + group.name + ' (' + group.metrics.length + '项)</span>';
+          html += '<span style="font-size: 14px; color: var(--text-tertiary);">▼</span>';
+          html += '</div>';
+          html += '<div class="collapsible-content" style="padding: 0;">';
+          html += '<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">';
+          html += '<table style="width: 100%; border-collapse: collapse; min-width: 400px;">';
+          html += '<thead>';
+          html += '<tr style="background: var(--bg-header);">';
+          html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: var(--text-secondary); position: sticky; left: 0; background: var(--bg-header); z-index: 2; min-width: 80px;">指标</th>';
+
+          selectedCities.forEach(city => {
+            html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: var(--text-secondary);" colspan="' + availableMerchantTypes.length + '">' + getCityDisplayName(city) + '</th>';
+          });
+
+          html += '</tr>';
+          html += '<tr style="background: var(--bg-card);">';
+          html += '<th style="padding: 6px 8px; text-align: left; font-weight: 500; font-size: 11px; color: var(--text-tertiary); position: sticky; left: 0; background: var(--bg-card); z-index: 2;"></th>';
+
+          selectedCities.forEach(() => {
+            availableMerchantTypes.forEach(type => {
+              const style = getTypeStyle(type);
+              html += '<th style="padding: 6px 8px; text-align: right; font-weight: 500; font-size: 10px; color: var(--text-tertiary); background: ' + style.bg + ';">' + style.label + '</th>';
+            });
+          });
+
+          html += '</tr>';
+          html += '</thead><tbody>';
+
+          const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
+          const noPerOrderMetrics = ['orders'];
+          const noRatioMetrics = ['orders', 'gmvAmount'];
+
+          // 热力色阶
+          const metricValuesMap = {};
+          group.metrics.forEach(metric => {
+            const values = [];
+            selectedCities.forEach(city => {
+              availableMerchantTypes.forEach(type => {
+                const data = getDataForCityAndMerchant(city, type, module);
+                const val = data[metric.key] || 0;
+                values.push(val);
+              });
+            });
+            metricValuesMap[metric.key] = { min: Math.min(...values), max: Math.max(...values) };
+          });
+
+          group.metrics.forEach(metric => {
+            const isSkipMetric = skipMetrics.includes(metric.key);
+            const showPerOrder = !isSkipMetric && !noPerOrderMetrics.includes(metric.key);
+            const showRatio = !isSkipMetric && !noRatioMetrics.includes(metric.key);
+
+            let rowBgStyle = '';
+            if (metric.key === 'ue' || metric.key === 'profitRate') {
+              let worstVal = Infinity;
+              selectedCities.forEach(city => {
+                const data = getDataForCityAndMerchant(city, 'all', module);
+                const val = parseFloat(data[metric.key]) || 0;
+                if (val < worstVal) worstVal = val;
+              });
+              const checkVal = worstVal === Infinity ? 0 : worstVal;
+              if (metric.key === 'ue') {
+                if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+                else if (checkVal < 0.5) rowBgStyle = 'background: var(--warning-bg);';
+              } else if (metric.key === 'profitRate') {
+                if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+                else if (checkVal < 0.2) rowBgStyle = 'background: var(--warning-bg);';
+              }
+            }
+
+            html += '<tr style="border-bottom: 1px solid var(--border); ' + rowBgStyle + '">';
+            html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; position: sticky; left: 0; background: var(--bg-card); z-index: 1;">' + metric.label + '</td>';
+
+            selectedCities.forEach(city => {
+              availableMerchantTypes.forEach(type => {
+                const data = getDataForCityAndMerchant(city, type, module);
+
+                let cellHtml = '';
+                const val = data[metric.key] || 0;
+                const orders = data.orders || 1;
+                const gmvAmount = data.gmvAmount || 1;
+
+                const mv = metricValuesMap[metric.key];
+                const range = (mv?.max ?? 0) - (mv?.min ?? 0) || 1;
+                const ratio = (val - (mv?.min ?? 0)) / range;
+                const costKeys = ['deliveryCost','subsidyTotal','platformCost','fixedCost','subsidyB','subsidyC','deliveryCostRate','subsidyRatio'];
+                const isCost = costKeys.includes(metric.key);
+                let heatColor;
+                if (isCost) {
+                  const r = Math.round(ratio * 200);
+                  const g = Math.round((1 - ratio) * 200);
+                  heatColor = 'rgba(' + r + ', ' + g + ', 50, 0.12)';
+                } else if (metric.key === 'profit' || metric.key === 'profitRate' || metric.key === 'ue') {
+                  if (val < 0) {
+                    heatColor = 'rgba(239, 68, 68, 0.12)';
+                  } else {
+                    heatColor = 'rgba(16, 185, 129, ' + (0.05 + ratio * 0.12) + ')';
+                  }
+                } else {
+                  heatColor = 'rgba(79, 70, 229, ' + (0.03 + ratio * 0.1) + ')';
+                }
+
+                cellHtml += '<div style="text-align: right; font-size: 12px; color: var(--text-primary); font-weight: 500; line-height: 1.5;">' + formatValue(val, metric.format) + '</div>';
+                if (showPerOrder && orders > 0) {
+                  const perOrderVal = val / orders;
+                  cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+                }
+                if (showRatio && gmvAmount > 0) {
+                  const ratioVal = val / gmvAmount;
+                  cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px;">' + formatPercent(ratioVal) + '</div>';
+                }
+                html += '<td style="padding: 4px 6px; background: ' + heatColor + '; text-align: right; font-variant-numeric: tabular-nums;">' + cellHtml + '</td>';
+              });
+            });
+
+            html += '</tr>';
+          });
+
+          html += '</tbody></table></div></div></div>';
+        });
+
+        html += '</div>';
+        document.getElementById('dimensionTable').innerHTML = html;
+        return;
+      }
+      
+      currentMetricGroups.forEach((group, groupIdx) => {
+        html += '<div class="collapsible' + (groupIdx > 0 ? ' collapsed' : '') + '">';
+        html += '<div class="collapsible-header" onclick="toggleDimensionGroup(' + groupIdx + ')">';
+        html += '<span>' + group.name + ' (' + group.metrics.length + '项)</span>';
+        html += '<span style="font-size: 14px; color: var(--text-tertiary);">▼</span>';
+        html += '</div>';
+        html += '<div class="collapsible-content" style="padding: 0;">';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead>';
+        html += '<tr style="background: var(--bg-header);">';
+        html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: var(--text-secondary); width: 120px; min-width: 100px;">指标</th>';
+        
+        selectedCities.forEach(city => {
+          html += '<th style="padding: 6px 8px; text-align: center; font-weight: 600; font-size: 11px; color: var(--text-secondary);" colspan="' + availableMerchantTypes.length + '">' + getCityDisplayName(city) + '</th>';
+        });
+        
+        html += '</tr>';
+        html += '<tr style="background: var(--bg-card);">';
+        html += '<th style="padding: 6px 8px; text-align: left; font-weight: 500; font-size: 11px; color: var(--text-tertiary);"></th>';
+        
+        selectedCities.forEach(() => {
+          availableMerchantTypes.forEach(type => {
+            const style = getTypeStyle(type);
+            html += '<th style="padding: 6px 8px; text-align: right; font-weight: 500; font-size: 10px; color: var(--text-tertiary); background: ' + style.bg + ';">' + style.label + '</th>';
+          });
+        });
+        
+        html += '</tr>';
+        html += '</thead><tbody>';
+        
+        const skipMetrics = ['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio'];
+        const noPerOrderMetrics = ['orders'];
+        const noRatioMetrics = ['orders', 'gmvAmount'];
+        // 性能优化：将costKeys提取到循环外，避免在最内层循环重复创建
+        const dimCostKeys = new Set(['deliveryCost','subsidyTotal','platformCost','fixedCost','subsidyB','subsidyC','deliveryCostRate','subsidyRatio']);
+
+        // 热力色阶：收集每个metric的min/max
+        const metricValuesMap = {};
+        group.metrics.forEach(metric => {
+          const values = [];
+          selectedCities.forEach(city => {
+            availableMerchantTypes.forEach(type => {
+              const data = getDataForCityAndMerchant(city, type, module);
+              const val = data[metric.key] || 0;
+              values.push(val);
+            });
+          });
+          metricValuesMap[metric.key] = { min: Math.min(...values), max: Math.max(...values) };
+        });
+
+        group.metrics.forEach(metric => {
+          const isSkipMetric = skipMetrics.includes(metric.key);
+          const showPerOrder = !isSkipMetric && !noPerOrderMetrics.includes(metric.key);
+          const showRatio = !isSkipMetric && !noRatioMetrics.includes(metric.key);
+
+          // 异常行高亮：UE或profitRate指标在危险/预警区间时高亮整行
+          let rowBgStyle = '';
+          if (metric.key === 'ue' || metric.key === 'profitRate') {
+            // 取所有选中城市全量商家类型的最差值判断
+            let worstVal = Infinity;
+            selectedCities.forEach(city => {
+              const data = getDataForCityAndMerchant(city, 'all', module);
+              const val = parseFloat(data[metric.key]) || 0;
+              if (val < worstVal) worstVal = val;
+            });
+            const checkVal = worstVal === Infinity ? 0 : worstVal;
+            if (metric.key === 'ue') {
+              if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+              else if (checkVal < 0.5) rowBgStyle = 'background: var(--warning-bg);';
+            } else if (metric.key === 'profitRate') {
+              if (checkVal < 0.1) rowBgStyle = 'background: var(--negative-bg);';
+              else if (checkVal < 0.2) rowBgStyle = 'background: var(--warning-bg);';
+            }
+          }
+
+          html += '<tr style="border-bottom: 1px solid var(--border); ' + rowBgStyle + '">';
+          html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600; white-space: nowrap;">' + metric.label + '</td>';
+
+          selectedCities.forEach(city => {
+            // 遍历实际存在的商家类型
+            availableMerchantTypes.forEach(type => {
+              const data = getDataForCityAndMerchant(city, type, module);
+              const style = getTypeStyle(type);
+
+              let cellHtml = '';
+              const val = data[metric.key] || 0;
+              const orders = data.orders || 1;
+              const gmvAmount = data.gmvAmount || 1;
+
+              // 热力色阶计算
+              const mv = metricValuesMap[metric.key];
+              const range = mv.max - mv.min || 1;
+              const ratio = (val - mv.min) / range;
+              const isCost = dimCostKeys.has(metric.key);
+              let heatColor;
+              if (isCost) {
+                const r = Math.round(ratio * 200);
+                const g = Math.round((1 - ratio) * 200);
+                heatColor = 'rgba(' + r + ', ' + g + ', 50, 0.12)';
+              } else if (metric.key === 'profit' || metric.key === 'profitRate' || metric.key === 'ue') {
+                if (val < 0) {
+                  heatColor = 'rgba(239, 68, 68, 0.12)';
+                } else {
+                  heatColor = 'rgba(16, 185, 129, ' + (0.05 + ratio * 0.12) + ')';
+                }
+              } else {
+                heatColor = 'rgba(79, 70, 229, ' + (0.03 + ratio * 0.1) + ')';
+              }
+
+              cellHtml += '<div style="text-align: right; font-size: 12px; color: var(--text-primary); font-weight: 500; line-height: 1.5;">' + formatValue(val, metric.format) + '</div>';
+              if (showPerOrder && orders > 0) {
+                const perOrderVal = val / orders;
+                cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+              }
+              if (showRatio && gmvAmount > 0) {
+                const ratioVal = val / gmvAmount;
+                cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px;">' + formatPercent(ratioVal) + '</div>';
+              }
+              html += '<td style="padding: 4px 6px; background: ' + heatColor + '; text-align: right; font-variant-numeric: tabular-nums;">' + cellHtml + '</td>';
+            });
+          });
+          
+          html += '</tr>';
+        });
+        
+        html += '</tbody></table></div></div>';
+      });
+      
+      html += '</div>';
+      
+      document.getElementById('dimensionTable').innerHTML = html;
+    }
+
+    // 性能优化：城市数据查找缓存，避免每次渲染都做线性搜索
+    let _cityDataCacheKey = null;
+    let _cityDataCache = null;
+
+    function _buildCityDataCache() {
+      const key = allMerchantData ? JSON.stringify(Object.keys(allMerchantData).map(k => k + ':' + (allMerchantData[k]?.cities?.length || 0))) + '|' + currentImportIndex : '';
+      if (_cityDataCacheKey === key && _cityDataCache) return;
+      _cityDataCacheKey = key;
+      _cityDataCache = {};
+      if (!allMerchantData) return;
+      for (const mt of Object.keys(allMerchantData)) {
+        const cities = allMerchantData[mt]?.cities;
+        if (!cities) continue;
+        const cityMap = {};
+        for (const city of cities) {
+          cityMap[city.name] = city;
+        }
+        _cityDataCache[mt] = cityMap;
+      }
+    }
+
+    function getDataForCityAndMerchant(cityName, merchantType, module) {
+      _buildCityDataCache();
+      const cityMap = _cityDataCache && _cityDataCache[merchantType];
+      if (!cityMap) return {};
+      const city = cityMap[cityName];
+      return city && city.modules ? (city.modules[module] || city.modules.all || {}) : {};
+    }
+
+    function formatValue(value, format) {
+      if (value == null || value === '') return '-';
+      if (format === 'number') return formatNumber(value);
+      if (format === 'money') return formatMoney(value);
+      if (format === 'ue') { const n = parseFloat(value); return isNaN(n) ? '-' : n.toFixed(2); }
+      if (format === 'percent') return formatPercent(value);
+      return value;
+    }
+
+    /**
+     * @description 切换维度表分组的折叠状态
+     * @param {number|HTMLElement} groupIdxOrEl - 分组索引或collapsible元素
+     */
+    function toggleDimensionGroup(groupIdxOrEl) {
+      if (typeof groupIdxOrEl === 'number') {
+        const collapsibles = document.querySelectorAll('#dimensionTable .collapsible');
+        if (collapsibles[groupIdxOrEl]) {
+          collapsibles[groupIdxOrEl].classList.toggle('collapsed');
+        }
+      } else if (groupIdxOrEl instanceof HTMLElement) {
+        groupIdxOrEl.classList.toggle('collapsed');
+      }
+    }
+
+    // ========== 趋势分析工具函数 ==========
+
+    /**
+     * 获取近3个月的趋势筛选日期（每月3个点：月初5号、月中15号、月末30号）
+     * @param {string[]} allDates - 所有可用日期（YYYY-MM-DD格式）
+     * @returns {string[]} 筛选后的日期，按升序排列
+     */
+    function getFilteredTrendDates(allDates) {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      // 计算目标月份：当前月 + 前2个月
+      const targetMonths = [];
+      for (let i = 0; i < 3; i++) {
+        let month = currentMonth - i;
+        let year = currentYear;
+        if (month <= 0) { month += 12; year -= 1; }
+        targetMonths.push({ year, month });
+      }
+
+      const result = [];
+      const pickedSet = new Set();
+
+      targetMonths.forEach(({ year, month }) => {
+        // 该月所有日期
+        const monthDates = allDates.filter(d => {
+          const parts = d.split('-');
+          return parseInt(parts[0]) === year && parseInt(parts[1]) === month;
+        }).sort();
+
+        if (monthDates.length === 0) return;
+
+        // 三个目标点：5号、15号、30号
+        const targets = [5, 15, 30];
+        targets.forEach(targetDay => {
+          let best = null;
+          let bestDiff = Infinity;
+          monthDates.forEach(d => {
+            if (pickedSet.has(d)) return;
+            const day = parseInt(d.split('-')[2]);
+            const diff = Math.abs(day - targetDay);
+            if (diff < bestDiff) { bestDiff = diff; best = d; }
+          });
+          if (best) {
+            pickedSet.add(best);
+            result.push(best);
+          }
+        });
+      });
+
+      return result.sort();
+    }
+
+    /**
+     * 构建月分组下拉菜单的HTML
+     * @param {string[]} allDates - 所有日期
+     * @param {string} [selectedValue] - 当前选中的值
+     * @returns {string} optgroup HTML
+     */
+    function buildMonthGroupedOptions(allDates, selectedValue) {
+      const groups = {};
+      // 倒序排列，最新的在前
+      [...allDates].sort().reverse().forEach(date => {
+        const [y, m] = date.split('-');
+        const key = y + '年' + parseInt(m) + '月';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(date);
+      });
+
+      let html = '';
+      for (const [group, dates] of Object.entries(groups)) {
+        html += '<optgroup label="' + group + '">';
+        dates.forEach(date => {
+          const sel = (date === selectedValue) ? ' selected' : '';
+          html += '<option value="' + date + '"' + sel + '>' + date.substring(5) + '</option>';
+        });
+        html += '</optgroup>';
+      }
+      return html;
+    }
+
+    /**
+     * 色阶颜色计算：红色=差，绿色=好
+     * @param {number} value - 当前值
+     * @param {number} min - 最小值
+     * @param {number} max - 最大值
+     * @param {boolean} isCostMetric - 是否成本类指标（成本越低越好）
+     * @returns {string} rgba颜色
+     */
+    function getHeatColor(value, min, max, isCostMetric) {
+      if (max === min || isNaN(value) || value === 0) return 'transparent';
+      let ratio = (value - min) / (max - min);
+      // 成本类指标：值越低越好 → 反转
+      if (isCostMetric) ratio = 1 - ratio;
+      // 红(差) → 绿(好)
+      const r = Math.round(220 * (1 - ratio));
+      const g = Math.round(220 * ratio);
+      return 'rgba(' + r + ',' + g + ',100,0.28)';
+    }
+
+    // 趋势分析中用户额外添加的对比日期
+    let trendAddedDates = [];
+
+    const _renderTrend = function renderTrend() {
+      if (!allMerchantData || importHistory.length === 0) return;
+
+      document.getElementById('trendEmpty').classList.add('hidden');
+      document.getElementById('trendData').classList.remove('hidden');
+
+      // 获取所有可用日期
+      const allDates = importHistory.map(h => h.monthLabel).sort();
+
+      // 更新基准日期选择器（月分组下拉菜单）
+      const baseMonthSelect = document.getElementById('trendBaseMonthSelect');
+      const currentBaseValue = baseMonthSelect.value;
+      baseMonthSelect.innerHTML = buildMonthGroupedOptions(allDates, currentBaseValue || allDates[allDates.length - 1]);
+      if (!baseMonthSelect.value && allDates.length > 0) {
+        baseMonthSelect.value = allDates[allDates.length - 1];
+      }
+
+      // 更新"添加对比日期"下拉菜单
+      const addDateSelect = document.getElementById('trendAddDateSelect');
+      const currentAddValue = addDateSelect.value;
+      const allDatesExceptSelected = allDates.filter(d => d !== baseMonthSelect.value);
+      addDateSelect.innerHTML = '<option value="">-- 添加对比日期 --</option>' + buildMonthGroupedOptions(allDatesExceptSelected, currentAddValue);
+
+      // 更新城市选择器 - 使用当前选中的日期对应的数据
+      const trendCitySelect = document.getElementById('trendCitySelect');
+      const currentCityValue = trendCitySelect.value;
+      const citySelectHtml = [];
+
+      // 获取当前选中日期的商户数据，用于填充城市选择器
+      const selectedDate = baseMonthSelect.value;
+      const selectedRecord = importHistory.find(h => h.monthLabel === selectedDate) || importHistory[0];
+      const firstMerchantType = document.getElementById('trendMerchantSelect').value;
+      
+      let merchantData = null;
+      
+      // 1. 从 selectedRecord.data 获取（历史导入数据）
+      if (selectedRecord && selectedRecord.data) {
+        merchantData = selectedRecord.data;
+      }
+      
+      // 2. 从内存缓存获取（云端加载或上次保存的数据）
+      if (!merchantData && window.financeToolCache && window.financeToolCache[selectedRecord?.monthLabel]) {
+        merchantData = window.financeToolCache[selectedRecord.monthLabel];
+      }
+      
+      // 3. 从全局 allMerchantData 获取兜底（当前选中的数据）
+      if (!merchantData && allMerchantData) {
+        // 优先尝试 allMerchantData.all 或直接使用 allMerchantData
+        if (allMerchantData.all) {
+          merchantData = allMerchantData;
+        } else if (allMerchantData[firstMerchantType]) {
+          merchantData = allMerchantData[firstMerchantType];
+        } else {
+          merchantData = allMerchantData;
+        }
+      }
+      
+      // 4. 从全局 cloudData 中查找（终极兜底）
+      if (!merchantData && window.cloudData && selectedRecord) {
+        const cloudRec = window.cloudData.find(r => r.date === selectedRecord.monthLabel);
+        if (cloudRec) {
+          const md = cloudRec.merchantData || cloudRec.currentData?.merchantData;
+          if (md) merchantData = md;
+        }
+      }
+      
+      // 如果还是没拿到数据，直接使用空对象避免报错
+      if (!merchantData) {
+        merchantData = {};
+      }
+      
+      // 检测并转换旧格式
+      if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
+        merchantData = { all: { label: '全部', cities: merchantData.cities } };
+      }
+
+      if (merchantData && merchantData[firstMerchantType]) {
+        citySelectHtml.push('<option value="总商">总商</option>');
+        (merchantData[firstMerchantType].cities || []).forEach(city => {
+          if (city.name !== '总商') citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
+        });
+      } else if (merchantData && merchantData.all) {
+        citySelectHtml.push('<option value="总商">总商</option>');
+        (merchantData.all.cities || []).forEach(city => {
+          if (city.name !== '总商') citySelectHtml.push('<option value="' + city.name + '">' + getCityDisplayName(city.displayName || city.name) + '</option>');
+        });
+      }
+      trendCitySelect.innerHTML = citySelectHtml.join('');
+      if (currentCityValue && citySelectHtml.some(opt => opt.includes('value="' + currentCityValue + '"'))) {
+        trendCitySelect.value = currentCityValue;
+      }
+
+      const merchantType = document.getElementById('trendMerchantSelect').value;
+      const module = document.getElementById('trendModuleSelect').value;
+      const selectedCity = trendCitySelect.value || '总商';
+
+      // 获取筛选后的趋势日期（近3月×3点）
+      const filteredDates = getFilteredTrendDates(allDates);
+
+      // 合并用户添加的对比日期（去重）
+      const allTrendDates = [...new Set([...filteredDates, ...trendAddedDates])].sort();
+
+      // 构建趋势数据
+      const trendMonths = allTrendDates.map(date => {
+        const record = importHistory.find(h => h.monthLabel === date);
+        let tmData = null;
+        
+        // 1. 从 selectedRecord.data 获取（历史导入数据中缓存的）
+        if (record && record.data) {
+          tmData = record.data;
+        }
+        
+        // 2. 从内存缓存获取（云端加载时构建的）
+        if (!tmData && window.financeToolCache && window.financeToolCache[date]) {
+          tmData = window.financeToolCache[date];
+        }
+        
+        // 3. 从全局 cloudData 中查找（终极兜底）
+        if (!tmData && window.cloudData) {
+          const cloudRec = window.cloudData.find(r => r.date === date);
+          if (cloudRec) {
+            const md = cloudRec.merchantData || cloudRec.currentData?.merchantData;
+            if (md) tmData = md;
+          }
+        }
+        
+        // 4. 如果当前日期正好是当前选中的日期，使用 allMerchantData
+        if (!tmData && allMerchantData && record) {
+          const currentRecord = importHistory[currentImportIndex];
+          if (currentRecord && currentRecord.monthLabel === date) {
+            tmData = allMerchantData;
+          }
+        }
+
+        // 检测并转换旧格式
+        if (tmData && !tmData.all && !tmData.city && !tmData.ka && tmData.cities) {
+          tmData = { all: { label: '全部', cities: tmData.cities } };
+        }
+        
+        return {
+          idx: importHistory.findIndex(h => h.monthLabel === date),
+          label: date,
+          date: record ? record.importDate : date,
+          data: tmData,
+          isAdded: trendAddedDates.includes(date) && !filteredDates.includes(date)
+        };
+      });
+
+      renderTrendDetailTable(trendMonths, merchantType, module, selectedCity);
+    }
+
+    /**
+     * 添加对比日期到趋势分析
+     */
+    function addTrendCompareDate() {
+      const select = document.getElementById('trendAddDateSelect');
+      const date = select.value;
+      if (!date) return;
+      if (!trendAddedDates.includes(date)) {
+        trendAddedDates.push(date);
+      }
+      select.value = '';
+      renderTrend();
+    }
+
+    /**
+     * 清除所有添加的对比日期
+     */
+    function clearTrendCompareDates() {
+      trendAddedDates = [];
+      renderTrend();
+    }
+
+    function renderTrendDetailTable(trendMonths, merchantType, module, cityName) {
+      if (trendMonths.length === 0) return;
+
+      // 获取当前业务模块对应的指标组
+      const currentMetricGroups = METRIC_GROUPS_BY_MODULE[module] || METRIC_GROUPS_BY_MODULE.all;
+      
+      // 获取每个月份的指定城市数据
+      // tm.data是merchantData格式 { all: { cities: [...] }, ka: { cities: [...] }, ... }
+      const monthlyData = trendMonths.map(tm => {
+        const merchantData = tm.data && tm.data[merchantType];
+        if (!merchantData || !merchantData.cities) return null;
+        const city = merchantData.cities.find(c => c.name === cityName);
+        if (!city || !city.modules) return null;
+        // 优先使用指定模块，如果没有则使用all模块
+        return city.modules[module] || city.modules.all || null;
+      });
+
+      // 计算R平方和趋势强度
+      function calculateRSquared(values) {
+        if (values.length < 2) return 0;
+        const n = values.length;
+        const xMean = (n - 1) / 2;
+        const yMean = values.reduce((a, b) => a + b, 0) / n;
+        
+        let ssTot = 0;
+        let ssRes = 0;
+        values.forEach((y, x) => {
+          ssTot += Math.pow(y - yMean, 2);
+          ssRes += Math.pow(y - yMean - ((x - xMean) * (values[n-1] - values[0]) / (n-1)), 2);
+        });
+        
+        return ssTot === 0 ? 0 : (1 - ssRes / ssTot);
+      }
+
+      function calculateTrendStrength(values) {
+        if (values.length < 2) return 0;
+        const n = values.length;
+        
+        // 线性回归斜率计算（最小二乘法）
+        // 用索引作为x值（0, 1, 2, 3...），避免时间间隔问题
+        const xMean = (n - 1) / 2;
+        const yMean = values.reduce((a, b) => a + b, 0) / n;
+        
+        let numerator = 0;
+        let denominator = 0;
+        values.forEach((y, x) => {
+          numerator += (x - xMean) * (y - yMean);
+          denominator += Math.pow(x - xMean, 2);
+        });
+        
+        const slope = denominator === 0 ? 0 : numerator / denominator;
+        
+        // 将斜率转换为相对于平均值的百分比趋势（每数据点变化率）
+        if (yMean === 0) return 0;
+        return (slope / yMean) * 100;
+      }
+
+      // 移动端迷你图卡片视图
+      const isMobile = window.innerWidth <= 576;
+      if (isMobile) {
+        let mobileHtml = '<div class="trend-cards">';
+
+        const skipMetrics = new Set(['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio']);
+        const revenueMetrics = new Set(['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders']);
+        const costMetrics = new Set(['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost']);
+
+        const getTrendStatus = (trend, rsq, mKey) => {
+          if (rsq < 0.3) return { icon: '○', text: '波动', color: 'var(--text-tertiary)' };
+          const threshold = 2;
+          const isCostMetric = costMetrics.has(mKey);
+          const isGoodTrend = isCostMetric ? (trend < -threshold) : (trend > threshold);
+          const isBadTrend = isCostMetric ? (trend > threshold) : (trend < -threshold);
+          if (isGoodTrend) return { icon: '📈', text: '向好', color: 'var(--success)' };
+          if (isBadTrend) return { icon: '📉', text: '恶化', color: 'var(--danger)' };
+          return { icon: '➡️', text: '平稳', color: 'var(--text-secondary)' };
+        };
+
+        currentMetricGroups.forEach(group => {
+          group.metrics.forEach(metric => {
+            if (skipMetrics.has(metric.key)) return;
+
+            // 收集该指标所有月份的值
+            const values = [];
+            monthlyData.forEach(d => {
+              const val = d ? (d[metric.key] || 0) : 0;
+              values.push(val);
+            });
+
+            if (values.length < 2) return;
+
+            // 计算趋势
+            const rsq = calculateRSquared(values);
+            const trend = calculateTrendStrength(values);
+            const status = getTrendStatus(trend, rsq, metric.key);
+
+            // Sparkline SVG
+            const sparkVals = values.slice();
+            const w = 200, h = 40, pad = 4;
+            const sMin = Math.min(...sparkVals), sMax = Math.max(...sparkVals), sRange = sMax - sMin || 1;
+            const pts = sparkVals.map((v, i) => (pad + i * (w - 2*pad) / (sparkVals.length - 1)) + ',' + (h - pad - (v - sMin) / sRange * (h - 2*pad))).join(' ');
+            const sparkColor = status.text === '向好' ? 'var(--success)' : status.text === '恶化' ? 'var(--danger)' : 'var(--text-tertiary)';
+
+            mobileHtml += '<div class="trend-card">';
+            mobileHtml += '<div class="trend-card-header">';
+            mobileHtml += '<span class="trend-card-title">' + metric.label + '</span>';
+            mobileHtml += '<span class="trend-card-status" style="color:' + status.color + ';">' + status.icon + ' ' + status.text + '</span>';
+            mobileHtml += '</div>';
+            mobileHtml += '<svg width="100%" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="display:block;margin-bottom:8px;"><polyline fill="none" stroke="' + sparkColor + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"/></svg>';
+
+            // 最近3个月数值
+            const recentCount = Math.min(3, trendMonths.length);
+            mobileHtml += '<div class="trend-card-months">';
+            for (let i = trendMonths.length - recentCount; i < trendMonths.length; i++) {
+              const isLatest = i === trendMonths.length - 1;
+              mobileHtml += '<div class="trend-month' + (isLatest ? ' current' : '') + '">';
+              mobileHtml += '<span class="trend-month-label">' + (trendMonths[i]?.label || '') + '</span>';
+              mobileHtml += '<span class="trend-month-value">' + formatValue(values[i] ?? 0, metric.format) + '</span>';
+              mobileHtml += '</div>';
+            }
+            mobileHtml += '</div>';
+            mobileHtml += '</div>';
+          });
+        });
+
+        mobileHtml += '</div>';
+        document.getElementById('trendDetailTable').innerHTML = mobileHtml;
+        return;
+      }
+
+      let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+      
+      currentMetricGroups.forEach((group, groupIdx) => {
+        html += '<div class="collapsible' + (groupIdx > 0 ? ' collapsed' : '') + '">';
+        html += '<div class="collapsible-header" onclick="toggleTrendGroup(' + groupIdx + ')">';
+        html += '<span>' + group.name + ' (' + group.metrics.length + '项)</span>';
+        html += '<span style="font-size: 14px; color: var(--text-tertiary);">▼</span>';
+        html += '</div>';
+        html += '<div class="collapsible-content" style="padding: 0;">';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead>';
+        html += '<tr style="background: var(--bg-header);">';
+        html += '<th style="padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; color: var(--text-secondary); width: 120px;">指标</th>';
+        
+        // 添加月份标题（最新的月份标黄，现在最新的在左边第一位）
+        trendMonths.forEach((tm, idx) => {
+          const isLatest = idx === 0;  // 最新的是第一个（倒序排列）
+          html += '<th style="padding: 6px 8px; text-align: right; font-weight: 600; font-size: 11px; color: var(--text-secondary); ' + (isLatest ? 'background: var(--warning-bg);' : '') + '">' + tm.label + '</th>';
+        });
+        
+        html += '<th style="padding: 8px 12px; text-align: center; font-weight: 600; font-size: 12px; color: var(--text-secondary); background: var(--primary-bg); width: 200px;">趋势分析</th>';
+        html += '</tr></thead><tbody>';
+        
+        const skipMetrics = new Set(['ue', 'profitRate', 'subsidyRatio', 'avgRevenuePerOrder', 'avgCostPerOrder', 'deliveryCostRate', 'fixedCostRate', 'subsidyRateB', 'subsidyRateC', 'enterpriseRatio', 'selfRatio']);
+        const noPerOrderMetrics = new Set(['orders']);
+        const noRatioMetrics = new Set(['orders', 'gmvAmount']);
+        
+        // 收入型指标（越多越好）vs 成本型指标（越少越好）
+        const revenueMetrics = new Set(['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders']);
+        const costMetrics = new Set(['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost']);
+        
+        // 预计算所有指标的色阶数据（单均/占比的min/max）
+        const heatMapCache = {};
+        group.metrics.forEach(metric => {
+          const isSkip = skipMetrics.has(metric.key);
+          const showPO = !isSkip && !noPerOrderMetrics.has(metric.key);
+          const showR = !isSkip && !noRatioMetrics.has(metric.key);
+          const isCost = costMetrics.has(metric.key);
+          const poVals = [];
+          const ratioVals = [];
+          monthlyData.forEach(d => {
+            if (showPO && d) {
+              const orders = d.orders || 1;
+              poVals.push(orders > 0 ? (d[metric.key] || 0) / orders : 0);
+            }
+            if (showR && d) {
+              const gmv = d.gmvAmount || 1;
+              ratioVals.push(gmv > 0 ? (d[metric.key] || 0) / gmv : 0);
+            }
+          });
+          heatMapCache[metric.key] = {
+            isCost,
+            poMin: poVals.length > 0 ? Math.min(...poVals) : 0,
+            poMax: poVals.length > 0 ? Math.max(...poVals) : 0,
+            ratioMin: ratioVals.length > 0 ? Math.min(...ratioVals) : 0,
+            ratioMax: ratioVals.length > 0 ? Math.max(...ratioVals) : 0
+          };
+        });
+        
+        group.metrics.forEach(metric => {
+          const isSkipMetric = skipMetrics.has(metric.key);
+          const showPerOrder = !isSkipMetric && !noPerOrderMetrics.has(metric.key);
+          const showRatio = !isSkipMetric && !noRatioMetrics.has(metric.key);
+          
+          // 绝对值行
+          const absValues = monthlyData.map(d => d ? (d[metric.key] || 0) : 0);
+          const rSquared = calculateRSquared(absValues);
+          const trendStrength = calculateTrendStrength(absValues);
+          
+          html += '<tr style="border-bottom: 1px solid var(--border);">';
+          html += '<td style="padding: 6px 8px; font-size: 12px; font-weight: 600; white-space: nowrap;">' + metric.label + '</td>';
+          
+          monthlyData.forEach((d, idx) => {
+            const isLatest = idx === monthlyData.length - 1;
+            const val = d ? (d[metric.key] || 0) : 0;
+            const orders = d ? (d.orders || 1) : 1;
+            const gmvAmount = d ? (d.gmvAmount || 1) : 1;
+            
+            let cellHtml = '';
+            // 绝对值
+            cellHtml += '<div style="text-align: right; font-size: 12px; color: var(--text-primary); font-weight: ' + (isLatest ? '600' : '500') + '; line-height: 1.5;">' + formatValue(val, metric.format) + '</div>';
+            
+            // 单均
+            if (showPerOrder && orders > 0) {
+              const perOrderVal = val / orders;
+              const hc = heatMapCache[metric.key];
+              const poBg = getHeatColor(perOrderVal, hc.poMin, hc.poMax, hc.isCost);
+              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--primary); line-height: 1.5; margin-top: 1px; background:' + poBg + '; padding: 1px 3px; border-radius: 2px;">' + formatValue(perOrderVal, metric.format === 'money' ? 'ue' : 'number') + '</div>';
+            }
+            
+            // 比例
+            if (showRatio && gmvAmount > 0) {
+              const ratioVal = val / gmvAmount;
+              const hc2 = heatMapCache[metric.key];
+              const ratioBg = getHeatColor(ratioVal, hc2.ratioMin, hc2.ratioMax, hc2.isCost);
+              cellHtml += '<div style="text-align: right; font-size: 11px; color: var(--warning); line-height: 1.5; margin-top: 1px; background:' + ratioBg + '; padding: 1px 3px; border-radius: 2px;">' + formatPercent(ratioVal) + '</div>';
+            }
+            
+            html += '<td style="padding: 4px 6px; ' + (isLatest ? 'background: var(--warning-bg);' : '') + ' text-align: right; font-variant-numeric: tabular-nums;">' + cellHtml + '</td>';
+          });
+          
+          // 计算单均和比例的趋势
+          const perOrderValues = showPerOrder ? monthlyData.map(d => {
+            if (!d) return 0;
+            const orders = d.orders || 1;
+            const val = d[metric.key] || 0;
+            return orders > 0 ? val / orders : 0;
+          }) : null;
+          
+          const ratioValues = showRatio ? monthlyData.map(d => {
+            if (!d) return 0;
+            const gmv = d.gmvAmount || 1;
+            const val = d[metric.key] || 0;
+            return gmv > 0 ? val / gmv : 0;
+          }) : null;
+          
+          const isRevenueMetric = revenueMetrics.has(metric.key);
+          const isCostMetric = costMetrics.has(metric.key);
+          
+          // 基于线性回归判断趋势状态
+          const getTrendStatus = (trend, rsq) => {
+            // R² < 0.3：趋势不可靠，显示"波动"
+            if (rsq < 0.3) return { icon: '○', text: '波动', color: 'var(--text-tertiary)' };
+            
+            // 趋势阈值：每数据点变化超过2%视为明显趋势
+            const threshold = 2;
+            
+            // 收入型指标：上升=向好，下降=恶化
+            // 成本型指标：下降=向好，上升=恶化
+            // 其他指标（利润率等）：上升=向好，下降=恶化
+            const isGoodTrend = isCostMetric ? (trend < -threshold) : (trend > threshold);
+            const isBadTrend = isCostMetric ? (trend > threshold) : (trend < -threshold);
+            
+            if (isGoodTrend) return { icon: '📈', text: '向好', color: 'var(--success)' };
+            if (isBadTrend) return { icon: '📉', text: '恶化', color: 'var(--danger)' };
+            return { icon: '➡️', text: '平稳', color: 'var(--text-secondary)' };
+          };
+          
+          // 判断状态是否为正向
+          const isPositiveStatus = (status) => {
+            if (!status) return false;
+            if (status.text === '波动' || status.text === '平稳') return null;
+            return status.text === '向好';
+          };
+          
+          // 综合结论
+          const getConclusion = () => {
+            const poRsq = (showPerOrder && perOrderValues) ? calculateRSquared(perOrderValues) : 0;
+            const ratioRsq = (showRatio && ratioValues) ? calculateRSquared(ratioValues) : 0;
+            
+            const poTrend = (showPerOrder && perOrderValues) ? calculateTrendStrength(perOrderValues) : 0;
+            const ratioTrend = (showRatio && ratioValues) ? calculateTrendStrength(ratioValues) : 0;
+            
+            const poStatus = (showPerOrder && perOrderValues) ? getTrendStatus(poTrend, poRsq) : null;
+            const ratioStatus = (showRatio && ratioValues) ? getTrendStatus(ratioTrend, ratioRsq) : null;
+            
+            const poPositive = isPositiveStatus(poStatus);
+            const ratioPositive = isPositiveStatus(ratioStatus);
+            
+            // 单指标结论
+            if (poStatus && !ratioStatus) {
+              return { text: poStatus.icon + ' ' + poStatus.text, color: poStatus.color };
+            }
+            
+            if (!poStatus && ratioStatus) {
+              return { text: ratioStatus.icon + ' ' + ratioStatus.text, color: ratioStatus.color };
+            }
+            
+            // 双指标综合
+            if (poStatus && ratioStatus) {
+              const bothGood = poPositive === true && ratioPositive === true;
+              const bothBad = poPositive === false && ratioPositive === false;
+              const bothNeutral = poStatus.text === '平稳' && ratioStatus.text === '平稳';
+              const mixed = poPositive !== ratioPositive && poPositive !== null && ratioPositive !== null;
+              
+              if (bothGood) return { text: '🎉 双优', color: 'var(--success)' };
+              if (bothBad) return { text: '⚠️ 双差', color: 'var(--danger)' };
+              if (bothNeutral) return { text: '✅ 平稳', color: 'var(--text-secondary)' };
+              if (mixed) return { text: '🔄 分化', color: 'var(--warning)' };
+              return { text: '➡️ 中性', color: 'var(--text-secondary)' };
+            }
+            
+            return null;
+          };
+          
+          const conclusion = getConclusion();
+          
+          html += '<td style="padding: 4px 8px; background: var(--primary-bg);">';
+
+          // Sparkline
+          const sparkVals = absValues.slice().reverse();
+          if (sparkVals.length >= 2) {
+            const w = 56, h = 18, pad = 2;
+            const sMin = Math.min(...sparkVals), sMax = Math.max(...sparkVals), sRange = sMax - sMin || 1;
+            const pts = sparkVals.map((v, i) => (pad + i * (w - 2*pad) / (sparkVals.length-1)) + ',' + (h - pad - (v - sMin) / sRange * (h - 2*pad))).join(' ');
+            const mainStatus = getTrendStatus(trendStrength, rSquared);
+            const sparkColor = mainStatus.text === '向好' ? 'var(--success)' : mainStatus.text === '恶化' ? 'var(--danger)' : 'var(--text-tertiary)';
+            html += '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="display:block;margin-bottom:4px;"><polyline fill="none" stroke="' + sparkColor + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="' + pts + '"/></svg>';
+          }
+
+          // 单均趋势（基于线性回归）
+          if (showPerOrder && perOrderValues) {
+            const poRsq = calculateRSquared(perOrderValues);
+            const poTrend = calculateTrendStrength(perOrderValues);
+            const poStatus = getTrendStatus(poTrend, poRsq);
+            html += '<div style="display: flex; align-items: center; justify-content: space-between;">';
+            html += '<span style="font-size: 10px; color: var(--primary);">单均</span>';
+            html += '<span style="font-size: 11px; font-weight: 600; color: ' + poStatus.color + ';">' + poStatus.icon + ' ' + poStatus.text + '</span>';
+            html += '</div>';
+          }
+          
+          // 比例趋势（基于线性回归）
+          if (showRatio && ratioValues) {
+            const ratioRsq = calculateRSquared(ratioValues);
+            const ratioTrend = calculateTrendStrength(ratioValues);
+            const ratioStatus = getTrendStatus(ratioTrend, ratioRsq);
+            html += '<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 3px;">';
+            html += '<span style="font-size: 10px; color: var(--warning);">占比</span>';
+            html += '<span style="font-size: 11px; font-weight: 600; color: ' + ratioStatus.color + ';">' + ratioStatus.icon + ' ' + ratioStatus.text + '</span>';
+            html += '</div>';
+          }
+          
+          // 综合结论
+          if (conclusion) {
+            html += '<div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); text-align: center;">';
+            html += '<span style="font-size: 12px; font-weight: 600; color: ' + conclusion.color + ';">' + conclusion.text + '</span>';
+            html += '</div>';
+          }
+          
+          html += '</td>';
+          html += '</tr>';
+        });
+        
+        html += '</tbody></table></div></div>';
+      });
+      
+      html += '</div>';
+      
+      document.getElementById('trendDetailTable').innerHTML = html;
+    }
+
+    function toggleTrendGroup(groupIdx) {
+      const collapsibles = document.querySelectorAll('#trendDetailTable .collapsible');
+      if (collapsibles[groupIdx]) {
+        collapsibles[groupIdx].classList.toggle('collapsed');
+      }
+    }
+
+    // ===== 性能守卫：包装渲染函数，自动监测耗时 =====
+    const renderOverview = _wrapRender('renderOverview', _renderOverview);
+    const renderDimension = _wrapRender('renderDimension', _renderDimension);
+    const renderDimensionTable = _wrapRender('renderDimensionTable', _renderDimensionTable);
+    const renderTrend = _wrapRender('renderTrend', _renderTrend);
+
+    // 将性能数据暴露到控制台，方便诊断
+    window._getPerfReport = function() {
+      return { history: _perfHistory, threshold: PERF_THRESHOLD_MS };
+    };
+
+    function renderSensitivity() {
+      if (!currentData) return;
+
+      document.getElementById('sensitivityEmpty').classList.add('hidden');
+      document.getElementById('sensitivityData').classList.remove('hidden');
+
+      const citySelect = document.getElementById('sensitivityCitySelect');
+      citySelect.innerHTML = '<option value="">请选择城市</option>';
+      currentData.cities.forEach(city => {
+        citySelect.innerHTML += `<option value="${city.name}">${getCityDisplayName(city.displayName)}</option>`;
+      });
+
+      initSensitivityParams();
+    }
+
+    function initSensitivityParams() {
+      const city = document.getElementById('sensitivityCitySelect').value;
+      if (!city) return;
+
+      sensitivityParams = {
+        subsidyRate: { label: '补贴率调整(%)', value: 0, min: -20, max: 20, step: 1 },
+        deliveryCost: { label: '配送成本调整(%)', value: 0, min: -20, max: 20, step: 1 },
+        orderVolume: { label: '订单量调整(%)', value: 0, min: -10, max: 30, step: 1 }
+      };
+
+      let html = '';
+      Object.entries(sensitivityParams).forEach(([key, param]) => {
+        html += `
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">${param.label}</span>
+              <span class="slider-value" id="value-${key}">${param.value}%</span>
+            </div>
+            <input type="range" id="slider-${key}" min="${param.min}" max="${param.max}" step="${param.step}" 
+              value="${param.value}" oninput="updateSensitivity('${key}', this.value)">
+          </div>
+        `;
+      });
+
+      document.getElementById('sensitivityParams').innerHTML = html;
+      renderSensitivityCompare();
+    }
+
+    function updateSensitivity(key, value) {
+      sensitivityParams[key].value = parseInt(value);
+      document.getElementById('value-' + key).textContent = value + '%';
+      renderSensitivityCompare();
+    }
+
+    function renderSensitivityCompare() {
+      const city = document.getElementById('sensitivityCitySelect').value;
+      if (!city) return;
+
+      const cityData = currentData.cities.find(c => c.name === city);
+      if (!cityData) return;
+
+      const mod = cityData.modules.all || {};
+      const originalUE = parseFloat(mod.ue) || 0;
+      const originalProfit = parseFloat(mod.profit) || 0;
+      const originalOrders = parseFloat(mod.orders) || 1;
+
+      const subsidyChange = sensitivityParams.subsidyRate.value / 100;
+      const deliveryChange = sensitivityParams.deliveryCost.value / 100;
+      const orderChange = sensitivityParams.orderVolume.value / 100;
+
+      const newSubsidy = (mod.subsidyTotal || 0) * (1 + subsidyChange);
+      const newDelivery = (mod.deliveryCost || 0) * (1 + deliveryChange);
+      const newOrders = originalOrders * (1 + orderChange);
+
+      const baseCost = (mod.totalExpense || 0) - (mod.subsidyTotal || 0) - (mod.deliveryCost || 0);
+      const newExpense = baseCost + newSubsidy + newDelivery;
+      const newRevenue = (mod.onlineRevenue || 0) * (1 + orderChange);
+      const newProfit = newRevenue - newExpense;
+      const newUE = newOrders > 0 ? newProfit / newOrders : 0;
+
+      const table = document.getElementById('sensitivityCompareTable').querySelector('tbody');
+      table.innerHTML = `
+        <tr><td>单均UE</td><td class="text-right">${originalUE.toFixed(2)}</td><td class="text-right">${newUE.toFixed(2)}</td><td class="text-right ${newUE >= originalUE ? 'text-success' : 'text-danger'}">${newUE >= originalUE ? '+' : ''}${((newUE - originalUE) / originalUE * 100).toFixed(1)}%</td></tr>
+        <tr><td>毛利</td><td class="text-right">${formatMoney(originalProfit)}</td><td class="text-right">${formatMoney(newProfit)}</td><td class="text-right ${newProfit >= originalProfit ? 'text-success' : 'text-danger'}">${newProfit >= originalProfit ? '+' : ''}${((newProfit - originalProfit) / Math.abs(originalProfit) * 100).toFixed(1)}%</td></tr>
+        <tr><td>订单量</td><td class="text-right">${formatNumber(originalOrders)}</td><td class="text-right">${formatNumber(newOrders)}</td><td class="text-right ${newOrders >= originalOrders ? 'text-success' : 'text-danger'}">${newOrders >= originalOrders ? '+' : ''}${orderChange * 100}%</td></tr>
+        <tr><td>补贴总额</td><td class="text-right">${formatMoney(mod.subsidyTotal)}</td><td class="text-right">${formatMoney(newSubsidy)}</td><td class="text-right ${newSubsidy >= (mod.subsidyTotal || 0) ? 'text-danger' : 'text-success'}">${newSubsidy >= (mod.subsidyTotal || 0) ? '+' : ''}${subsidyChange * 100}%</td></tr>
+        <tr><td>配送成本</td><td class="text-right">${formatMoney(mod.deliveryCost)}</td><td class="text-right">${formatMoney(newDelivery)}</td><td class="text-right ${newDelivery >= (mod.deliveryCost || 0) ? 'text-danger' : 'text-success'}">${newDelivery >= (mod.deliveryCost || 0) ? '+' : ''}${deliveryChange * 100}%</td></tr>
+      `;
+    }
+
+    function renderInsights() {
+      if (!currentData) return;
+
+      document.getElementById('insightsEmpty').classList.add('hidden');
+      document.getElementById('insightsData').classList.remove('hidden');
+
+      updateInsightsHealthScore();
+      renderInsightsAnomalyList();
+      renderCostStructure();
+      renderSuggestions();
+    }
+
+    function updateInsightsHealthScore() {
+      let good = 0, warning = 0, danger = 0;
+
+      currentData.cities.forEach(city => {
+        const mod = city.modules.all || {};
+        const ue = parseFloat(mod.ue) || 0;
+        const profitRate = parseFloat(mod.profitRate) || 0;
+
+        if (ue >= 0.5 && profitRate >= 0.2) good++;
+        else if (ue >= 0.1 && profitRate >= 0.1) warning++;
+        else danger++;
+      });
+
+      document.getElementById('insightsGood').textContent = good;
+      document.getElementById('insightsWarning').textContent = warning;
+      document.getElementById('insightsDanger').textContent = danger;
+
+      const total = currentData.cities.length || 1;
+      const score = Math.round(((good * 100) + (warning * 50)) / total);
+      document.getElementById('insightsHealthScore').textContent = score;
+
+      const circumference = 2 * Math.PI * 70;
+      const offset = circumference - (score / 100) * circumference;
+      document.getElementById('insightsHealthRing').setAttribute('stroke-dashoffset', offset);
+    }
+
+    function renderInsightsAnomalyList() {
+      const anomalyList = document.getElementById('insightsAnomalyList');
+      const anomalies = [];
+
+      currentData.cities.forEach(city => {
+        const mod = city.modules.all || {};
+        const ue = parseFloat(mod.ue) || 0;
+        const profitRate = parseFloat(mod.profitRate) || 0;
+        const subsidyRatio = parseFloat(mod.subsidyRatio) || 0;
+
+        if (ue < 0.1) {
+          anomalies.push({
+            city: getCityDisplayName(city.displayName),
+            level: 'danger',
+            title: 'UE严重偏低',
+            desc: `UE为${ue.toFixed(3)}元，低于0.1元危险阈值`,
+            score: 10
+          });
+        } else if (ue < 0.5) {
+          anomalies.push({
+            city: getCityDisplayName(city.displayName),
+            level: 'warning',
+            title: 'UE预警',
+            desc: `UE为${ue.toFixed(3)}元，低于0.5元预警阈值`,
+            score: 5
+          });
+        }
+
+        if (profitRate < 0.1) {
+          anomalies.push({
+            city: getCityDisplayName(city.displayName),
+            level: 'danger',
+            title: '毛利率严重偏低',
+            desc: `毛利率为${(profitRate * 100).toFixed(1)}%，低于10%危险阈值`,
+            score: 10
+          });
+        } else if (profitRate < 0.2) {
+          anomalies.push({
+            city: getCityDisplayName(city.displayName),
+            level: 'warning',
+            title: '毛利率预警',
+            desc: `毛利率为${(profitRate * 100).toFixed(1)}%，低于20%预警阈值`,
+            score: 5
+          });
+        }
+
+        if (subsidyRatio > 0.15) {
+          anomalies.push({
+            city: getCityDisplayName(city.displayName),
+            level: 'warning',
+            title: '补贴率过高',
+            desc: `补贴率为${(subsidyRatio * 100).toFixed(1)}%，超过15%预警阈值`,
+            score: 4
+          });
+        }
+      });
+
+      // 按严重程度排序
+      anomalies.sort((a, b) => b.score - a.score);
+
+      let html = '';
+      anomalies.forEach((anomaly, idx) => {
+        const levelClass = anomaly.level === 'danger' ? 'text-danger' : 'text-warning';
+        const icon = anomaly.level === 'danger' ? '🚨' : '⚠️';
+        html += `
+          <div class="collapsible">
+            <div class="collapsible-header">${icon} ${idx + 1}. ${anomaly.city} - ${anomaly.title} <span class="${levelClass}">${anomaly.score > 7 ? 'P0' : 'P1'}</span></div>
+            <div class="collapsible-content"><p>${anomaly.desc}</p><p><strong>建议：</strong>${getSuggestion(anomaly)}</p></div>
+          </div>
+        `;
+      });
+
+      anomalyList.innerHTML = html || '<div class="empty-state"><div>✅ 暂无严重异常</div></div>';
+
+      anomalyList.querySelectorAll('.collapsible-header').forEach(header => {
+        header.addEventListener('click', () => header.parentElement.classList.toggle('collapsed'));
+      });
+    }
+
+    function getSuggestion(anomaly) {
+      if (anomaly.title.includes('UE')) {
+        return '建议降低配送成本，优化补贴策略，提高客单价';
+      } else if (anomaly.title.includes('毛利率')) {
+        return '建议提高抽佣比例，控制成本支出，优化商家结构';
+      } else if (anomaly.title.includes('补贴率')) {
+        return '建议调整补贴策略，优化补贴使用效率';
+      }
+      return '建议深入分析相关指标，制定优化方案';
+    }
+
+    function renderCostStructure() {
+      const container = document.getElementById('costStructureCharts');
+      
+      const totals = currentData.totals;
+      const deliveryCost = totals.deliveryCost || 0;
+      const subsidyTotal = totals.subsidyTotal || 0;
+      const platformCost = totals.platformCost || 0;
+      const fixedCost = totals.fixedCost || 0;
+      const totalCost = deliveryCost + subsidyTotal + platformCost + fixedCost;
+
+      const ctx = document.createElement('canvas');
+      container.innerHTML = '';
+      container.appendChild(ctx);
+
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['配送成本', '补贴支出', '平台成本', '固定成本'],
+          datasets: [{
+            data: [deliveryCost, subsidyTotal, platformCost, fixedCost],
+            backgroundColor: ['#4f46e5', '#f59e0b', '#dc2626', '#64748b'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderSuggestions() {
+      const suggestions = document.getElementById('insightsSuggestions');
+      const totals = currentData.totals;
+      const ue = parseFloat(totals.ue) || 0;
+      const profitRate = parseFloat(totals.profitRate) || 0;
+      const subsidyRatio = parseFloat(totals.subsidyRatio) || 0;
+
+      const suggestList = [];
+
+      if (ue < 0.5) {
+        suggestList.push({
+          priority: 'P0',
+          title: '提升UE',
+          desc: `当前UE为${ue.toFixed(2)}元，建议目标提升至0.5元以上`,
+          action: '优化配送成本结构，降低单位配送成本；调整补贴策略，提高补贴效率'
+        });
+      }
+
+      if (profitRate < 0.2) {
+        suggestList.push({
+          priority: 'P0',
+          title: '提升毛利率',
+          desc: `当前毛利率为${(profitRate * 100).toFixed(1)}%，建议目标提升至20%以上`,
+          action: '优化商家结构，增加高毛利商家占比；合理调整抽佣政策'
+        });
+      }
+
+      if (subsidyRatio > 0.1) {
+        suggestList.push({
+          priority: 'P1',
+          title: '控制补贴率',
+          desc: `当前补贴率为${(subsidyRatio * 100).toFixed(1)}%，建议控制在10%以内`,
+          action: '精细化补贴策略，定向补贴高潜力商家；优化C端补贴使用方式'
+        });
+      }
+
+      suggestList.push({
+        priority: 'P1',
+        title: '提升订单量',
+        desc: `当前订单量${formatNumber(totals.orders)}，建议持续增长`,
+        action: '拓展商家数量，优化商家服务；开展营销活动，提升用户活跃度'
+      });
+
+      let html = '<div style="display: grid; gap: 12px;">';
+      suggestList.forEach((item, idx) => {
+        const priorityClass = item.priority === 'P0' ? 'bg-red-500' : 'bg-yellow-500';
+        html += `
+          <div class="card" style="padding: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+              <span class="${priorityClass} text-white px-2 py-1 rounded text-xs">${item.priority}</span>
+              <strong>${item.title}</strong>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">${item.desc}</p>
+            <p style="font-size: 13px;"><strong>行动建议：</strong>${item.action}</p>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      suggestions.innerHTML = html;
+    }
+
+    function generateReport() {
+      const output = document.getElementById('reportOutput');
+      output.classList.remove('hidden');
+
+      const totals = currentData.totals;
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
+      const healthScore = Math.round(((parseFloat(totals.ue) || 0) * 100 + ((parseFloat(totals.profitRate) || 0) * 500)) / 6);
+      const merchantLabel = window.allMerchantData && window.allMerchantData[currentMerchantType] ? window.allMerchantData[currentMerchantType].label : '全量商家';
+      
+      let report = '<div style="padding: 16px; background: var(--bg-card); border-radius: 8px;">';
+      report += '<h3 style="color: var(--primary); margin-bottom: 16px;">📊 财务分析报告</h3>';
+      report += '<p><strong>生成时间：</strong>' + dateStr + '</p>';
+      report += '<p><strong>商家类型：</strong>' + merchantLabel + '</p>';
+      report += '<h4 style="margin-top: 16px; margin-bottom: 8px;">一、核心指标概览</h4>';
+      report += '<ul>';
+      report += '<li>订单量：' + formatNumber(totals.orders) + '</li>';
+      report += '<li>交易额：' + formatMoney(totals.gmvAmount) + '</li>';
+      report += '<li>毛利：' + formatMoney(totals.profit) + '</li>';
+      report += '<li>UE：' + (totals.ue || 0).toFixed(2) + '元</li>';
+      report += '<li>毛利率：' + formatPercent(totals.profitRate) + '</li>';
+      report += '<li>补贴率：' + formatPercent(totals.subsidyRatio) + '</li>';
+      report += '</ul>';
+      report += '<h4 style="margin-top: 16px; margin-bottom: 8px;">二、健康度评估</h4>';
+      report += '<p>综合健康度：' + healthScore + '分</p>';
+      report += '<h4 style="margin-top: 16px; margin-bottom: 8px;">三、异常预警</h4>';
+
+      let anomalyCount = 0;
+      currentData.cities.forEach(city => {
+        const mod = city.modules.all || {};
+        const ue = parseFloat(mod.ue) || 0;
+        const profitRate = parseFloat(mod.profitRate) || 0;
+        if (ue < 0.1 || profitRate < 0.1) {
+          anomalyCount++;
+          report += '<p>⚠️ ' + getCityDisplayName(city.displayName) + '：UE=' + ue.toFixed(2) + '元，毛利率=' + formatPercent(profitRate) + '</p>';
+        }
+      });
+
+      if (anomalyCount === 0) {
+        report += '<p>✅ 暂无严重异常</p>';
+      }
+
+      report += '<h4 style="margin-top: 16px; margin-bottom: 8px;">四、建议措施</h4>';
+      report += '<p>1. 关注UE低于0.5元的城市，分析成本结构</p>';
+      report += '<p>2. 优化补贴策略，降低不必要的补贴支出</p>';
+      report += '<p>3. 持续提升订单量和客单价</p>';
+      report += '</div>';
+
+      output.innerHTML = report;
+      showToast('报告已生成！', 'success');
+    }
+
+    function exportData() {
+      if (!currentData) {
+        showToast('请先加载数据', 'error');
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const totalsData = [{ '指标': '总商数据', ...currentData.totals }];
+      const ws = XLSX.utils.json_to_sheet(totalsData);
+      XLSX.utils.book_append_sheet(wb, ws, '总商数据');
+
+      if (currentData.cities.length > 0) {
+        const cityData = currentData.cities.map(city => ({
+          城市: getCityDisplayName(city.displayName),
+          ...city.modules.all || {}
+        }));
+        const ws2 = XLSX.utils.json_to_sheet(cityData);
+        XLSX.utils.book_append_sheet(wb, ws2, '城市数据');
+      }
+
+      XLSX.writeFile(wb, '财务分析数据.xlsx');
+      showToast('数据导出成功！', 'success');
+    }
+
+    function clearStorage() {
+      if (confirm('确定要清除所有数据吗？')) {
+        DataStore.clear();
+        StateManager.reset();
+        
+        document.getElementById('overviewEmpty').classList.remove('hidden');
+        document.getElementById('overviewData').classList.add('hidden');
+        document.getElementById('dimensionEmpty').classList.remove('hidden');
+        document.getElementById('dimensionData').classList.add('hidden');
+        document.getElementById('trendEmpty').classList.remove('hidden');
+        document.getElementById('trendData').classList.add('hidden');
+        document.getElementById('sensitivityEmpty').classList.remove('hidden');
+        document.getElementById('sensitivityData').classList.add('hidden');
+        
+        showToast('数据已清除！', 'success');
+      }
+    }
+
+    window.onload = async function() {
+      console.log('[App] 开始初始化...');
+      console.log('[App] 强制从云端加载模式');
+
+      // 显示骨架屏
+      showSkeleton();
+
+      // 显示加载状态面板
+      const loadingPanel = document.getElementById('cloudLoadingPanel');
+      const loadingText = document.getElementById('cloudLoadingText');
+      const loadingProgress = document.getElementById('cloudLoadingProgress');
+      
+      loadingPanel.style.display = 'block';
+      loadingPanel.className = 'cloud-loading-panel';
+      loadingText.textContent = '正在从云端加载数据...';
+      loadingProgress.textContent = '连接服务器...';
+      
+      // 强制从云端加载（含重试）
+      console.log('[App] 开始从云端加载...');
+      
+      let loaded = false;
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      while (!loaded && retryCount <= maxRetries) {
+        try {
+          if (retryCount > 0) {
+            loadingProgress.textContent = '网络超时，第' + retryCount + '次重试...';
+          } else {
+            loadingProgress.textContent = '正在连接云端服务器...';
+          }
+          loaded = await loadFromCloud();
+        } catch (error) {
+          console.error('[App] 加载失败(第' + (retryCount + 1) + '次):', error);
+        }
+        if (!loaded && retryCount < maxRetries) {
+          await new Promise(r => setTimeout(r, 2000)); // 等待2秒后重试
+        }
+        retryCount++;
+      }
+      
+      // 加载完成后的处理
+      if (!loaded) {
+        console.log('[App] 云端无数据或加载失败，显示空状态');
+        StateManager.init(DataStore.load());
+        
+        loadingPanel.className = 'cloud-loading-panel error';
+        loadingText.textContent = '⚠️ 数据加载失败';
+        loadingProgress.innerHTML = '可能是网络问题，请检查网络后<a href="javascript:location.reload()" style="color:var(--primary);text-decoration:underline;">刷新重试</a>';
+        
+        const logs = collectDiagnosticLogs();
+        showDiagnostic(logs);
+        
+        return;
+      }
+      
+      // 加载成功
+      const loadedData = DataStore.load();
+      StateManager.init(loadedData);
+      
+      // 更新全局变量
+      if (loadedData) {
+        importHistory = loadedData.importHistory || [];
+        currentData = loadedData.currentData || null;
+        window.allMerchantData = loadedData.allMerchantData || null;
+        currentImportIndex = loadedData.currentImportIndex || 0;
+        currentMerchantType = loadedData.currentMerchantType || 'all';
+      }
+      
+      loadingPanel.className = 'cloud-loading-panel success';
+      loadingText.textContent = '✅ 数据加载成功';
+
+      const recordCount = importHistory?.length || 0;
+      const cityCount = currentData?.cities?.length || 0;
+      loadingProgress.textContent = `已加载 ${recordCount} 条历史记录，共 ${cityCount} 个城市数据`;
+
+      // 2秒后自动隐藏
+      setTimeout(() => {
+        loadingPanel.style.display = 'none';
+        console.log('[App] 加载面板已隐藏');
+      }, 2000);
+    };
+  
+
+// 辅助函数：解析记录
+function parseRecord(record) {
+  let merchantData = record.merchantData || record.currentData?.merchantData;
+  if (!merchantData && record.currentData?.cities) {
+    merchantData = { all: { date: record.date, cities: record.currentData.cities } };
+  }
+  if (merchantData?.all) {
+    merchantData.all.profit = merchantData.all.onlineRevenue - merchantData.all.totalExpense;
+    merchantData.all.ue = merchantData.all.orders > 0 ? merchantData.all.profit / merchantData.all.orders : 0;
+  }
+  return merchantData;
+}
+
+// 辅助函数：构建 v3 格式数据
