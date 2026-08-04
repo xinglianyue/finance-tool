@@ -1,0 +1,3 @@
+# 忽略Vercel相关文件，避免触发Vercel部署
+.vercel/
+.vercelignore
