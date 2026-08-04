@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>财务分析工具 v2.0</title>
+  <link rel="stylesheet" href="./css/main.css">
+  <script type="module" src="./src/main.ts"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">F</div>
+        <span class="logo-text">财务分析工具</span>
+      </div>
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="overview">概览</button>
+        <button class="tab-btn" data-tab="dimension">维度下钻</button>
+        <button class="tab-btn" data-tab="trend">趋势分析</button>
+        <button class="tab-btn" data-tab="sensitivity">敏感性分析</button>
+      </nav>
+      <div class="header-actions">
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">导入Excel</button>
+        <button class="btn btn-secondary" onclick="loadDemoData()">演示数据</button>
+        <button class="btn btn-theme" onclick="toggleTheme()">🌓 主题</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Overview Tab -->
+      <section id="tab-overview" class="tab-content active">
+        <div class="kpi-cards">
+          <div class="kpi-card">
+            <div class="kpi-label">总交易额</div>
+            <div class="kpi-value" id="kpi-gmv">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">总订单量</div>
+            <div class="kpi-value" id="kpi-orders">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">总利润</div>
+            <div class="kpi-value" id="kpi-profit">--</div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>交易趋势</h3>
+          <div id="trend-chart" class="chart"></div>
+        </div>
+      </section>
+
+      <!-- Dimension Tab -->
+      <section id="tab-dimension" class="tab-content">
+        <div class="dimension-controls">
+          <select id="month-select" onchange="switchImportDate(this.value)">
+            <option value="">选择月份</option>
+          </select>
+          <select id="city-select" onchange="switchCity(this.value)">
+            <option value="">选择城市</option>
+          </select>
+        </div>
+        <div id="dimension-table" class="dimension-table">
+          <p>请选择月份查看数据</p>
+        </div>
+      </section>
+
+      <!-- Trend Tab -->
+      <section id="tab-trend" class="tab-content">
+        <div id="trend-analysis" class="trend-container">
+          <p>趋势分析功能开发中...</p>
+        </div>
+      </section>
+
+      <!-- Sensitivity Tab -->
+      <section id="tab-sensitivity" class="tab-content">
+        <div id="sensitivity-analysis" class="sensitivity-container">
+          <p>敏感性分析功能开发中...</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>财务分析工具 v2.0 | TypeScript + Vite 重构版</p>
+    </footer>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+</body>
+</html>
