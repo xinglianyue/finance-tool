@@ -1,21 +1,25 @@
 {
   "name": "finance-tool",
-  "version": "17.0.0",
-  "private": true,
-  "type": "module",
+  "version": "1.0.0",
+  "description": "财务分析工具 - 支持Excel导入、多维度数据分析",
+  "main": "index.html",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "test": "node test/syntax-check.js && node test/unit-tests.js",
+    "test:syntax": "node test/syntax-check.js",
+    "test:unit": "node test/unit-tests.js",
+    "test:all": "npm run test:syntax && npm run test:unit",
+    "lint": "echo 'Linting not configured yet'",
+    "build": "npm run test:all && echo 'Build successful!'",
+    "deploy": "npm run build && git push origin main",
+    "check": "node test/syntax-check.js index-new.html"
   },
+  "keywords": ["finance", "analysis", "excel", "dashboard"],
+  "author": "xinglianyue",
+  "license": "MIT",
   "devDependencies": {
-    "vite": "^6.0.0",
-    "vite-plugin-singlefile": "^2.0.0"
+    "eslint": "^8.0.0"
   },
-  "dependencies": {
-    "jquery": "^3.7.1",
-    "xlsx": "^0.18.5",
-    "chart.js": "^4.4.7",
-    "chartjs-plugin-datalabels": "^2.2.0"
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
