@@ -9,17 +9,17 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>璐㈠姟鍒嗘瀽宸ュ叿 - 缇庡洟浠ｇ悊鍟嗕笓鐢?/title>
+  <title>财务分析工具 - 美团代理商专用/title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>馃搳</text></svg>" type="image/svg+xml">
-  <script src="js/data-store.js?v=1786006211"></script>
-  <script src="js/state-manager.js?v=1786006211"></script>
+  <script src="js/data-store.js?v=1786007402"></script>
+  <script src="js/state-manager.js?v=1786007402"></script>
   <script src="js/xlsx.full.min.js?v=20260727.2"></script>
     <script src="js/chart.umd.min.js?v=20260727.2"></script>
   <script>
 <!-- Version: 20260731.1785570517 -->
-    // ===== 鐗堟湰鑷姩妫€娴?=====
+    // ===== 鐗堟湰鑷姩检测娴?=====
     (function() {
-      var APP_VERSION = '1786006211';
+      var APP_VERSION = '1786007402';
       var VER_KEY = 'finance_app_ver';
       var cachedVer = localStorage.getItem(VER_KEY);
       
@@ -34,7 +34,7 @@
       }
     })();
     
-    // 棰勫姞杞介樁娈碉細妫€鏌ユ湰鍦扮紦瀛樼姸鎬?
+    // 棰勫姞杞介樁娈碉細检测鏌ユ湰鍦扮紦瀛樼姸鎬?
     (function() {
       console.log('[App] === 棰勫姞杞介樁娈?===');
       const hasLocalData = !!localStorage.getItem('finance-tool');
@@ -501,7 +501,7 @@
 
     /* ==================== 绉诲姩绔紭鍖栵紙澧炲己鐗堬級 ==================== */
     
-    /* 骞虫澘绔紙768px浠ヤ笅锛?*/
+    /* 骞虫澘绔紙768px浠ヤ笅*/
     @media (max-width: 768px) {
       .app-container {
         padding: 12px;
@@ -619,7 +619,7 @@
       }
     }
     
-    /* 鎵嬫満绔紙480px浠ヤ笅锛?*/
+    /* 鎵嬫満绔紙480px浠ヤ笅*/
     @media (max-width: 480px) {
       .app-container {
         padding: 10px;
@@ -1099,7 +1099,7 @@
       }
     }
 
-    /* 灏忓睆鎵嬫満浼樺寲锛?60px浠ヤ笅锛?*/
+    /* 灏忓睆鎵嬫満浼樺寲60px浠ヤ笅*/
     @media (max-width: 360px) {
       .app-container {
         padding: 8px !important;
@@ -1138,7 +1138,7 @@
       }
     }
 
-    /* 澶у睆骞曚紭鍖栵紙骞虫澘妯睆锛?*/
+    /* 澶у睆骞曚紭鍖栵紙骞虫澘妯睆*/
     @media (min-width: 769px) and (max-width: 1024px) {
       .app-container {
         padding: 16px;
@@ -1332,7 +1332,7 @@
   
   <div class="app-container">
     <div class="header">
-      <h1>馃搳 璐㈠姟鍒嗘瀽宸ュ叿</h1>
+      <h1>馃搳 财务分析工具</h1>
       <p>缇庡洟浠ｇ悊鍟嗚储鍔℃暟鎹垎鏋?| 澶氬煄甯傚姣?| 缁村害涓嬮捇 | 鏁忔劅鎬у垎鏋?/p>
       <p style="font-size:12px;opacity:0.7;margin-top:4px;">鐗堟湰: v2026-07-27.2</p>
       <div class="header-actions">
@@ -1371,7 +1371,7 @@
           <div class="card-title">鏁版嵁閫夋嫨</div>
           <div class="selectors">
             <div class="selector-group">
-              <span class="selector-label">閫夋嫨鏁版嵁锛?/span>
+              <span class="selector-label">閫夋嫨鏁版嵁/span>
               <select id="import-date-select" onchange="switchImportDate(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px;">
               </select>
             </div>
@@ -1379,7 +1379,7 @@
         </div>
         <div class="kpi-grid" id="kpiCards"></div>
         <div class="card">
-          <div class="card-title">馃彊锔?鍩庡競鎺掑悕锛堟寜UE锛?/div>
+          <div class="card-title">馃彊锔?鍩庡競鎺掑悕锛堟寜UE/div>
           <div class="table-container">
             <div id="cityRankTable"></div>
           </div>
@@ -1398,18 +1398,18 @@
           <div class="card-title">绛涢€夋潯浠?/div>
           <div class="selectors">
             <div class="selector-group">
-              <span class="selector-label">閫夋嫨鏁版嵁锛?/span>
+              <span class="selector-label">閫夋嫨鏁版嵁/span>
               <select id="import-date-select-dim" onchange="switchImportDateDim(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px;">
               </select>
             </div>
             <div class="selector-group">
-              <span class="selector-label">鍩庡競锛?/span>
+              <span class="selector-label">鍩庡競/span>
               <div class="checkbox-group" id="cityCheckboxes"></div>
             </div>
           </div>
           <div class="selectors">
             <div class="selector-group">
-              <span class="selector-label">涓氬姟妯″潡锛?/span>
+              <span class="selector-label">涓氬姟妯″潡/span>
               <select id="moduleSelect" onchange="renderDimensionTable()">
                 <option value="all">鍏ㄥ搧绫?/option>
                 <option value="food">椁愰ギ</option>
@@ -1440,12 +1440,12 @@
           <div class="card-title">绛涢€夋潯浠?/div>
           <div class="selectors">
             <div class="selector-group">
-              <span class="selector-label">鍩哄噯鏃ユ湡锛?/span>
+              <span class="selector-label">鍩哄噯鏃ユ湡/span>
               <select id="trendBaseMonthSelect" onchange="renderTrend()">
               </select>
             </div>
             <div class="selector-group">
-              <span class="selector-label">鍟嗗绫诲瀷锛?/span>
+              <span class="selector-label">鍟嗗绫诲瀷/span>
               <select id="trendMerchantSelect" onchange="renderTrend()">
                 <option value="all">鍏ㄩ噺鍟嗗</option>
                 <option value="city">鍩庡競鍟嗗</option>
@@ -1453,7 +1453,7 @@
               </select>
             </div>
             <div class="selector-group">
-              <span class="selector-label">涓氬姟妯″潡锛?/span>
+              <span class="selector-label">涓氬姟妯″潡/span>
               <select id="trendModuleSelect" onchange="renderTrend()">
                 <option value="all">鍏ㄥ搧绫?/option>
                 <option value="food">椁愰ギ</option>
@@ -1463,14 +1463,14 @@
               </select>
             </div>
             <div class="selector-group">
-              <span class="selector-label">閫夋嫨鍩庡競锛?/span>
+              <span class="selector-label">閫夋嫨鍩庡競/span>
               <select id="trendCitySelect" onchange="renderTrend()">
               </select>
             </div>
           </div>
           <div class="selectors" style="margin-top: 8px; align-items: center;">
             <div class="selector-group">
-              <span class="selector-label">娣诲姞瀵规瘮锛?/span>
+              <span class="selector-label">娣诲姞瀵规瘮/span>
               <select id="trendAddDateSelect" onchange="addTrendCompareDate()" style="max-width: 180px;">
               </select>
             </div>
@@ -1497,7 +1497,7 @@
             <div class="card-title">馃帥锔?鍙傛暟璋冩暣</div>
             <div class="selectors">
               <div class="selector-group">
-                <span class="selector-label">閫夋嫨鍩庡競锛?/span>
+                <span class="selector-label">閫夋嫨鍩庡競/span>
                 <select id="sensitivityCitySelect" onchange="initSensitivityParams()">
                   <option value="">璇烽€夋嫨鍩庡競</option>
                 </select>
@@ -1531,7 +1531,7 @@
       localStorage.setItem('finance-theme', h.dataset.theme);
     }
 
-    // 鏇存柊鐗堟湰锛氭竻闄ょ紦瀛樺苟寮哄埗鍒锋柊鍒版渶鏂扮増鏈?
+    // 鏇存柊鐗堟湰锛氭竻闄ょ紦瀛樺苟寮哄埗鍒锋柊鍒版渶鏂扮増版本
     function updateVersion() {
       // 娓呴櫎缂撳瓨鐩稿叧鐨刲ocalStorage椤?
       localStorage.removeItem('finance-tool');
@@ -1539,7 +1539,7 @@
       localStorage.removeItem('finance_app_ver');
       
       // 鏄剧ず鎻愮ず淇℃伅
-      showToast('姝ｅ湪鏇存柊鑷虫渶鏂扮増鏈?..', 'info');
+      showToast('姝ｅ湪鏇存柊鑷虫渶鏂扮増版本..', 'info');
       
       // 寤惰繜鍚庡埛鏂伴〉闈紝缁欑敤鎴锋椂闂寸湅鍒版彁绀?
       setTimeout(() => {
@@ -1677,7 +1677,7 @@
       const logs = [];
       const now = new Date().toISOString();
       
-      logs.push('=== 璐㈠姟鍒嗘瀽宸ュ叿 璇婃柇鎶ュ憡 ===');
+      logs.push('=== 财务分析工具 璇婃柇鎶ュ憡 ===');
       logs.push(`鏃堕棿: ${now}`);
       logs.push(`椤甸潰URL: ${window.location.href}`);
       logs.push('');
@@ -1775,9 +1775,9 @@
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           parseExcelData(workbook, file.name);
-          showToast('鏁版嵁瀵煎叆鎴愬姛锛?, 'success');
+          showToast('鏁版嵁瀵煎叆鎴愬姛, 'success');
         } catch (err) {
-          showToast('瀵煎叆澶辫触锛? + err.message, 'error');
+          showToast('瀵煎叆澶辫触 + err.message, 'error');
         }
       };
       reader.readAsArrayBuffer(file);
@@ -2087,10 +2087,10 @@
       } else {
         // cache 涓病鏈夛紝灏濊瘯浠?StateManager 鑾峰彇
         merchantData = StateManager.get('allMerchantData');
-        console.log('[App] switchImportDate: 浠?StateManager 鑾峰彇鏁版嵁锛宮erchantData 瀛樺湪锛? + !!merchantData);
+        console.log('[App] switchImportDate: 浠?StateManager 鑾峰彇鏁版嵁锛宮erchantData 瀛樺湪 + !!merchantData);
       }
       
-      // 濡傛灉杩樻槸娌℃湁鏁版嵁锛屽皾璇曚粠鍏ㄥ眬 cloudData 鏋勫缓锛堝鏋滄湁锛?
+      // 濡傛灉杩樻槸娌℃湁鏁版嵁锛屽皾璇曚粠鍏ㄥ眬 cloudData 鏋勫缓锛堝鏋滄湁
       if (!merchantData && window.cloudData) {
         const cloudRecord = window.cloudData.find(r => r.date === selectedRecord.monthLabel);
         if (cloudRecord) {
@@ -2115,9 +2115,9 @@
         return;
       }
       
-      // 妫€娴嬫暟鎹牸寮忥紝濡傛灉鏄棫鏍煎紡 { date, cities, fileName }锛岄渶瑕佸寘瑁呮垚鏂版牸寮?
+      // 检测娴嬫暟鎹牸寮忥紝濡傛灉鏄棫鏍煎紡 { date, cities, fileName }锛岄渶瑕佸寘瑁呮垚鏂版牸寮?
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
-        console.log('[App] 妫€娴嬪埌鏃ф牸寮忔暟鎹紝姝ｅ湪杞崲涓烘柊鏍煎紡:', Object.keys(merchantData));
+        console.log('[App] 检测娴嬪埌鏃ф牸寮忔暟鎹紝姝ｅ湪杞崲涓烘柊鏍煎紡:', Object.keys(merchantData));
         merchantData = {
           all: {
             label: '鍏ㄩ儴',
@@ -2223,9 +2223,9 @@
         return;
       }
 
-      // 妫€娴嬫暟鎹牸寮忥紝濡傛灉鏄棫鏍煎紡 { date, cities, fileName }锛岄渶瑕佸寘瑁呮垚鏂版牸寮?
+      // 检测娴嬫暟鎹牸寮忥紝濡傛灉鏄棫鏍煎紡 { date, cities, fileName }锛岄渶瑕佸寘瑁呮垚鏂版牸寮?
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
-        console.log('[App] 妫€娴嬪埌鏃ф牸寮忔暟鎹紙缁村害锛夛紝姝ｅ湪杞崲涓烘柊鏍煎紡:', Object.keys(merchantData));
+        console.log('[App] 检测娴嬪埌鏃ф牸寮忔暟鎹紙缁村害锛夛紝姝ｅ湪杞崲涓烘柊鏍煎紡:', Object.keys(merchantData));
         merchantData = {
           all: {
             label: '鍏ㄩ儴',
@@ -2238,11 +2238,11 @@
       allMerchantData = merchantData;
       window.allMerchantData = merchantData;  // 鍚屾鍒板叏灞€瀵硅薄锛岀‘淇?renderDimension() 鑳借闂埌鏈€鏂版暟鎹?
       
-      // 閲嶇疆鍩庡競鏁版嵁缂撳瓨锛堝叧閿細纭繚鍒囨崲鏃ユ湡鍚庝娇鐢ㄦ柊鏁版嵁锛?
+      // 閲嶇疆鍩庡競鏁版嵁缂撳瓨锛堝叧閿細纭繚鍒囨崲鏃ユ湡鍚庝娇鐢ㄦ柊鏁版嵁
       _cityDataCacheKey = null;
       _cityDataCache = null;
       
-      // 鏇存柊currentData锛堝叧閿慨澶嶏細涔嬪墠缂哄皯杩欐瀵艰嚧缁村害涓嬮捇鏁版嵁涓嶅彉锛?
+      // 鏇存柊currentData锛堝叧閿慨澶嶏細涔嬪墠缂哄皯杩欐瀵艰嚧缁村害涓嬮捇鏁版嵁涓嶅彉
       const allCitiesData = merchantData.all?.cities || [];
       let totalData = null;
       let citiesData = [];
@@ -2340,7 +2340,7 @@
       renderOverview();
     }
 
-    // ===== 鏁版嵁瀛樺偍锛堜娇鐢―ataStore妯″潡锛?====
+    // ===== 鏁版嵁瀛樺偍锛堜娇鐢―ataStore妯″潡====
     
     function normalizeDateLabel(dateStr) {
       if (!dateStr) return '鏈煡鏃ユ湡';
@@ -2352,12 +2352,12 @@
         return date;
       }
       
-      // 濡傛灉鏄?YYYY-MM 鏍煎紡锛屾坊鍔犻粯璁ゆ棩鏈?
+      // 濡傛灉鏄?YYYY-MM 鏍煎紡锛屾坊鍔犻粯璁ゆ棩版本
       if (/^\d{4}-\d{2}$/.test(date)) {
         return date + '-01';
       }
       
-      // 浠庡叾浠栨牸寮忎腑瑙ｆ瀽鍑哄畬鏁存棩鏈?
+      // 浠庡叾浠栨牸寮忎腑瑙ｆ瀽鍑哄畬鏁存棩版本
       const fullDateMatch = date.match(/(\d{4})[骞碶-_](\d{1,2})[鏈圽-_]?(\d{1,2})?/);
       if (fullDateMatch) {
         const year = fullDateMatch[1];
@@ -2418,7 +2418,7 @@
     }
 
     /**
-     * 鑷姩璁＄畻姣涘埄鐨勫嚱鏁帮紙淇′换鍘熷鏁版嵁锛屽彧鍦ㄧ己澶辨椂璁＄畻锛?
+     * 鑷姩璁＄畻姣涘埄鐨勫嚱鏁帮紙淇′换鍘熷鏁版嵁锛屽彧鍦ㄧ己澶辨椂璁＄畻
      * @param {Object} data - 鍟嗗妯″潡鏁版嵁
      */
     function calculateProfit(data) {
@@ -2549,7 +2549,7 @@
       const currentRecord = data.importHistory[data.currentImportIndex];
       let localAllMerchantData = window.financeToolCache?.[currentRecord.monthLabel] || data.cache?.[currentRecord.monthLabel];
       
-      // 濡傛灉 cache 涓病鏈夛紝浠?importHistory 璇诲彇锛堝吋瀹规棫鏁版嵁锛?
+      // 濡傛灉 cache 涓病鏈夛紝浠?importHistory 璇诲彇锛堝吋瀹规棫鏁版嵁
       if (!localAllMerchantData && currentRecord.data) {
         localAllMerchantData = currentRecord.data;
       }
@@ -2567,7 +2567,7 @@
         };
       }
       
-      // 鏇存柊鍏ㄥ眬鍙橀噺鍜屽眬閮ㄥ彉閲忥紙浣跨敤涓嶅悓鐨勫彉閲忓悕閬垮厤娣锋穯锛?
+      // 鏇存柊鍏ㄥ眬鍙橀噺鍜屽眬閮ㄥ彉閲忥紙浣跨敤涓嶅悓鐨勫彉閲忓悕閬垮厤娣锋穯
       window.allMerchantData = localAllMerchantData;
       window.importHistory = data.importHistory;
       window.currentData = data.currentData;
@@ -2629,8 +2629,8 @@
         
         let cloudData = null;
         
-        // 浼樺厛浣跨敤鐩稿璺緞鍔犺浇锛堝悓涓€鍩熷悕锛屾棤 CORS 闂锛?
-        // 涓嶈瓒呮椂锛?.5MB鏂囦欢鍦ㄦ墜鏈烘參缃戠粶涓嬮渶瑕佽緝闀挎椂闂?
+        // 浼樺厛浣跨敤鐩稿璺緞鍔犺浇锛堝悓涓€鍩熷悕锛屾棤 CORS 闂
+        // 涓嶈瓒呮椂.5MB鏂囦欢鍦ㄦ墜鏈烘參缃戠粶涓嬮渶瑕佽緝闀挎椂闂?
         const localUrl = './shared-data.json';
         console.log('[App] 灏濊瘯浠庣浉瀵硅矾寰勫姞杞?', localUrl);
         
@@ -2714,7 +2714,7 @@
         
         console.log('[App] 浜戠鏁版嵁鍔犺浇鎴愬姛锛屽叡' + cloudData.length + '鏉¤褰?);
         
-        // 鍘婚噸閫昏緫锛氱浉鍚屾棩鏈熷彧淇濈暀鏈€鏂扮殑锛堟牴鎹?updatedAt 鎴?version锛?
+        // 鍘婚噸閫昏緫锛氱浉鍚屾棩鏈熷彧淇濈暀鏈€鏂扮殑锛堟牴鎹?updatedAt 鎴?version
         console.log('[App] 寮€濮嬪幓閲嶅鐞?..');
         const deduplicatedCloudData = [];
         const dateMap = {}; // date -> {record, updatedAt, version}
@@ -2770,11 +2770,11 @@
           };
         });
         
-        // 鎸夋棩鏈熸帓搴忥紙鏈€鏂扮殑鍦ㄥ墠锛?
+        // 鎸夋棩鏈熸帓搴忥紙鏈€鏂扮殑鍦ㄥ墠
         allImportHistory.sort((a, b) => b.monthLabel.localeCompare(a.monthLabel));
         
         // 浣跨敤鏈€鏂扮殑鏁版嵁鏋勫缓allMerchantData
-        // 鎸夋棩鏈熸帓搴忓彇鏈€鏂帮紙涓嶄緷璧杋sLatest鏍囪锛屽洜涓篸b-sync涓婁紶鐨勬暟鎹彲鑳芥病鏈夎鏍囪锛?
+        // 鎸夋棩鏈熸帓搴忓彇鏈€鏂帮紙涓嶄緷璧杋sLatest鏍囪锛屽洜涓篸b-sync涓婁紶鐨勬暟鎹彲鑳芥病鏈夎鏍囪
         const sortedByDate = deduplicatedRecords.slice().sort((a, b) => b.date.localeCompare(a.date));
         let latestRecord = sortedByDate[0];
         console.log('[App] 閫変腑鐨勬渶鏂拌褰? date=' + latestRecord.date + ', isLatest=' + latestRecord.isLatest + ', version=' + (latestRecord.version || 'N/A'));
@@ -2783,7 +2783,7 @@
         
         // 濡傛灉鏄棫鏍煎紡锛坈urrentData鐩存帴鍖呭惈cities锛夛紝闇€瑕佽浆鎹负鏂版牸寮?
         if (!latestMerchantData.all && latestRecord.currentData?.cities) {
-          console.log('[App] latestRecord妫€娴嬪埌鏃ф牸寮忔暟鎹紝杩涜鏍煎紡杞崲...');
+          console.log('[App] latestRecord检测娴嬪埌鏃ф牸寮忔暟鎹紝杩涜鏍煎紡杞崲...');
           latestMerchantData = {
             all: {
               date: latestRecord.date,
@@ -2805,7 +2805,7 @@
             
             if (!typeData.cities || !Array.isArray(typeData.cities)) return;
             
-            // 鍩庡競鐧藉悕鍗曡繃婊わ細鍙繚鐣欓厤缃腑鐨勫煄甯傦紙鏀寔妯＄硦鍖归厤锛?
+            // 鍩庡競鐧藉悕鍗曡繃婊わ細鍙繚鐣欓厤缃腑鐨勫煄甯傦紙鏀寔妯＄硦鍖归厤
             typeData.cities = typeData.cities.filter(city => {
               if (!city || !city.name) return false;
               if (city.name === '鎬诲晢') return true; // 鎬诲晢濮嬬粓淇濈暀
@@ -2830,7 +2830,7 @@
               calculateProfit(city.modules);
             });
             
-            // 妫€鏌ユ槸鍚︽湁鎬诲晢鏁版嵁锛屽鏋滄病鏈夊垯鑷姩鍒涘缓
+            // 检测鏌ユ槸鍚︽湁鎬诲晢鏁版嵁锛屽鏋滄病鏈夊垯鑷姩鍒涘缓
             const hasTotalCity = typeData.cities.some(city => city.name === '鎬诲晢');
             
             if (!hasTotalCity && typeData.cities.length > 0) {
@@ -2899,7 +2899,7 @@
           }
         });
         
-        // 鏋勫缓 cache锛氱紦瀛樻墍鏈夋湀浠界殑鏁版嵁鍒板唴瀛橈紙涓嶅啓鍏ocalStorage锛岄伩鍏?MB婧㈠嚭锛?
+        // 鏋勫缓 cache锛氱紦瀛樻墍鏈夋湀浠界殑鏁版嵁鍒板唴瀛橈紙涓嶅啓鍏ocalStorage锛岄伩鍏?MB婧㈠嚭
         const cache = {};
         cloudData.forEach(record => {
           cache[record.date] = parseRecord(record);
@@ -2916,7 +2916,7 @@
             availableDates: cloudData.map(r => r.date)
           },
           currentData: currentData,
-          // cache 涓嶅啓鍏?localStorage锛堟瘡鏉＄害631KB锛?鏉?5.58MB > 5MB闄愬埗锛?
+          // cache 涓嶅啓鍏?localStorage锛堟瘡鏉＄害631KB鏉?5.58MB > 5MB闄愬埗
           // 瓒嬪娍鍒嗘瀽浠?window.financeToolCache 鍐呭瓨鍙橀噺璇诲彇
           importHistory: allImportHistory,
           currentImportIndex: 0,
@@ -2954,7 +2954,7 @@ async function checkCloudForUpdates(localData) {
         if (newDates.length > 0) return true;
         return false;
       } catch (e) {
-        console.error('[App] 妫€鏌ユ洿鏂板け璐?', e);
+        console.error('[App] 检测鏌ユ洿鏂板け璐?', e);
         return false;
       }
     }
@@ -2962,17 +2962,17 @@ async function checkCloudForUpdates(localData) {
 
     
     /**
-     * 妫€鏌ヤ簯绔槸鍚︽湁鏂版暟鎹?
+     * 检测鏌ヤ簯绔槸鍚︽湁鏂版暟鎹?
      * @param {Object} localData - 鏈湴鏁版嵁
      * @returns {Promise<boolean>} - 鏄惁鏈夋柊鏁版嵁
      */
     async function checkCloudForUpdates(localData) {
       try {
-        console.log('[App] 妫€鏌ヤ簯绔洿鏂?..');
+        console.log('[App] 检测鏌ヤ簯绔洿鏂?..');
         
         let cloudData = null;
         
-        // 浼樺厛浣跨敤鐩存帴涓嬭浇鐨勬柟寮忥紙鏇寸ǔ瀹氾紝涓嶅彈 GitHub API 闄愭祦褰卞搷锛?
+        // 浼樺厛浣跨敤鐩存帴涓嬭浇鐨勬柟寮忥紙鏇寸ǔ瀹氾紝涓嶅彈 GitHub API 闄愭祦褰卞搷
         const directUrl = 'https://raw.githubusercontent.com/xinglianyue/finance-tool/main/shared-data.json';
         try {
           const directResponse = await fetch(directUrl);
@@ -3034,14 +3034,14 @@ async function checkCloudForUpdates(localData) {
         console.log('[App] 浜戠鏃ユ湡 (鍘熷):', cloudData.map(r => r.date));
         console.log('[App] 浜戠鏃ユ湡 (鏍囧噯鍖?:', cloudDates);
         
-        // 妫€鏌ユ槸鍚︽湁鏂扮殑鏃ユ湡
+        // 检测鏌ユ槸鍚︽湁鏂扮殑鏃ユ湡
         const newDates = cloudDates.filter(d => !localDates.includes(d));
         if (newDates.length > 0) {
-          console.log('[App] 鍙戠幇鏂版棩鏈?', newDates);
+          console.log('[App] 鍙戠幇鏂版棩版本', newDates);
           return true;
         }
         
-        // 妫€鏌ョ浉鍚屾棩鏈熺殑鏇存柊鏃堕棿鏄惁鍙樺寲
+        // 检测鏌ョ浉鍚屾棩鏈熺殑鏇存柊鏃堕棿鏄惁鍙樺寲
         for (const localRecord of localData.importHistory || []) {
           const cloudRecord = cloudRecordsNormalized.find(c => c.normalizedDate === localRecord.monthLabel);
           if (cloudRecord && cloudRecord.updatedAt && localRecord.importedAt) {
@@ -3058,7 +3058,7 @@ async function checkCloudForUpdates(localData) {
         return false;
         
       } catch (e) {
-        console.error('[App] 妫€鏌ユ洿鏂板け璐?', e);
+        console.error('[App] 检测鏌ユ洿鏂板け璐?', e);
         return false;
       }
     }
@@ -3073,7 +3073,7 @@ async function checkCloudForUpdates(localData) {
         const success = DataStore.save(data);
         if (!success) {
           console.error('鏁版嵁淇濆瓨澶辫触');
-          showToast('鏁版嵁淇濆瓨澶辫触锛岃妫€鏌ュ瓨鍌ㄧ┖闂?, 'error');
+          showToast('鏁版嵁淇濆瓨澶辫触锛岃检测鏌ュ瓨鍌ㄧ┖闂?, 'error');
         }
       }, 300);
     }
@@ -3112,7 +3112,7 @@ async function checkCloudForUpdates(localData) {
           currentImportIndex = StateManager.get('currentImportIndex');
           currentMerchantType = StateManager.get('currentMerchantType');
           
-          // 鎭㈠缂撳瓨鍒板叏灞€鍙橀噺锛堜緵瓒嬪娍鍒嗘瀽浣跨敤锛?
+          // 鎭㈠缂撳瓨鍒板叏灞€鍙橀噺锛堜緵瓒嬪娍鍒嗘瀽浣跨敤
       if (data.cache) {
         window.financeToolCache = data.cache;
       }
@@ -3127,11 +3127,11 @@ async function checkCloudForUpdates(localData) {
           if (currentRecord) {
             window.financeToolCache = window.financeToolCache || {};
             window.financeToolCache[currentRecord.monthLabel] = allMerchantData;
-            console.log('[App] 浠?allMerchantData 閲嶅缓缂撳瓨锛屾棩鏈?', currentRecord.monthLabel);
+            console.log('[App] 浠?allMerchantData 閲嶅缓缂撳瓨锛屾棩版本', currentRecord.monthLabel);
           }
         }
         
-        // 2. 濡傛灉浠嶇劧涓虹┖锛屽皾璇曚粠浜戠鏁版嵁涓幏鍙栵紙濡傛灉鏈塩loudData鍏ㄥ眬鍙橀噺锛?
+        // 2. 濡傛灉浠嶇劧涓虹┖锛屽皾璇曚粠浜戠鏁版嵁涓幏鍙栵紙濡傛灉鏈塩loudData鍏ㄥ眬鍙橀噺
         if (!window.financeToolCache || Object.keys(window.financeToolCache).length === 0 && window.cloudData) {
           importHistory.forEach(record => {
             const cloudRecord = window.cloudData.find(r => r.date === record.monthLabel);
@@ -3148,7 +3148,7 @@ async function checkCloudForUpdates(localData) {
             }
           });
           if (Object.keys(window.financeToolCache).length > 0) {
-            console.log('[App] 浠?cloudData 閲嶅缓缂撳瓨锛屽叡 ' + Object.keys(window.financeToolCache).length + ' 涓棩鏈?);
+            console.log('[App] 浠?cloudData 閲嶅缓缂撳瓨锛屽叡 ' + Object.keys(window.financeToolCache).length + ' 涓棩版本);
           }
         }
       }
@@ -3220,7 +3220,7 @@ function parseExcelData(workbook, fileName) {
           { keys: ['deliveryFee', '閰嶉€佽垂'], name: 'deliveryFee' },
           { keys: ['subsidyTotal', '浠ｈˉ閲戦'], name: 'subsidyTotal' },
           { keys: ['platformCost', '骞冲彴鎴愭湰'], name: 'platformCost' },
-          { keys: ['deliveryCost', '閰嶉€佹垚鏈?], name: 'deliveryCost' },
+          { keys: ['deliveryCost', '閰嶉€佹垚版本], name: 'deliveryCost' },
           { keys: ['fixedCost', '鍥哄畾鎴愭湰'], name: 'fixedCost' },
           { keys: ['additionalCost', '闄勫姞鎴愭湰'], name: 'additionalCost' },
           { keys: ['totalExpense', '鏀嚭姹囨€?], name: 'totalExpense' }
@@ -3700,7 +3700,7 @@ function parseExcelData(workbook, fileName) {
       
       html += '<tfoot><tr><td colspan="10" style="padding: 12px; font-size: 11px; color: var(--text-secondary); background: var(--bg-header); border-top: 1px solid var(--border);">';
       html += '<strong>鍔ㄦ€侀槇鍊艰鏄庯細</strong> ';
-      html += 'UE闃堝€硷細鍗遍櫓<' + ueDangerThreshold.toFixed(3) + '锛岄璀?' + ueWarningThreshold.toFixed(3) + '锛屽仴搴封墺' + ueWarningThreshold.toFixed(3) + '锛?;
+      html += 'UE闃堝€硷細鍗遍櫓<' + ueDangerThreshold.toFixed(3) + '锛岄璀?' + ueWarningThreshold.toFixed(3) + '锛屽仴搴封墺' + ueWarningThreshold.toFixed(3) + ';
       html += '姣涘埄鐜囬槇鍊硷細鍗遍櫓<' + formatPercent(profitDangerThreshold) + '锛岄璀?' + formatPercent(profitWarningThreshold) + '锛屽仴搴封墺' + formatPercent(profitWarningThreshold);
       html += '</td></tr></tfoot></table>';
 
@@ -3790,7 +3790,7 @@ function parseExcelData(workbook, fileName) {
           ]
         },
         {
-          name: '閰嶉€佹垚鏈?,
+          name: '閰嶉€佹垚版本,
           metrics: [
             { key: 'deliveryCost', label: '閰嶉€佹垚鏈眹鎬?, format: 'money' },
             // 鍔犵洘閰嶉€佹媶鍒?
@@ -3911,7 +3911,7 @@ function parseExcelData(workbook, fileName) {
           ]
         },
         {
-          name: '閰嶉€佹垚鏈?,
+          name: '閰嶉€佹垚版本,
           metrics: [
             { key: 'deliveryCost', label: '閰嶉€佹垚鏈眹鎬?, format: 'money' },
             { key: 'franchiseDeliverOrders', label: '鍔犵洘鎵挎帴璁㈠崟閲?, format: 'number' },
@@ -4017,9 +4017,9 @@ function parseExcelData(workbook, fileName) {
           ]
         },
         {
-          name: '閰嶉€佹垚鏈?,
+          name: '閰嶉€佹垚版本,
           metrics: [
-            { key: 'deliveryCost', label: '闂喘閰嶉€佹垚鏈?, format: 'money' },
+            { key: 'deliveryCost', label: '闂喘閰嶉€佹垚版本, format: 'money' },
             { key: 'franchiseDelivery', label: '鍔犵洘閭祫', format: 'money' },
             { key: 'crowdDelivery', label: '鏅紬浼楀寘閭祫', format: 'money' },
             { key: 'yuepaoDelivery', label: '鎮﹁窇閭祫', format: 'money' }
@@ -4090,9 +4090,9 @@ function parseExcelData(workbook, fileName) {
           ]
         },
         {
-          name: '閰嶉€佹垚鏈?,
+          name: '閰嶉€佹垚版本,
           metrics: [
-            { key: 'deliveryCost', label: '鍖昏嵂閰嶉€佹垚鏈?, format: 'money' },
+            { key: 'deliveryCost', label: '鍖昏嵂閰嶉€佹垚版本, format: 'money' },
             { key: 'franchiseDelivery', label: '鍔犵洘閭祫', format: 'money' },
             { key: 'crowdDelivery', label: '鏅紬浼楀寘閭祫', format: 'money' },
             { key: 'yuepaoDelivery', label: '鎮﹁窇閭祫', format: 'money' }
@@ -4161,7 +4161,7 @@ function parseExcelData(workbook, fileName) {
         {
           name: '骞冲彴鎴愭湰',
           metrics: [
-            { key: 'platformCost', label: '鎷煎ソ楗钩鍙版垚鏈?, format: 'money' },
+            { key: 'platformCost', label: '鎷煎ソ楗钩鍙版垚版本, format: 'money' },
             { key: 'platformCommissionCost', label: '骞冲彴鎶戒剑閲戦', format: 'money' },
             { key: 'afterSaleCost', label: '鍞悗璧斾粯璐圭敤', format: 'money' },
             { key: 'insuranceCost', label: '淇濋櫓璐圭敤', format: 'money' },
@@ -4170,9 +4170,9 @@ function parseExcelData(workbook, fileName) {
           ]
         },
         {
-          name: '閰嶉€佹垚鏈?,
+          name: '閰嶉€佹垚版本,
           metrics: [
-            { key: 'deliveryCost', label: '鎷煎ソ楗厤閫佹垚鏈?, format: 'money' },
+            { key: 'deliveryCost', label: '鎷煎ソ楗厤閫佹垚版本, format: 'money' },
             { key: 'franchiseDeliverOrders', label: '鍔犵洘鎵挎帴璁㈠崟閲?, format: 'number' },
             { key: 'franchiseAvgPostage', label: '鍔犵洘鍗曞潎閭祫', format: 'money' },
             { key: 'franchiseActivityCost', label: '鍔犵洘娲诲姩鑺辫垂', format: 'money' },
@@ -4249,7 +4249,7 @@ function parseExcelData(workbook, fileName) {
     // ===== FIX: Try multiple data sources for robustness =====
   let allMerchantData = null;
 
-  // 浼樺厛绾?锛氱洿鎺ヤ粠鍏ㄥ眬绐楀彛瀵硅薄鑾峰彇锛堢敱 switchImportDateDim 鎴?StateManager 璁剧疆锛?
+  // 浼樺厛绾?锛氱洿鎺ヤ粠鍏ㄥ眬绐楀彛瀵硅薄鑾峰彇锛堢敱 switchImportDateDim 鎴?StateManager 璁剧疆
   if (window.allMerchantData && Object.keys(window.allMerchantData).length > 0) {
     allMerchantData = window.allMerchantData;
     console.log('[renderDimensionTable] 浠?window.allMerchantData 鑾峰彇鏁版嵁');
@@ -4274,7 +4274,7 @@ function parseExcelData(workbook, fileName) {
     
     const tableEl = document.getElementById('dimensionTable');
     if (tableEl) {
-      tableEl.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">鏃犳硶鏄剧ず鏁版嵁琛細娌℃湁鎵惧埌鍙敤鐨勫晢瀹舵暟鎹?br/>璇峰厛閫氳繃涓婃柟鐨?閫夋嫨鏁版嵁"涓嬫媺妗嗛€夋嫨涓€涓棩鏈?/div>';
+      tableEl.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">鏃犳硶鏄剧ず鏁版嵁琛細娌℃湁鎵惧埌鍙敤鐨勫晢瀹舵暟鎹?br/>璇峰厛閫氳繃涓婃柟鐨?閫夋嫨鏁版嵁"涓嬫媺妗嗛€夋嫨涓€涓棩版本/div>';
     }
     return;
   }
@@ -4336,7 +4336,7 @@ function parseExcelData(workbook, fileName) {
         // 鏍规嵁Tab杩囨护鍒嗙粍
         const tabGroupMap = {
           revenue: ['璁㈠崟鎸囨爣', 'GMV鎸囨爣', '鏀跺叆鎸囨爣'],
-          cost: ['琛ヨ创鏀嚭', '骞冲彴鎴愭湰', '閰嶉€佹垚鏈?, '鍥哄畾鎴愭湰', '闄勫姞鎴愭湰', '鍏朵粬鎴愭湰'],
+          cost: ['琛ヨ创鏀嚭', '骞冲彴鎴愭湰', '閰嶉€佹垚版本, '鍥哄畾鎴愭湰', '闄勫姞鎴愭湰', '鍏朵粬鎴愭湰'],
           efficiency: ['鍒╂鼎鎸囨爣'],
           all: null
         };
@@ -4345,7 +4345,7 @@ function parseExcelData(workbook, fileName) {
           ? currentMetricGroups.filter(g => allowedGroups.includes(g.name))
           : currentMetricGroups;
 
-        // 鐢╢ilteredGroups娓叉煋琛ㄦ牸锛堝拰妗岄潰绔浉鍚岀殑琛ㄦ牸娓叉煋閫昏緫锛?
+        // 鐢╢ilteredGroups娓叉煋琛ㄦ牸锛堝拰妗岄潰绔浉鍚岀殑琛ㄦ牸娓叉煋閫昏緫
         filteredGroups.forEach((group, groupIdx) => {
           html += '<div class="collapsible' + (groupIdx > 0 ? ' collapsed' : '') + '">';
           html += '<div class="collapsible-header" onclick="toggleDimensionGroup(this.parentElement)">';
@@ -4663,8 +4663,8 @@ function parseExcelData(workbook, fileName) {
     // ========== 瓒嬪娍鍒嗘瀽宸ュ叿鍑芥暟 ==========
 
     /**
-     * 鑾峰彇杩?涓湀鐨勮秼鍔跨瓫閫夋棩鏈燂紙姣忔湀3涓偣锛氭湀鍒?鍙枫€佹湀涓?5鍙枫€佹湀鏈?0鍙凤級
-     * @param {string[]} allDates - 鎵€鏈夊彲鐢ㄦ棩鏈燂紙YYYY-MM-DD鏍煎紡锛?
+     * 鑾峰彇杩?涓湀鐨勮秼鍔跨瓫閫夋棩鏈燂紙姣忔湀3涓偣锛氭湀鍒?鍙枫€佹湀涓?5鍙枫€佹湀版本0鍙凤級
+     * @param {string[]} allDates - 鎵€鏈夊彲鐢ㄦ棩鏈燂紙YYYY-MM-DD鏍煎紡
      * @returns {string[]} 绛涢€夊悗鐨勬棩鏈燂紝鎸夊崌搴忔帓鍒?
      */
     function getFilteredTrendDates(allDates) {
@@ -4685,7 +4685,7 @@ function parseExcelData(workbook, fileName) {
       const pickedSet = new Set();
 
       targetMonths.forEach(({ year, month }) => {
-        // 璇ユ湀鎵€鏈夋棩鏈?
+        // 璇ユ湀鎵€鏈夋棩版本
         const monthDates = allDates.filter(d => {
           const parts = d.split('-');
           return parseInt(parts[0]) === year && parseInt(parts[1]) === month;
@@ -4716,7 +4716,7 @@ function parseExcelData(workbook, fileName) {
 
     /**
      * 鏋勫缓鏈堝垎缁勪笅鎷夎彍鍗曠殑HTML
-     * @param {string[]} allDates - 鎵€鏈夋棩鏈?
+     * @param {string[]} allDates - 鎵€鏈夋棩版本
      * @param {string} [selectedValue] - 褰撳墠閫変腑鐨勫€?
      * @returns {string} optgroup HTML
      */
@@ -4725,7 +4725,7 @@ function parseExcelData(workbook, fileName) {
       // 鍊掑簭鎺掑垪锛屾渶鏂扮殑鍦ㄥ墠
       [...allDates].sort().reverse().forEach(date => {
         const [y, m] = date.split('-');
-        const key = y + '骞? + parseInt(m) + '鏈?;
+        const key = y + '骞? + parseInt(m) + '版本;
         if (!groups[key]) groups[key] = [];
         groups[key].push(date);
       });
@@ -4747,7 +4747,7 @@ function parseExcelData(workbook, fileName) {
      * @param {number} value - 褰撳墠鍊?
      * @param {number} min - 鏈€灏忓€?
      * @param {number} max - 鏈€澶у€?
-     * @param {boolean} isCostMetric - 鏄惁鎴愭湰绫绘寚鏍囷紙鎴愭湰瓒婁綆瓒婂ソ锛?
+     * @param {boolean} isCostMetric - 鏄惁鎴愭湰绫绘寚鏍囷紙鎴愭湰瓒婁綆瓒婂ソ
      * @returns {string} rgba棰滆壊
      */
     function getHeatColor(value, min, max, isCostMetric) {
@@ -4770,7 +4770,7 @@ function parseExcelData(workbook, fileName) {
       document.getElementById('trendEmpty').classList.add('hidden');
       document.getElementById('trendData').classList.remove('hidden');
 
-      // 鑾峰彇鎵€鏈夊彲鐢ㄦ棩鏈?
+      // 鑾峰彇鎵€鏈夊彲鐢ㄦ棩版本
       const allDates = importHistory.map(h => h.monthLabel).sort();
 
       // 鏇存柊鍩哄噯鏃ユ湡閫夋嫨鍣紙鏈堝垎缁勪笅鎷夎彍鍗曪級
@@ -4804,7 +4804,7 @@ function parseExcelData(workbook, fileName) {
         merchantData = selectedRecord.data;
       }
       
-      // 2. 浠庡唴瀛樼紦瀛樿幏鍙栵紙浜戠鍔犺浇鎴栦笂娆′繚瀛樼殑鏁版嵁锛?
+      // 2. 浠庡唴瀛樼紦瀛樿幏鍙栵紙浜戠鍔犺浇鎴栦笂娆′繚瀛樼殑鏁版嵁
       if (!merchantData && window.financeToolCache && window.financeToolCache[selectedRecord?.monthLabel]) {
         merchantData = window.financeToolCache[selectedRecord.monthLabel];
       }
@@ -4821,7 +4821,7 @@ function parseExcelData(workbook, fileName) {
         }
       }
       
-      // 4. 浠庡叏灞€ cloudData 涓煡鎵撅紙缁堟瀬鍏滃簳锛?
+      // 4. 浠庡叏灞€ cloudData 涓煡鎵撅紙缁堟瀬鍏滃簳
       if (!merchantData && window.cloudData && selectedRecord) {
         const cloudRec = window.cloudData.find(r => r.date === selectedRecord.monthLabel);
         if (cloudRec) {
@@ -4835,7 +4835,7 @@ function parseExcelData(workbook, fileName) {
         merchantData = {};
       }
       
-      // 妫€娴嬪苟杞崲鏃ф牸寮?
+      // 检测娴嬪苟杞崲鏃ф牸寮?
       if (merchantData && !merchantData.all && !merchantData.city && !merchantData.ka && merchantData.cities) {
         merchantData = { all: { label: '鍏ㄩ儴', cities: merchantData.cities } };
       }
@@ -4863,7 +4863,7 @@ function parseExcelData(workbook, fileName) {
       // 鑾峰彇绛涢€夊悗鐨勮秼鍔挎棩鏈燂紙杩?鏈埫?鐐癸級
       const filteredDates = getFilteredTrendDates(allDates);
 
-      // 鍚堝苟鐢ㄦ埛娣诲姞鐨勫姣旀棩鏈燂紙鍘婚噸锛?
+      // 鍚堝苟鐢ㄦ埛娣诲姞鐨勫姣旀棩鏈燂紙鍘婚噸
       const allTrendDates = [...new Set([...filteredDates, ...trendAddedDates])].sort();
 
       // 鏋勫缓瓒嬪娍鏁版嵁
@@ -4876,12 +4876,12 @@ function parseExcelData(workbook, fileName) {
           tmData = record.data;
         }
         
-        // 2. 浠庡唴瀛樼紦瀛樿幏鍙栵紙浜戠鍔犺浇鏃舵瀯寤虹殑锛?
+        // 2. 浠庡唴瀛樼紦瀛樿幏鍙栵紙浜戠鍔犺浇鏃舵瀯寤虹殑
         if (!tmData && window.financeToolCache && window.financeToolCache[date]) {
           tmData = window.financeToolCache[date];
         }
         
-        // 3. 浠庡叏灞€ cloudData 涓煡鎵撅紙缁堟瀬鍏滃簳锛?
+        // 3. 浠庡叏灞€ cloudData 涓煡鎵撅紙缁堟瀬鍏滃簳
         if (!tmData && window.cloudData) {
           const cloudRec = window.cloudData.find(r => r.date === date);
           if (cloudRec) {
@@ -4898,7 +4898,7 @@ function parseExcelData(workbook, fileName) {
           }
         }
 
-        // 妫€娴嬪苟杞崲鏃ф牸寮?
+        // 检测娴嬪苟杞崲鏃ф牸寮?
         if (tmData && !tmData.all && !tmData.city && !tmData.ka && tmData.cities) {
           tmData = { all: { label: '鍏ㄩ儴', cities: tmData.cities } };
         }
@@ -4975,7 +4975,7 @@ function parseExcelData(workbook, fileName) {
         if (values.length < 2) return 0;
         const n = values.length;
         
-        // 绾挎€у洖褰掓枩鐜囪绠楋紙鏈€灏忎簩涔樻硶锛?
+        // 绾挎€у洖褰掓枩鐜囪绠楋紙鏈€灏忎簩涔樻硶
         // 鐢ㄧ储寮曚綔涓簒鍊硷紙0, 1, 2, 3...锛夛紝閬垮厤鏃堕棿闂撮殧闂
         const xMean = (n - 1) / 2;
         const yMean = values.reduce((a, b) => a + b, 0) / n;
@@ -5082,7 +5082,7 @@ function parseExcelData(workbook, fileName) {
         
         // 娣诲姞鏈堜唤鏍囬锛堟渶鏂扮殑鏈堜唤鏍囬粍锛岀幇鍦ㄦ渶鏂扮殑鍦ㄥ乏杈圭涓€浣嶏級
         trendMonths.forEach((tm, idx) => {
-          const isLatest = idx === 0;  // 鏈€鏂扮殑鏄涓€涓紙鍊掑簭鎺掑垪锛?
+          const isLatest = idx === 0;  // 鏈€鏂扮殑鏄涓€涓紙鍊掑簭鎺掑垪
           html += '<th style="padding: 6px 8px; text-align: right; font-weight: 600; font-size: 11px; color: var(--text-secondary); ' + (isLatest ? 'background: var(--warning-bg);' : '') + '">' + tm.label + '</th>';
         });
         
@@ -5093,11 +5093,11 @@ function parseExcelData(workbook, fileName) {
         const noPerOrderMetrics = new Set(['orders']);
         const noRatioMetrics = new Set(['orders', 'gmvAmount']);
         
-        // 鏀跺叆鍨嬫寚鏍囷紙瓒婂瓒婂ソ锛塿s 鎴愭湰鍨嬫寚鏍囷紙瓒婂皯瓒婂ソ锛?
+        // 鏀跺叆鍨嬫寚鏍囷紙瓒婂瓒婂ソ锛塿s 鎴愭湰鍨嬫寚鏍囷紙瓒婂皯瓒婂ソ
         const revenueMetrics = new Set(['orders', 'franchiseOrders', 'selfOrders', 'enterpriseOrders', 'gmvAmount', 'franchiseGMV', 'selfGMV', 'onlineRevenue', 'commission', 'franchiseCommission', 'selfCommission', 'enterpriseCommission', 'deliveryFee', 'franchiseDeliveryFee', 'secondDeliveryFee', 'enterpriseDeliveryFee', 'urgentDeliveryFee', 'otherRevenue', 'profit', 'franchiseDeliverOrders', 'crowdOrders', 'yuepaoOrders']);
         const costMetrics = new Set(['subsidyTotal', 'subsidyB', 'subsidyC', 'subsidyDiff', 'pinDanSubsidy', 'pinHaoFanSubsidy', 'specialSubsidy', 'crowdSubsidyAdjust', 'platformCost', 'platformCommissionCost', 'afterSaleCost', 'careFund', 'insuranceCost', 'biddingCost', 'penalty', 'deliveryCost', 'franchiseAvgPostage', 'franchiseActivityCost', 'franchiseDelivery', 'crowdBasePostage', 'crowdActivityCost', 'crowdDelivery', 'yuepaoBasePostage', 'yuepaoActivityCost', 'yuepaoDelivery', 'weatherSubsidy', 'fixedCost', 'officeRent', 'teamCost', 'additionalCost', 'thirdPartyServiceCost', 'socialInsurance', 'taxCost', 'otherCost', 'operationBoostCost', 'utilityCost', 'travelCost', 'otherMiscCost']);
         
-        // 棰勮绠楁墍鏈夋寚鏍囩殑鑹查樁鏁版嵁锛堝崟鍧?鍗犳瘮鐨刴in/max锛?
+        // 棰勮绠楁墍鏈夋寚鏍囩殑鑹查樁鏁版嵁锛堝崟鍧?鍗犳瘮鐨刴in/max
         const heatMapCache = {};
         group.metrics.forEach(metric => {
           const isSkip = skipMetrics.has(metric.key);
@@ -5406,7 +5406,7 @@ function parseExcelData(workbook, fileName) {
         <tr><td>姣涘埄</td><td class="text-right">${formatMoney(originalProfit)}</td><td class="text-right">${formatMoney(newProfit)}</td><td class="text-right ${newProfit >= originalProfit ? 'text-success' : 'text-danger'}">${newProfit >= originalProfit ? '+' : ''}${((newProfit - originalProfit) / Math.abs(originalProfit) * 100).toFixed(1)}%</td></tr>
         <tr><td>璁㈠崟閲?/td><td class="text-right">${formatNumber(originalOrders)}</td><td class="text-right">${formatNumber(newOrders)}</td><td class="text-right ${newOrders >= originalOrders ? 'text-success' : 'text-danger'}">${newOrders >= originalOrders ? '+' : ''}${orderChange * 100}%</td></tr>
         <tr><td>琛ヨ创鎬婚</td><td class="text-right">${formatMoney(mod.subsidyTotal)}</td><td class="text-right">${formatMoney(newSubsidy)}</td><td class="text-right ${newSubsidy >= (mod.subsidyTotal || 0) ? 'text-danger' : 'text-success'}">${newSubsidy >= (mod.subsidyTotal || 0) ? '+' : ''}${subsidyChange * 100}%</td></tr>
-        <tr><td>閰嶉€佹垚鏈?/td><td class="text-right">${formatMoney(mod.deliveryCost)}</td><td class="text-right">${formatMoney(newDelivery)}</td><td class="text-right ${newDelivery >= (mod.deliveryCost || 0) ? 'text-danger' : 'text-success'}">${newDelivery >= (mod.deliveryCost || 0) ? '+' : ''}${deliveryChange * 100}%</td></tr>
+        <tr><td>閰嶉€佹垚版本/td><td class="text-right">${formatMoney(mod.deliveryCost)}</td><td class="text-right">${formatMoney(newDelivery)}</td><td class="text-right ${newDelivery >= (mod.deliveryCost || 0) ? 'text-danger' : 'text-success'}">${newDelivery >= (mod.deliveryCost || 0) ? '+' : ''}${deliveryChange * 100}%</td></tr>
       `;
     }
 
@@ -5515,7 +5515,7 @@ function parseExcelData(workbook, fileName) {
         html += `
           <div class="collapsible">
             <div class="collapsible-header">${icon} ${idx + 1}. ${anomaly.city} - ${anomaly.title} <span class="${levelClass}">${anomaly.score > 7 ? 'P0' : 'P1'}</span></div>
-            <div class="collapsible-content"><p>${anomaly.desc}</p><p><strong>寤鸿锛?/strong>${getSuggestion(anomaly)}</p></div>
+            <div class="collapsible-content"><p>${anomaly.desc}</p><p><strong>寤鸿/strong>${getSuggestion(anomaly)}</p></div>
           </div>
         `;
       });
@@ -5555,7 +5555,7 @@ function parseExcelData(workbook, fileName) {
       new Chart(ctx, {
         type: 'pie',
         data: {
-          labels: ['閰嶉€佹垚鏈?, '琛ヨ创鏀嚭', '骞冲彴鎴愭湰', '鍥哄畾鎴愭湰'],
+          labels: ['閰嶉€佹垚版本, '琛ヨ创鏀嚭', '骞冲彴鎴愭湰', '鍥哄畾鎴愭湰'],
           datasets: [{
             data: [deliveryCost, subsidyTotal, platformCost, fixedCost],
             backgroundColor: ['#4f46e5', '#f59e0b', '#dc2626', '#64748b'],
@@ -5622,7 +5622,7 @@ function parseExcelData(workbook, fileName) {
               <strong>${item.title}</strong>
             </div>
             <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">${item.desc}</p>
-            <p style="font-size: 13px;"><strong>琛屽姩寤鸿锛?/strong>${item.action}</p>
+            <p style="font-size: 13px;"><strong>琛屽姩寤鸿/strong>${item.action}</p>
           </div>
         `;
       });
@@ -5637,21 +5637,21 @@ function parseExcelData(workbook, fileName) {
 
       const totals = currentData.totals;
       const now = new Date();
-      const dateStr = `${now.getFullYear()}骞?{now.getMonth() + 1}鏈?{now.getDate()}鏃;
+      const dateStr = `${now.getFullYear()}骞?{now.getMonth() + 1}版本{now.getDate()}鏃;
 
       const healthScore = Math.round(((parseFloat(totals.ue) || 0) * 100 + ((parseFloat(totals.profitRate) || 0) * 500)) / 6);
       const merchantLabel = window.allMerchantData && window.allMerchantData[currentMerchantType] ? window.allMerchantData[currentMerchantType].label : '鍏ㄩ噺鍟嗗';
       
       let report = '<div style="padding: 16px; background: var(--bg-card); border-radius: 8px;">';
       report += '<h3 style="color: var(--primary); margin-bottom: 16px;">馃搳 璐㈠姟鍒嗘瀽鎶ュ憡</h3>';
-      report += '<p><strong>鐢熸垚鏃堕棿锛?/strong>' + dateStr + '</p>';
-      report += '<p><strong>鍟嗗绫诲瀷锛?/strong>' + merchantLabel + '</p>';
+      report += '<p><strong>鐢熸垚鏃堕棿/strong>' + dateStr + '</p>';
+      report += '<p><strong>鍟嗗绫诲瀷/strong>' + merchantLabel + '</p>';
       report += '<h4 style="margin-top: 16px; margin-bottom: 8px;">涓€銆佹牳蹇冩寚鏍囨瑙?/h4>';
       report += '<ul>';
       report += '<li>璁㈠崟閲忥細' + formatNumber(totals.orders) + '</li>';
       report += '<li>浜ゆ槗棰濓細' + formatMoney(totals.gmvAmount) + '</li>';
-      report += '<li>姣涘埄锛? + formatMoney(totals.profit) + '</li>';
-      report += '<li>UE锛? + (totals.ue || 0).toFixed(2) + '鍏?/li>';
+      report += '<li>姣涘埄 + formatMoney(totals.profit) + '</li>';
+      report += '<li>UE + (totals.ue || 0).toFixed(2) + '鍏?/li>';
       report += '<li>姣涘埄鐜囷細' + formatPercent(totals.profitRate) + '</li>';
       report += '<li>琛ヨ创鐜囷細' + formatPercent(totals.subsidyRatio) + '</li>';
       report += '</ul>';
@@ -5705,11 +5705,11 @@ function parseExcelData(workbook, fileName) {
       }
 
       XLSX.writeFile(wb, '璐㈠姟鍒嗘瀽鏁版嵁.xlsx');
-      showToast('鏁版嵁瀵煎嚭鎴愬姛锛?, 'success');
+      showToast('鏁版嵁瀵煎嚭鎴愬姛, 'success');
     }
 
     function clearStorage() {
-      if (confirm('纭畾瑕佹竻闄ゆ墍鏈夋暟鎹悧锛?)) {
+      if (confirm('纭畾瑕佹竻闄ゆ墍鏈夋暟鎹悧)) {
         DataStore.clear();
         StateManager.reset();
         
