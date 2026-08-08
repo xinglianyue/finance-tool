@@ -164,8 +164,13 @@ class DataStore {
   }
 }
 
-// 创建全局实例
-window.DataStore = new DataStore();
+// 创建全局实例（只在未定义时创建）
+if (!window.DataStore) {
+  window.DataStore = new DataStore();
+  console.log('[DataStore] 从 data-store.js 初始化');
+} else {
+  console.log('[DataStore] 已存在，跳过初始化');
+}
 
 // 导出（如果使用模块化环境）
 if (typeof module !== 'undefined' && module.exports) {
