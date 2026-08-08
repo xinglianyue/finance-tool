@@ -11,6 +11,168 @@
 
 
 <head>
+  <!-- DataStore Complete Initialization -->
+  <script>
+    (function() {
+      if (window.DataStore && typeof window.DataStore.save === 'function') {
+        console.log('[Init] DataStore already initialized');
+        return;
+      }
+      
+      window.DataStore = {
+        STORAGE_KEY: 'finance-tool',
+        BACKUP_KEY: 'finance-tool-backup',
+        CACHE_PREFIX: 'cache_',
+        
+        load: function() {
+          try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? JSON.parse(stored) : null;
+          } catch (e) {
+            console.error('[DataStore] load error:', e);
+            return null;
+          }
+        },
+        
+        save: function(data) {
+          try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+            console.log('[DataStore] data saved');
+            return true;
+          } catch (e) {
+            console.error('[DataStore] save error:', e);
+            return false;
+          }
+        },
+        
+        getCache: function(date) {
+          try {
+            const key = this.CACHE_PREFIX + date;
+            const cached = localStorage.getItem(key);
+            return cached ? JSON.parse(cached) : null;
+          } catch (e) {
+            return null;
+          }
+        },
+        
+        setCache: function(date, data) {
+          try {
+            const key = this.CACHE_PREFIX + date;
+            localStorage.setItem(key, JSON.stringify(data));
+            return true;
+          } catch (e) {
+            return false;
+          }
+        },
+        
+        clearCache: function() {
+          try {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith(this.CACHE_PREFIX)) {
+                localStorage.removeItem(key);
+              }
+            }
+            return true;
+          } catch (e) {
+            return false;
+          }
+        },
+        
+        validate: function(data) {
+          if (!data) return false;
+          return typeof data === 'object';
+        },
+        
+        backup: function() {
+          try {
+            const data = this.load();
+            if (data) {
+              localStorage.setItem(this.BACKUP_KEY, JSON.stringify(data));
+              return true;
+            }
+            return false;
+          } catch (e) {
+            return false;
+          }
+        },
+        
+        restoreFromBackup: function() {
+          try {
+            const backup = localStorage.getItem(this.BACKUP_KEY);
+            if (backup) {
+              const data = JSON.parse(backup);
+              localStorage.setItem(this.STORAGE_KEY, backup);
+              return data;
+            }
+            return null;
+          } catch (e) {
+            return null;
+          }
+        },
+        
+        migrateFromV2: function(oldData) {
+          try {
+            const v3Data = {
+              version: 3,
+              metadata: {
+                lastSyncAt: new Date().toISOString(),
+                cloudVersion: 'v1'
+              },
+              currentData: oldData,
+              cache: {},
+              importHistory: [],
+              currentImportIndex: 0,
+              currentMerchantType: 'all'
+            };
+            this.save(v3Data);
+            return v3Data;
+          } catch (e) {
+            return null;
+          }
+        },
+        
+        clear: function() {
+          try {
+            localStorage.removeItem(this.STORAGE_KEY);
+            localStorage.removeItem(this.BACKUP_KEY);
+            this.clearCache();
+            return true;
+          } catch (e) {
+            return false;
+          }
+        },
+        
+        getStorageInfo: function() {
+          const info = {
+            mainData: null,
+            backupData: null,
+            cacheCount: 0,
+            totalSize: 0
+          };
+          try {
+            const main = localStorage.getItem(this.STORAGE_KEY);
+            const backup = localStorage.getItem(this.BACKUP_KEY);
+            info.mainData = main ? JSON.parse(main) : null;
+            info.backupData = backup ? JSON.parse(backup) : null;
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith(this.CACHE_PREFIX)) {
+                info.cacheCount++;
+                info.totalSize += localStorage.getItem(key).length;
+              }
+            }
+          } catch (e) {
+            console.error('[DataStore] getStorageInfo error:', e);
+          }
+          return info;
+        }
+      };
+      
+      console.log('[Init] DataStore complete initialized');
+    })();
+  </script>
+
 
 
 
@@ -42,19 +204,19 @@
 
 
 
-  <script src="js/xlsx.full.min.js?v=1786172985"></script>
+  <script src="js/xlsx.full.min.js?v=1786174181"></script>
 
 
 
-    <script src="js/chart.umd.min.js?v=1786172985"></script>
+    <script src="js/chart.umd.min.js?v=1786174181"></script>
 
 
 
-    <script src="js/data-store.js?v=1786172985"></script>
+    <script src="js/data-store.js?v=1786174181"></script>
 
 
 
-    <script src="js/state-manager.js?v=1786172985"></script>
+    <script src="js/state-manager.js?v=1786174181"></script>
 
 
 
@@ -70,7 +232,7 @@
 
 
 
-      var APP_VERSION = '1786172985';
+      var APP_VERSION = '1786174181';
 
 
 
@@ -23836,83 +23998,7 @@
 
 
 
-  <!-- DataStore fallback -->
-
-  <script>
-
-    (function() {
-
-      if (!window.DataStore || typeof window.DataStore.save !== 'function') {
-
-        window.DataStore = {
-
-          STORAGE_KEY: 'finance-tool',
-
-          BACKUP_KEY: 'finance-tool-backup',
-
-          CACHE_PREFIX: 'cache_',
-
-          load: function() {
-
-            try {
-
-              const stored = localStorage.getItem(this.STORAGE_KEY);
-
-              return stored ? JSON.parse(stored) : null;
-
-            } catch (e) { return null; }
-
-          },
-
-          save: function(data) {
-
-            try {
-
-              localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
-
-              return true;
-
-            } catch (e) { return false; }
-
-          },
-
-          getCache: function(date) {
-
-            try {
-
-              const key = this.CACHE_PREFIX + date;
-
-              const cached = localStorage.getItem(key);
-
-              return cached ? JSON.parse(cached) : null;
-
-            } catch (e) { return null; }
-
-          },
-
-          setCache: function(date, data) {
-
-            try {
-
-              const key = this.CACHE_PREFIX + date;
-
-              localStorage.setItem(key, JSON.stringify(data));
-
-              return true;
-
-            } catch (e) { return false; }
-
-          }
-
-        };
-
-        console.log('[Init] DataStore fallback initialized');
-
-      }
-
-    })();
-
-  </script>
+  
 
 </body>
 
