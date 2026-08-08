@@ -20,13 +20,13 @@
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
 
-  <script src="js/xlsx.full.min.js?v=91786158377"></script>
+  <script src="js/xlsx.full.min.js?v=1786159745"></script>
 
-    <script src="js/chart.umd.min.js?v=91786158377"></script>
+    <script src="js/chart.umd.min.js?v=1786159745"></script>
 
-    <script src="js/data-store.js?v=91786158377"></script>
+    <script src="js/data-store.js?v=1786159745"></script>
 
-    <script src="js/state-manager.js?v=91786158377"></script>
+    <script src="js/state-manager.js?v=1786159745"></script>
 
   <script>
 
@@ -34,7 +34,7 @@
 
     (function() {
 
-      var APP_VERSION = '91786158377'; '91786158377';
+      var APP_VERSION = '1786159745'; '91786158377';
 
       var VER_KEY = 'finance_app_ver';
 
@@ -2478,6 +2478,53 @@
 
   </style>
 
+
+  <!-- 内联DataStore初始化，避免CDN缓存问题 -->
+  <script>
+    // 确保DataStore立即可用
+    window.DataStore = {
+      STORAGE_KEY: 'finance-tool',
+      BACKUP_KEY: 'finance-tool-backup',
+      CACHE_PREFIX: 'cache_',
+      load: function() {
+        try {
+          const stored = localStorage.getItem(this.STORAGE_KEY);
+          return stored ? JSON.parse(stored) : null;
+        } catch (e) {
+          console.error('[DataStore] 加载失败:', e);
+          return null;
+        }
+      },
+      save: function(data) {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+          return true;
+        } catch (e) {
+          console.error('[DataStore] 保存失败:', e);
+          return false;
+        }
+      },
+      getCache: function(date) {
+        try {
+          const key = this.CACHE_PREFIX + date;
+          const cached = localStorage.getItem(key);
+          return cached ? JSON.parse(cached) : null;
+        } catch (e) {
+          return null;
+        }
+      },
+      setCache: function(date, data) {
+        try {
+          const key = this.CACHE_PREFIX + date;
+          localStorage.setItem(key, JSON.stringify(data));
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+    };
+    console.log('[Init] 内联DataStore已初始化');
+  </script>
 </head>
 
 <body>
