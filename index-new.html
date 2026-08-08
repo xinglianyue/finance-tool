@@ -11,6 +11,52 @@
 
 
 <head>
+  <!-- DataStore Early Initialization -->
+  <script>
+    window.DataStore = (function() {
+      var store = null;
+      try {
+        var stored = localStorage.getItem('finance-tool');
+        if (stored) {
+          store = JSON.parse(stored);
+        }
+      } catch(e) {}
+      
+      return {
+        STORAGE_KEY: 'finance-tool',
+        BACKUP_KEY: 'finance-tool-backup',
+        CACHE_PREFIX: 'cache_',
+        load: function() {
+          try {
+            var stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? JSON.parse(stored) : null;
+          } catch (e) { return null; }
+        },
+        save: function(data) {
+          try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+            return true;
+          } catch (e) { return false; }
+        },
+        getCache: function(date) {
+          try {
+            var key = this.CACHE_PREFIX + date;
+            var cached = localStorage.getItem(key);
+            return cached ? JSON.parse(cached) : null;
+          } catch (e) { return null; }
+        },
+        setCache: function(date, data) {
+          try {
+            var key = this.CACHE_PREFIX + date;
+            localStorage.setItem(key, JSON.stringify(data));
+            return true;
+          } catch (e) { return false; }
+        }
+      };
+    })();
+    console.log('[Init] DataStore early initialized');
+  </script>
+
 
 
 
@@ -42,19 +88,19 @@
 
 
 
-  <script src="js/xlsx.full.min.js?v=1786170979"></script>
+  <script src="js/xlsx.full.min.js?v=1786171024"></script>
 
 
 
-    <script src="js/chart.umd.min.js?v=1786170979"></script>
+    <script src="js/chart.umd.min.js?v=1786171024"></script>
 
 
 
-    <script src="js/data-store.js?v=1786170979"></script>
+    <script src="js/data-store.js?v=1786171024"></script>
 
 
 
-    <script src="js/state-manager.js?v=1786170979"></script>
+    <script src="js/state-manager.js?v=1786171024"></script>
 
 
 
@@ -70,7 +116,7 @@
 
 
 
-      var APP_VERSION = '1786170979';
+      var APP_VERSION = '1786171024';
 
 
 
