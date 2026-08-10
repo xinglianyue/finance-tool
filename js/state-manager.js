@@ -68,8 +68,12 @@ class StateManager {
    * 同步状态到全局变量
    */
   syncToGlobals() {
-    if (window.allMerchantData) {
-      window.allMerchantData = window.allMerchantData;
+    // 确保全局变量存在
+    if (!window.allMerchantData) {
+      window.allMerchantData = null;
+    }
+    if (!window.importHistory) {
+      window.importHistory = [];
     }
     console.log('[StateManager] 全局变量已同步，allMerchantData:', !!window.allMerchantData);
   }
@@ -128,8 +132,13 @@ class StateManager {
   }
 }
 
-// 创建全局实例
-window.StateManager = new StateManager();
+// 创建全局实例（只在未定义时创建）
+if (!window.StateManager) {
+  window.StateManager = new StateManager();
+  console.log('[StateManager] 全局实例已创建');
+} else {
+  console.log('[StateManager] 全局实例已存在，跳过创建');
+}
 
 // 导出（如果使用模块化环境）
 if (typeof module !== 'undefined' && module.exports) {
