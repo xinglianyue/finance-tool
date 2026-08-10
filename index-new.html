@@ -15,9 +15,8 @@
   <script>
 
     // 完整的DataStore类实现（不依赖外部文件）
-    window.DataStore = (function() {
-      // 定义类
-      function DataStore() {
+    // 定义 DataStore 类
+    function DataStore() {
         this.STORAGE_KEY = 'finance-tool';
         this.BACKUP_KEY = 'finance-tool-backup';
         this.CACHE_PREFIX = 'cache_';
@@ -167,8 +166,7 @@
   </script>
   <!-- StateManager 内联实现 -->
   <script>
-    (function() {
-      class StateManager {
+    class StateManager {
         constructor() {
           this.state = {
             hasData: false,
