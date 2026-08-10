@@ -164,9 +164,106 @@
     console.log('[Init] DataStore initialized');
     console.log('[Init] DataStore.save type:', typeof window.DataStore.save);
   </script>
-  <script src="js/state-manager.js?v=1786339326"></script>
-  <script src="js/xlsx.full.min.js?v=1786339326"></script>
-  <script src="js/chart.umd.min.js?v=1786339326"></script>
+  <!-- StateManager 内联实现 -->
+  <script>
+    (function() {
+      class StateManager {
+        constructor() {
+          this.state = {
+            hasData: false,
+            historyCount: 0,
+            selectedCities: [],
+            currentImportIndex: 0,
+            currentMerchantType: 'all',
+            cacheSize: 0
+          };
+          this.subscribers = new Map();
+        }
+        
+        initialize(initialData) {
+          console.log('[StateManager] 初始化状态...');
+          
+          if (initialData && initialData.allMerchantData) {
+            window.allMerchantData = initialData.allMerchantData;
+            console.log('[StateManager] 从 initialData.allMerchantData 字段加载');
+          } else if (window.allMerchantData) {
+            console.log('[StateManager] 从 window.allMerchantData 加载');
+          } else {
+            const cached = DataStore.load();
+            if (cached && cached.currentData) {
+              window.allMerchantData = cached.currentData;
+              console.log('[StateManager] 从 DataStore 缓存加载');
+            }
+          }
+          
+          if (initialData && initialData.importHistory) {
+            window.importHistory = initialData.importHistory;
+          } else if (window.importHistory) {
+            // 保持现有
+          } else {
+            window.importHistory = [];
+          }
+          
+          this.syncToGlobals();
+          this.state.hasData = !!window.allMerchantData;
+          this.state.historyCount = window.importHistory?.length || 0;
+          this.state.cacheSize = Object.keys(DataStore.getCache() || {}).length;
+          
+          console.log('[StateManager] 状态初始化完成', this.state);
+          this.notify('init', this.state);
+        }
+        
+        syncToGlobals() {
+          if (!window.allMerchantData) window.allMerchantData = null;
+          if (!window.importHistory) window.importHistory = [];
+          console.log('[StateManager] 全局变量已同步，allMerchantData:', !!window.allMerchantData);
+        }
+        
+        subscribe(event, callback) {
+          if (!this.subscribers.has(event)) {
+            this.subscribers.set(event, []);
+          }
+          this.subscribers.get(event).push(callback);
+        }
+        
+        notify(event, data = {}) {
+          console.log('[StateManager] 状态变更订阅触发:', event);
+          const callbacks = this.subscribers.get(event) || [];
+          callbacks.forEach(callback => {
+            try {
+              callback(data);
+            } catch (e) {
+              console.error('[StateManager] 回调执行失败 (' + event + '):', e);
+            }
+          });
+        }
+        
+        getState() {
+          return { ...this.state };
+        }
+        
+        updateState(updates) {
+          this.state = { ...this.state, ...updates };
+          this.notify('state_change', this.state);
+        }
+        
+        clearSubscribers() {
+          this.subscribers.clear();
+        }
+      }
+      
+      // 创建全局实例
+      if (!window.StateManager) {
+        window.StateManager = new StateManager();
+        console.log('[StateManager] 全局实例已创建（内联版）');
+      } else {
+        console.log('[StateManager] 全局实例已存在，跳过创建');
+      }
+    })();
+  </script>
+
+  <script src="js/xlsx.full.min.js?v=1786342258"></script>
+  <script src="js/chart.umd.min.js?v=1786342258"></script>
 
   <meta charset="UTF-8">
 
@@ -208,7 +305,7 @@
 
 
 
-      var APP_VERSION = '1786339326';
+      var APP_VERSION = '1786342258';
 
 
 
