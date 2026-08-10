@@ -146,9 +146,9 @@
     })();
   </script>
   <!-- Required Dependencies -->
-  <script src="js/state-manager.js?v=1786325624"></script>
-  <script src="js/xlsx.full.min.js?v=1786325624"></script>
-  <script src="js/chart.umd.min.js?v=1786325624"></script>
+  <script src="js/state-manager.js?v=1786326456"></script>
+  <script src="js/xlsx.full.min.js?v=1786326456"></script>
+  <script src="js/chart.umd.min.js?v=1786326456"></script>
 
 
   <!-- DataStore Initialization -->
@@ -201,11 +201,11 @@
 
 
 
-  <script src="js/xlsx.full.min.js?v=1786325624"></script>
+  <script src="js/xlsx.full.min.js?v=1786326456"></script>
 
 
 
-    <script src="js/chart.umd.min.js?v=1786325624"></script>
+    <script src="js/chart.umd.min.js?v=1786326456"></script>
 
 
 
@@ -229,7 +229,7 @@
 
 
 
-      var APP_VERSION = '1786325624';
+      var APP_VERSION = '1786326456';
 
 
 
@@ -5117,6 +5117,10 @@
 
 
 
+
+  <script src="js/state-manager.js?v=1786326456"></script>
+  <script src="js/xlsx.full.min.js?v=1786326456"></script>
+  <script src="js/chart.umd.min.js?v=1786326456"></script>
 </head>
 
 
@@ -10426,7 +10430,8 @@
         if (Array.isArray(cloudData) && cloudData.length > 0 && cloudData[0].type === 'history_meta') {
           const latestRecord = cloudData.find(item => item.date);
           if (latestRecord) {
-            cloudData = latestRecord;
+            // 保持为数组格式，便于后续处理
+            cloudData = [latestRecord];
             console.log('[App] 使用新格式数据');
           }
         }
