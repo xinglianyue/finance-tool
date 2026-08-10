@@ -272,8 +272,8 @@ initialize(initialData) {
     })();
   </script>
 
-  <script src="js/xlsx.full.min.js?v=1786348500"></script>
-  <script src="js/chart.umd.min.js?v=1786348500"></script>
+  <script src="js/xlsx.full.min.js?v=1786348950"></script>
+  <script src="js/chart.umd.min.js?v=1786348950"></script>
 
   <meta charset="UTF-8">
 
@@ -315,7 +315,7 @@ initialize(initialData) {
 
 
 
-      var APP_VERSION = '1786348500';
+      var APP_VERSION = '1786348950';
 
 
 
@@ -18008,6 +18008,11 @@ console.log('[App] 从相对路径加载成功');
 
 
 
+      // 确保 allMerchantData 不为 null
+      if (!allMerchantData || typeof allMerchantData !== 'object') {
+        console.error('[App] allMerchantData 数据无效:', allMerchantData);
+        return;
+      }
       const availableMerchantTypes = Object.keys(allMerchantData);
 
 
