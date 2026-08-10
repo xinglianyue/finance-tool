@@ -223,6 +223,16 @@ initialize(initialData) {
           console.log('[StateManager] 状态初始化完成', this.state);
           this.notify('init', this.state);
         }
+        // 等待数据完全加载后再渲染
+        setTimeout(() => {
+          console.log('[App] 延迟渲染维度表，allMerchantData:', !!window.allMerchantData);
+          if (window.allMerchantData && Object.keys(window.allMerchantData).length > 0) {
+            renderDimensionTable();
+          } else {
+            console.warn('[App] 数据仍未准备好，等待用户交互');
+          }
+        }, 500);
+
         
         syncToGlobals() {
           if (!window.allMerchantData) window.allMerchantData = null;
