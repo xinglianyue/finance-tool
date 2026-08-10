@@ -180,7 +180,17 @@
           this.subscribers = new Map();
         }
         
-        initialize(initialData) {
+        
+        /**
+         * 获取全局变量
+         * @param {string} key - 变量名
+         * @returns {*} 变量值
+         */
+        get(key) {
+          return window[key];
+        }
+
+initialize(initialData) {
           console.log('[StateManager] 初始化状态...');
           
           if (initialData && initialData.allMerchantData) {
@@ -262,8 +272,8 @@
     })();
   </script>
 
-  <script src="js/xlsx.full.min.js?v=1786342258"></script>
-  <script src="js/chart.umd.min.js?v=1786342258"></script>
+  <script src="js/xlsx.full.min.js?v=1786348500"></script>
+  <script src="js/chart.umd.min.js?v=1786348500"></script>
 
   <meta charset="UTF-8">
 
@@ -305,7 +315,7 @@
 
 
 
-      var APP_VERSION = '1786342258';
+      var APP_VERSION = '1786348500';
 
 
 
