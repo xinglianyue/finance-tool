@@ -12,7 +12,7 @@
 
 <head>
   <!-- Complete DataStore Implementation -->
-  <script><script>
+  <script>
 
     // 完整的DataStore类实现（不依赖外部文件）
     window.DataStore = (function() {
@@ -273,8 +273,8 @@ initialize(initialData) {
     })();
   </script>
 
-  <script src="js/xlsx.full.min.js?v=1786349976"></script>
-  <script src="js/chart.umd.min.js?v=1786349976"></script>
+  <script src="js/xlsx.full.min.js?v=1786350123"></script>
+  <script src="js/chart.umd.min.js?v=1786350123"></script>
 
   <meta charset="UTF-8">
 
@@ -316,7 +316,7 @@ initialize(initialData) {
 
 
 
-      var APP_VERSION = '1786349976';
+      var APP_VERSION = '1786350123';
 
 
 
@@ -5207,11 +5207,8 @@ initialize(initialData) {
 
   
   // 安全的 Object.keys 包装函数
-  function safeKeys(obj) {
-    if (!obj || typeof obj !== 'object') {
-      console.warn('[App] safeKeys: 对象无效', obj);
-      return [];
-    }
+  function Object.keys(obj) {
+    
     return Object.keys(obj);
   }
 
@@ -9071,7 +9068,8 @@ initialize(initialData) {
 
 
 
-      if (!allMerchantData || safeKeys(allMerchantData).length === 0) {
+      if (!allMerchantData) allMerchantData = {};
+      if (!allMerchantData || Object.keys(allMerchantData).length === 0) {
 
 
 
@@ -13875,7 +13873,8 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-      const firstKey = safeKeys(allMerchantData)[0];
+      if (!allMerchantData) allMerchantData = {};
+      const firstKey = Object.keys(allMerchantData)[0];
 
 
 
@@ -17939,7 +17938,8 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-  if (!allMerchantData || safeKeys(allMerchantData).length === 0) {
+  if (!allMerchantData) allMerchantData = {};
+  if (!allMerchantData || Object.keys(allMerchantData).length === 0) {
 
 
 
@@ -17987,7 +17987,8 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-  console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', safeKeys(allMerchantData));
+  if (!allMerchantData) allMerchantData = {};
+  console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', Object.keys(allMerchantData));
 
 
 
@@ -18007,7 +18008,8 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-  console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', safeKeys(allMerchantData));
+  if (!allMerchantData) allMerchantData = {};
+  console.log('[App] renderDimensionTable: 取得 allMerchantData, keys:', Object.keys(allMerchantData));
 
 
 
@@ -18024,7 +18026,8 @@ console.log('[App] 从相对路径加载成功');
         console.error('[App] allMerchantData 数据无效:', allMerchantData);
         return;
       }
-      const availableMerchantTypes = safeKeys(allMerchantData);
+      if (!allMerchantData) allMerchantData = {};
+      const availableMerchantTypes = Object.keys(allMerchantData);
 
 
 
@@ -19324,7 +19327,8 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-      const key = allMerchantData ? JSON.stringify(safeKeys(allMerchantData).map(k => k + ':' + (allMerchantData[k]?.cities?.length || 0))) + '|' + currentImportIndex : '';
+      if (!allMerchantData) allMerchantData = {};
+      const key = allMerchantData ? JSON.stringify(Object.keys(allMerchantData).map(k => k + ':' + (allMerchantData[k]?.cities?.length || 0))) + '|' + currentImportIndex : '';
 
 
 
@@ -19344,7 +19348,8 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-      for (const mt of safeKeys(allMerchantData)) {
+      if (!allMerchantData) allMerchantData = {};
+      for (const mt of Object.keys(allMerchantData)) {
 
 
 
