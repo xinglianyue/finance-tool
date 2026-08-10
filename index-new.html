@@ -10703,7 +10703,7 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-        if (!cloudData || !Array.isArray(cloudData) || cloudData.length === 0) {
+        if (!cloudData) {
 
 
 
@@ -10723,7 +10723,12 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-        console.log('[App] 云端数据加载成功，共' + cloudData.length + '条记录');
+        console.log('[App] 云端数据加载成功');
+          if (Array.isArray(cloudData)) {
+            console.log('[App] 数据记录数:', cloudData.length);
+          } else {
+            console.log('[App] 数据日期:', cloudData.date);
+          }
 
 
 
@@ -11855,7 +11860,7 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-        if (!cloudData || !Array.isArray(cloudData) || cloudData.length === 0) {
+        if (!cloudData) {
 
 
 
