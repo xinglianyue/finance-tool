@@ -17874,7 +17874,11 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-    console.log('[renderDimensionTable] 从 window.allMerchantData 获取数据');
+    if (!allMerchantData || typeof allMerchantData !== 'object') {
+    console.error('[renderDimensionTable] window.allMerchantData 无效:', allMerchantData);
+    } else {
+    console.log('[renderDimensionTable] 从 window.allMerchantData 获取数据，keys:', Object.keys(allMerchantData));
+    }
 
 
 
