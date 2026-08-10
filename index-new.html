@@ -146,9 +146,9 @@
     })();
   </script>
   <!-- Required Dependencies -->
-  <script src="js/state-manager.js?v=1786325426"></script>
-  <script src="js/xlsx.full.min.js?v=1786325426"></script>
-  <script src="js/chart.umd.min.js?v=1786325426"></script>
+  <script src="js/state-manager.js?v=1786325624"></script>
+  <script src="js/xlsx.full.min.js?v=1786325624"></script>
+  <script src="js/chart.umd.min.js?v=1786325624"></script>
 
 
   <!-- DataStore Initialization -->
@@ -201,11 +201,11 @@
 
 
 
-  <script src="js/xlsx.full.min.js?v=1786325426"></script>
+  <script src="js/xlsx.full.min.js?v=1786325624"></script>
 
 
 
-    <script src="js/chart.umd.min.js?v=1786325426"></script>
+    <script src="js/chart.umd.min.js?v=1786325624"></script>
 
 
 
@@ -229,7 +229,7 @@
 
 
 
-      var APP_VERSION = '1786325426';
+      var APP_VERSION = '1786325624';
 
 
 
@@ -10421,7 +10421,17 @@
 
 
 
-            console.log('[App] 从相对路径加载成功');
+            
+        // 兼容新格式：如果有 history_meta，提取最新记录
+        if (Array.isArray(cloudData) && cloudData.length > 0 && cloudData[0].type === 'history_meta') {
+          const latestRecord = cloudData.find(item => item.date);
+          if (latestRecord) {
+            cloudData = latestRecord;
+            console.log('[App] 使用新格式数据');
+          }
+        }
+
+console.log('[App] 从相对路径加载成功');
 
 
 
