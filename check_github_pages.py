@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""检查GitHub Pages实际部署的内容"""
+"""检查GitHub Pages部署内容"""
 import urllib.request
 import sys
 import io
@@ -7,61 +7,57 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 print("=" * 60)
-print("检查 GitHub Pages 部署内容")
+print("GitHub Pages Live Check")
 print("=" * 60)
 
 try:
     req = urllib.request.Request(
         'https://xinglianyue.github.io/finance-tool/index-new.html',
-        headers={'User-Agent': 'Mozilla/5.0'}
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Cache-Control': 'no-cache'
+        }
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, timeout=20) as resp:
         raw = resp.read()
         print(f"\nHTTP Status: {resp.status}")
         print(f"Content-Length: {len(raw)} bytes")
-        print(f"Content-Type: {resp.headers.get('Content-Type')}")
         
-        # 检查UTF-8编码
+        # Try to decode as UTF-8
         try:
             content = raw.decode('utf-8')
-            print("\n✓ 文件可以正确解码为UTF-8")
+            print("\n✓ Decoded successfully as UTF-8")
             
-            # 检查标题
-            idx = content.find('<title>')
-            if idx >= 0:
-                end = content.find('</title>', idx)
-                title = content[idx:end+8]
-                print(f"\n标题: {title}")
+            # Check title
+            title_start = content.find('<title>')
+            if title_start >= 0:
+                title_end = content.find('</title>', title_start) + 8
+                title = content[title_start:title_end]
+                print(f"\nTitle: {title}")
                 
-                # 检查是否有乱码
-                if '\ufffd' in title or '?' in title.replace('?', ''):
-                    print("⚠ 标题可能有乱码")
+                # Check if title has Chinese
+                if '财务分析工具' in title:
+                    print("✓ Title contains correct Chinese text")
                 else:
-                    print("✓ 标题正常")
+                    print("⚠ Title may have encoding issues")
+                    print(f"  Raw title bytes: {title.encode('utf-8', errors='replace').hex()}")
             
-            # 检查版本
+            # Check version
             import re
-            version_match = re.search(r"var APP_VERSION = '(\d+)';", content)
-            if version_match:
-                print(f"\nAPP_VERSION: {version_match.group(1)}")
+            v = re.search(r"APP_VERSION = '(\d+)'", content)
+            if v:
+                print(f"\nAPP_VERSION: {v.group(1)}")
             
-            # 检查script标签
-            script_match = re.search(r'<script src="js/data-store\.js\?v=(\d+)"', content)
-            if script_match:
-                print(f"JS cache version: {script_match.group(1)}")
+            # Check DataStore fallback
+            if 'window.DataStore = {' in content or 'DataStore fallback' in content:
+                print("✓ Has DataStore fallback script")
+            else:
+                print("✗ Missing DataStore fallback script")
                 
         except UnicodeDecodeError as e:
-            print(f"\n✗ UTF-8解码失败: {e}")
-            # 尝试其他编码
-            for enc in ['gbk', 'gb2312', 'latin-1']:
-                try:
-                    test = raw.decode(enc)
-                    print(f"  使用 {enc} 编码可读")
-                    break
-                except:
-                    pass
-                
+            print(f"\n✗ UTF-8 decode error: {e}")
+            
 except Exception as e:
-    print(f"错误: {type(e).__name__}: {e}")
+    print(f"Error: {type(e).__name__}: {e}")
 
 print("\n" + "=" * 60)

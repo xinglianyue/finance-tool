@@ -1,119 +1,56 @@
 # -*- coding: utf-8 -*-
-"""全面验证GitHub Pages部署状态"""
-import urllib.request
-import json
-import base64
+"""最终验证 - 检查所有关键元素"""
 import sys
 import io
-from datetime import datetime
+import re
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-print("=" * 80)
-print(f"GitHub Pages 验证报告")
-print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-print("=" * 80)
+html_path = r"C:\Users\xinxi\Desktop\财务工具\index-new.html"
+ds_path = r"C:\Users\xinxi\Desktop\财务工具\js\data-store.js"
 
-# 1. 检查GitHub Actions最新运行
-print("\n[1] GitHub Actions 运行状态:")
-try:
-    req = urllib.request.Request(
-        'https://api.github.com/repos/xinglianyue/finance-tool/actions/runs?per_page=3',
-        headers={'User-Agent': 'Mozilla/5.0'}
-    )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = json.loads(resp.read().decode())
-        for run in data['workflow_runs']:
-            print(f"   ✓ {run['id']}: {run['conclusion']} ({run['created_at']})")
-except Exception as e:
-    print(f"   ✗ Error: {e}")
+print("=" * 60)
+print("Final Verification")
+print("=" * 60)
 
-# 2. 验证index-new.html
-print("\n[2] index-new.html 验证:")
-try:
-    req = urllib.request.Request(
-        'https://api.github.com/repos/xinglianyue/finance-tool/contents/index-new.html',
-        headers={'User-Agent': 'Mozilla/5.0'}
-    )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = json.loads(resp.read().decode())
-        content = base64.b64decode(data['content']).decode('utf-8')
-        
-        # 检查关键元素
-        checks = {
-            'APP_VERSION': "var APP_VERSION = '1785814622'",
-            'data-store.js': 'js/data-store.js?v=1785814622',
-            'state-manager.js': 'js/state-manager.js?v=1785814622',
-            'DataStore.save': 'DataStore.save(',
-            'window.DataStore': 'window.DataStore = new DataStore()'
-        }
-        
-        for name, pattern in checks.items():
-            if pattern in content:
-                print(f"   ✓ {name}")
-            else:
-                print(f"   ✗ {name} - NOT FOUND")
-        
-        print(f"   Size: {len(content)} bytes")
-except Exception as e:
-    print(f"   ✗ Error: {e}")
+# Check HTML
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-# 3. 验证data-store.js
-print("\n[3] js/data-store.js 验证:")
-try:
-    req = urllib.request.Request(
-        'https://api.github.com/repos/xinglianyue/finance-tool/contents/js/data-store.js',
-        headers={'User-Agent': 'Mozilla/5.0'}
-    )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = json.loads(resp.read().decode())
-        content = base64.b64decode(data['content']).decode('utf-8')
-        
-        checks = [
-            ('class DataStore', 'Has DataStore class'),
-            ('window.DataStore = new DataStore()', 'Exports window.DataStore'),
-            ('save(data)', 'Has save method'),
-            ('load()', 'Has load method'),
-        ]
-        
-        for pattern, desc in checks:
-            if pattern in content:
-                print(f"   ✓ {desc}")
-            else:
-                print(f"   ✗ {desc} - NOT FOUND")
-        
-        print(f"   Size: {len(content)} bytes")
-except Exception as e:
-    print(f"   ✗ Error: {e}")
+print(f"\n[HTML File]")
+print(f"  Size: {len(html_content)} chars")
 
-# 4. 测试GitHub Pages可访问性
-print("\n[4] GitHub Pages 可访问性测试:")
-test_urls = [
-    ('https://xinglianyue.github.io/finance-tool/index-new.html', 'Main page'),
-    ('https://xinglianyue.github.io/finance-tool/js/data-store.js', 'DataStore module'),
-    ('https://xinglianyue.github.io/finance-tool/js/state-manager.js', 'StateManager module'),
-]
+# Check version
+v = re.search(r"APP_VERSION = '(\d+)'", html_content)
+if v:
+    print(f"  APP_VERSION: {v.group(1)} ✓")
+else:
+    print(f"  APP_VERSION: NOT FOUND ✗")
 
-for url, desc in test_urls:
-    try:
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0',
-            'Accept': '*/*'
-        })
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            size = len(resp.read())
-            print(f"   ✓ {desc}: HTTP {resp.status}, {size} bytes")
-    except urllib.error.HTTPError as e:
-        print(f"   ✗ {desc}: HTTP {e.code}")
-    except Exception as e:
-        print(f"   ✗ {desc}: Error - {type(e).__name__}")
+# Check inline DataStore position
+if 'window.DataStore = {' in html_content:
+    ds_pos = html_content.find('window.DataStore = {')
+    body_end = html_content.find('</body>')
+    if body_end > ds_pos > body_end - 2000:
+        print(f"  Inline DataStore position: NEAR </body> ✓")
+    else:
+        print(f"  Inline DataStore position: Line ~{html_content[:ds_pos].count(chr(10))} (may be too early)")
+else:
+    print(f"  Inline DataStore: NOT FOUND ✗")
 
-# 5. 总结
-print("\n" + "=" * 80)
-print("结论:")
-print("  - GitHub Actions: 成功运行")
-print("  - 代码部署: 正确")
-print("  - 可访问性: 正常")
-print()
-print("  URL: https://xinglianyue.github.io/finance-tool/index-new.html")
-print("=" * 80)
+# Check data-store.js
+with open(ds_path, "r", encoding="utf-8") as f:
+    ds_content = f.read()
+
+print(f"\n[data-store.js]")
+print(f"  Size: {len(ds_content)} bytes")
+
+if 'if (!window.DataStore)' in ds_content:
+    print(f"  Has conditional check: YES ✓")
+else:
+    print(f"  Has conditional check: NO ✗")
+
+print("\n" + "=" * 60)
+print("Git commit and push:")
+print("  git add -A && git commit -m 'fix: final DataStore fix' && git push")
+print("=" * 60)

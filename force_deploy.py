@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Update version and ensure DataStore is correct"""
+"""强制触发重新部署 - 添加注释更新版本号"""
 import time
-import re
 import sys
 import io
 
@@ -14,20 +13,18 @@ with open(path, "r", encoding="utf-8") as f:
 
 print(f"Current size: {len(content)} chars")
 
-# Update version
+# 更新时间戳
 new_ts = str(int(time.time()))
-print(f"New version: {new_ts}")
+print(f"New timestamp: {new_ts}")
 
+# 更新版本号
+import re
 content = re.sub(r"APP_VERSION = '\d+'", f"APP_VERSION = '{new_ts}'", content)
 content = re.sub(r'v=\d+', f'v={new_ts}', content)
 
-# Ensure DataStore early init is present
-if 'window.DataStore = (function()' not in content:
-    print("ERROR: DataStore initialization missing!")
-else:
-    print("DataStore initialization: OK")
+# 添加一个注释标记版本
+content = content.replace('<!-- v2026-07-27.2 -->', f'<!-- v{new_ts} -->')
 
-# Save
 with open(path, "w", encoding="utf-8") as f:
     f.write(content)
 
