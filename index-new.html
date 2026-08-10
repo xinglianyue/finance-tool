@@ -17945,11 +17945,14 @@ console.log('[App] 从相对路径加载成功');
 
 
   if (!allMerchantData) allMerchantData = {};
-  if (!allMerchantData || (allMerchantData && typeof allMerchantData === "object") ? Object.keys(allMerchantData) : [].length === 0) {
+  // 正确的条件判断：检查是否为空对象
+  if (!allMerchantData || typeof allMerchantData !== 'object' || Object.keys(allMerchantData).length === 0) {
 
 
 
-    console.error('[renderDimensionTable]: 无法获取任何数据源，allMerchantData 为空');
+    console.error('[renderDimensionTable]: 无法获取任何数据源，allMerchantData:', allMerchantData);
+    console.error('[renderDimensionTable]: 类型:', typeof allMerchantData);
+    console.error('[renderDimensionTable]: keys:', allMerchantData ? Object.keys(allMerchantData) : 'N/A');
 
 
 
