@@ -11,278 +11,118 @@
 
 
 <head>
-  <!-- Complete DataStore Implementation -->
+  <!-- DataStore and StateManager Inline Implementation -->
   <script>
-
-    // 完整的DataStore类实现（不依赖外部文件）
-    // 定义 DataStore 类
-    function DataStore() {
-        this.STORAGE_KEY = 'finance-tool';
-        this.BACKUP_KEY = 'finance-tool-backup';
-        this.CACHE_PREFIX = 'cache_';
-      }
-      
-      DataStore.prototype.load = function() {
-        try {
-          var stored = localStorage.getItem(this.STORAGE_KEY);
-          return stored ? JSON.parse(stored) : null;
-        } catch (e) {
-          console.error('[DataStore] load error:', e);
-          return null;
-        }
-      };
-      
-      DataStore.prototype.save = function(data) {
-        try {
-          var current = this.load();
-          if (current) {
-            localStorage.setItem(this.BACKUP_KEY, JSON.stringify(current));
-          }
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
-          console.log('[DataStore] data saved');
-          return true;
-        } catch (e) {
-          console.error('[DataStore] save error:', e);
-          return false;
-        }
-      };
-      
-      DataStore.prototype.getCache = function(date) {
-        try {
-          var key = this.CACHE_PREFIX + date;
-          var cached = localStorage.getItem(key);
-          return cached ? JSON.parse(cached) : null;
-        } catch (e) {
-          return null;
-        }
-      };
-      
-      DataStore.prototype.setCache = function(date, data) {
-        try {
-          var key = this.CACHE_PREFIX + date;
-          localStorage.setItem(key, JSON.stringify(data));
-          console.log('[DataStore] cache set: ' + date);
-          return true;
-        } catch (e) {
-          return false;
-        }
-      };
-      
-      DataStore.prototype.clearCache = function(date) {
-        try {
-          if (date) {
-            localStorage.removeItem(this.CACHE_PREFIX + date);
-          } else {
-            for (var i = localStorage.length - 1; i >= 0; i--) {
-              var key = localStorage.key(i);
-              if (key && key.startsWith(this.CACHE_PREFIX)) {
-                localStorage.removeItem(key);
-              }
-            }
-          }
-          return true;
-        } catch (e) {
-          return false;
-        }
-      };
-      
-      DataStore.prototype.clear = function() {
-        try {
-          localStorage.removeItem(this.STORAGE_KEY);
-          localStorage.removeItem(this.BACKUP_KEY);
-          this.clearCache();
-          return true;
-        } catch (e) {
-          return false;
-        }
-      };
-      
-      DataStore.prototype.validate = function(data) {
-        return data && typeof data === 'object';
-      };
-      
-      DataStore.prototype.backup = function() {
-        var data = this.load();
-        if (data) {
-          localStorage.setItem(this.BACKUP_KEY, JSON.stringify(data));
-        }
-      };
-      
-      DataStore.prototype.restoreFromBackup = function() {
-        try {
-          var backup = localStorage.getItem(this.BACKUP_KEY);
-          if (backup) {
-            localStorage.setItem(this.STORAGE_KEY, backup);
-            return JSON.parse(backup);
-          }
-          return null;
-        } catch (e) {
-          return null;
-        }
-      };
-      
-      DataStore.prototype.getStorageInfo = function() {
-        var info = { mainData: null, backupData: null, cacheCount: 0, totalSize: 0 };
-        try {
-          var main = localStorage.getItem(this.STORAGE_KEY);
-          var backup = localStorage.getItem(this.BACKUP_KEY);
-          info.mainData = main ? JSON.parse(main) : null;
-          info.backupData = backup ? JSON.parse(backup) : null;
-        } catch (e) {}
-        return info;
-      };
-      
-      // 创建实例并赋值给window.DataStore
-      var store = new DataStore();
-      window.DataStore = store;
-      
-      console.log('[Init] DataStore fully initialized with all methods');
-      console.log('[Init] DataStore.save is:', typeof window.DataStore.save);
-      console.log('[Init] DataStore.load is:', typeof window.DataStore.load);
-      console.log('[Init] DataStore.getCache is:', typeof window.DataStore.getCache);
-      console.log('[Init] DataStore.setCache is:', typeof window.DataStore.setCache);
-      
-      return store;
-    })();
-  </script>
-  <!-- Required Dependencies -->
-  <!-- DataStore Initialization -->
-  <script>
+    // DataStore - inline implementation
     window.DataStore = {
       STORAGE_KEY: 'finance-tool',
       BACKUP_KEY: 'finance-tool-backup',
       CACHE_PREFIX: 'cache_',
-      load: function() { var s = localStorage.getItem(this.STORAGE_KEY); return s ? JSON.parse(s) : null; },
-      save: function(d) { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(d)); return true; },
-      getCache: function(date) { var k = this.CACHE_PREFIX + date; var c = localStorage.getItem(k); return c ? JSON.parse(c) : null; },
-      setCache: function(date, data) { localStorage.setItem(this.CACHE_PREFIX + date, JSON.stringify(data)); return true; },
-      clear: function() { localStorage.removeItem(this.STORAGE_KEY); localStorage.removeItem(this.BACKUP_KEY); },
-      validate: function(d) { return d && typeof d === 'object'; },
-      backup: function() { var d = this.load(); if (d) localStorage.setItem(this.BACKUP_KEY, JSON.stringify(d)); },
-      restoreFromBackup: function() { var b = localStorage.getItem(this.BACKUP_KEY); if (b) { localStorage.setItem(this.STORAGE_KEY, b); return JSON.parse(b); } return null; }
+      
+      load: function() {
+        try {
+          var s = localStorage.getItem(this.STORAGE_KEY);
+          return s ? JSON.parse(s) : null;
+        } catch(e) { return null; }
+      },
+      
+      save: function(d) {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(d));
+          return true;
+        } catch(e) { return false; }
+      },
+      
+      getCache: function(date) {
+        try {
+          var k = this.CACHE_PREFIX + date;
+          var c = localStorage.getItem(k);
+          return c ? JSON.parse(c) : null;
+        } catch(e) { return null; }
+      },
+      
+      setCache: function(date, data) {
+        try {
+          localStorage.setItem(this.CACHE_PREFIX + date, JSON.stringify(data));
+          return true;
+        } catch(e) { return false; }
+      },
+      
+      clear: function() {
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem(this.BACKUP_KEY);
+      }
     };
     console.log('[Init] DataStore initialized');
     console.log('[Init] DataStore.save type:', typeof window.DataStore.save);
-  </script>
-  <!-- StateManager 内联实现 -->
-  <script>
-    class StateManager {
-        constructor() {
-          this.state = {
-            hasData: false,
-            historyCount: 0,
-            selectedCities: [],
-            currentImportIndex: 0,
-            currentMerchantType: 'all',
-            cacheSize: 0
-          };
-          this.subscribers = new Map();
-        }
-        
-        
-        /**
-         * 获取全局变量
-         * @param {string} key - 变量名
-         * @returns {*} 变量值
-         */
-        get(key) {
-          return window[key];
-        }
-
-initialize(initialData) {
-          console.log('[StateManager] 初始化状态...');
-          
-          if (initialData && initialData.allMerchantData) {
-            window.allMerchantData = initialData.allMerchantData;
-            console.log('[StateManager] 从 initialData.allMerchantData 字段加载');
-          } else if (window.allMerchantData) {
-            console.log('[StateManager] 从 window.allMerchantData 加载');
-          } else {
-            const cached = DataStore.load();
-            if (cached && cached.currentData) {
-              window.allMerchantData = cached.currentData;
-              console.log('[StateManager] 从 DataStore 缓存加载');
-            }
-          }
-          
-          if (initialData && initialData.importHistory) {
-            window.importHistory = initialData.importHistory;
-          } else if (window.importHistory) {
-            // 保持现有
-          } else {
-            window.importHistory = [];
-          }
-          
-          this.syncToGlobals();
-          this.state.hasData = !!window.allMerchantData;
-          this.state.historyCount = window.importHistory?.length || 0;
-          this.state.cacheSize = Object.keys(DataStore.getCache() || {}).length;
-          
-          console.log('[StateManager] 状态初始化完成', this.state);
-          this.notify('init', this.state);
-        }
-        // 等待数据完全加载后再渲染
-        setTimeout(() => {
-          console.log('[App] 延迟渲染维度表，allMerchantData:', !!window.allMerchantData);
-          if (window.allMerchantData && Object.keys(window.allMerchantData).length > 0) {
-            renderDimensionTable();
-          } else {
-            console.warn('[App] 数据仍未准备好，等待用户交互');
-          }
-        }, 500);
-
-        
-        syncToGlobals() {
-          if (!window.allMerchantData) window.allMerchantData = null;
-          if (!window.importHistory) window.importHistory = [];
-          console.log('[StateManager] 全局变量已同步，allMerchantData:', !!window.allMerchantData);
-        }
-        
-        subscribe(event, callback) {
-          if (!this.subscribers.has(event)) {
-            this.subscribers.set(event, []);
-          }
-          this.subscribers.get(event).push(callback);
-        }
-        
-        notify(event, data = {}) {
-          console.log('[StateManager] 状态变更订阅触发:', event);
-          const callbacks = this.subscribers.get(event) || [];
-          callbacks.forEach(callback => {
-            try {
-              callback(data);
-            } catch (e) {
-              console.error('[StateManager] 回调执行失败 (' + event + '):', e);
-            }
-          });
-        }
-        
-        getState() {
-          return { ...this.state };
-        }
-        
-        updateState(updates) {
-          this.state = { ...this.state, ...updates };
-          this.notify('state_change', this.state);
-        }
-        
-        clearSubscribers() {
-          this.subscribers.clear();
-        }
-      }
+    
+    // StateManager - inline implementation
+    window.StateManager = {
+      state: { hasData: false, historyCount: 0, selectedCities: [], currentImportIndex: 0, currentMerchantType: 'all', cacheSize: 0 },
+      subscribers: new Map(),
       
-      // 创建全局实例
-      if (!window.StateManager) {
-        window.StateManager = new StateManager();
-        console.log('[StateManager] 全局实例已创建（内联版）');
-      } else {
-        console.log('[StateManager] 全局实例已存在，跳过创建');
+      initialize: function(initialData) {
+        console.log('[StateManager] initializing...');
+        if (initialData && initialData.allMerchantData) {
+          window.allMerchantData = initialData.allMerchantData;
+        } else if (window.allMerchantData) {
+          // keep existing
+        } else {
+          var cached = DataStore.load();
+          if (cached && cached.currentData) {
+            window.allMerchantData = cached.currentData;
+          }
+        }
+        if (initialData && initialData.importHistory) {
+          window.importHistory = initialData.importHistory;
+        } else if (!window.importHistory) {
+          window.importHistory = [];
+        }
+        this.syncToGlobals();
+        this.state.hasData = !!window.allMerchantData;
+        this.state.historyCount = window.importHistory ? window.importHistory.length : 0;
+        console.log('[StateManager] initialized:', this.state);
+        this.notify('init', this.state);
+      },
+      
+      syncToGlobals: function() {
+        if (!window.allMerchantData) window.allMerchantData = null;
+        if (!window.importHistory) window.importHistory = [];
+        console.log('[StateManager] globals synced, allMerchantData:', !!window.allMerchantData);
+      },
+      
+      subscribe: function(event, callback) {
+        if (!this.subscribers.has(event)) {
+          this.subscribers.set(event, []);
+        }
+        this.subscribers.get(event).push(callback);
+      },
+      
+      notify: function(event, data) {
+        var callbacks = this.subscribers.get(event) || [];
+        callbacks.forEach(function(cb) {
+          try { cb(data); } catch(e) { console.error('[StateManager] callback error:', e); }
+        });
+      },
+      
+      getState: function() {
+        return { hasData: this.state.hasData, historyCount: this.state.historyCount };
+      },
+      
+      get: function(key) {
+        return window[key];
       }
-    })();
+    };
+    console.log('[StateManager] global instance created');
   </script>
 
-  <script src="js/xlsx.full.min.js?v=1786353671"></script>
-  <script src="js/chart.umd.min.js?v=1786353671"></script>
+  
+  <!-- Required Dependencies -->
+  
+  
+
+  <script src="js/xlsx.full.min.js?v=1786498826"></script>
+  <script src="js/chart.umd.min.js?v=1786498826"></script>
 
   <meta charset="UTF-8">
 
@@ -324,7 +164,7 @@ initialize(initialData) {
 
 
 
-      var APP_VERSION = '1786353671';
+      var APP_VERSION = '1786498826';
 
 
 
