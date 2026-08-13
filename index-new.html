@@ -163,7 +163,7 @@
   </script>
   <!-- StateManager 内联实现 -->
   <script>
-    class StateManager {
+    class StateManagerClass {
         constructor() {
           this.state = {
             hasData: false,
@@ -270,7 +270,7 @@
       
       // 创建全局实例
       if (!window.StateManager) {
-        window.StateManager = new StateManager();
+        window.StateManager = new StateManagerClass();
         console.log('[StateManager] 全局实例已创建（内联版）');
       } else {
         console.log('[StateManager] 全局实例已存在，跳过创建');
@@ -321,7 +321,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260813_STATEFIX';
+      var APP_VERSION = '20260813_NAMEFIX';
 
 
 
