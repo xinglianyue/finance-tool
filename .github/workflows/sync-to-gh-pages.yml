@@ -32,20 +32,20 @@ jobs:
 
       - name: Sync to gh-pages
         run: |
-          # 切换到gh-pages分支
+          # 拉取远程最新gh-pages，避免与手动同步的提交产生冲突
+          git fetch origin gh-pages
           git checkout gh-pages
+
+          # 本地gh-pages对齐到远程最新（工作流为全新clone，无本地独有提交）
+          git reset --hard origin/gh-pages
 
           # 从main分支复制关键文件
           git checkout main -- shared-data.json index.json upload-data.html index-new.html
 
-          # 提交并推送
+          # 提交并推送（基于远程最新，应为fast-forward）
           git add shared-data.json index.json upload-data.html index-new.html
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "sync: Auto-sync from main branch"
-            git push origin gh-pages
-          fi
+          git commit -m "sync: Auto-sync from main branch" || echo "no changes to commit"
+          git push origin gh-pages
 
       - name: Verify sync
         run: |
