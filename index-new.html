@@ -321,7 +321,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260813_NAMEFIX';
+      var APP_VERSION = '20260813_NAMEFIX2';
 
 
 
@@ -18016,11 +18016,10 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-// 使用窗体上所有商数据
-
-
-
-  allMerchantData = window.allMerchantData;
+// 仅当 window.allMerchantData 有效时才覆盖，避免清空已从兜底源获取的数据
+  if (window.allMerchantData && typeof window.allMerchantData === 'object' && Object.keys(window.allMerchantData).length > 0) {
+    allMerchantData = window.allMerchantData;
+  }
 
 
 
@@ -24057,7 +24056,7 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-        window.allMerchantData = loadedData.allMerchantData || null;
+        window.allMerchantData = loadedData.allMerchantData || window.allMerchantData || null;
 
 
 
