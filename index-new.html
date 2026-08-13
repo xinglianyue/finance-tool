@@ -321,7 +321,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '1786592100_GIT_FIX';
+      var APP_VERSION = '1786599000_PARSE_FIX';
 
 
 
@@ -9467,8 +9467,11 @@
 
 
     function parseRecord(record) {
-
-
+      // 安全检查：如果是元数据记录或没有有效数据，直接返回 null
+      if (!record || record.type === 'history_meta' || !record.merchantData && !record.currentData?.merchantData) {
+        console.log('[parseRecord] 跳过无效记录:', record?.type || 'unknown');
+        return null;
+      }
 
       let merchantData = record.merchantData || record.currentData?.merchantData;
 
