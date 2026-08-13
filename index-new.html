@@ -10039,14 +10039,13 @@
 
 
       cloudData.forEach(record => {
-
-
-
-        cache[record.date] = parseRecord(record);
-
-
-
-      });
+          if (record.type === 'history_meta' || !record.merchantData) return;
+          try {
+            cache[record.date] = parseRecord(record);
+          } catch (e) {
+            console.warn('[App] failed to parse record:', record.date, e);
+          }
+        });
 
 
 
