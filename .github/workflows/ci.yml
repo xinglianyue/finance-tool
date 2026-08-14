@@ -1,0 +1,32 @@
+name: CI Checks
+
+# 每次推送 main 或发起 PR 时自动校验：
+# 1. index-new.html / upload-data.html 内联脚本语法
+# 2. shared-data.json 与 index.json 数据完整性
+# 防止修改引入语法错误导致页面白屏或数据损坏
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 校验 HTML 内联脚本语法
+        run: node test/check-syntax.cjs
+
+      - name: 校验数据完整性
+        run: python test/check-data.py
