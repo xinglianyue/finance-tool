@@ -266,6 +266,41 @@
         clearSubscribers() {
           this.subscribers.clear();
         }
+        
+        /**
+         * 获取需要保存到本地存储的数据（不含缓存，避免超出localStorage容量限制）
+         * @returns {Object} 待保存数据
+         */
+        getDataToSave() {
+          return {
+            version: 3,
+            allMerchantData: window.allMerchantData || null,
+            importHistory: window.importHistory || [],
+            currentData: window.currentData || null,
+            currentImportIndex: window.currentImportIndex || 0,
+            currentMerchantType: window.currentMerchantType || 'all'
+          };
+        }
+        
+        /**
+         * 重置状态与全局变量（清空数据时调用）
+         */
+        reset() {
+          this.state = {
+            hasData: false,
+            historyCount: 0,
+            selectedCities: [],
+            currentImportIndex: 0,
+            currentMerchantType: 'all',
+            cacheSize: 0
+          };
+          window.allMerchantData = null;
+          window.importHistory = [];
+          window.currentData = null;
+          window.currentImportIndex = 0;
+          window.currentMerchantType = 'all';
+          this.notify('reset', this.state);
+        }
       }
       
       // 创建全局实例
@@ -321,7 +356,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260813_DATA';
+      var APP_VERSION = '20260813_SMFIX';
 
 
 
