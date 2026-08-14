@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE4';
+      var APP_VERSION = '20260814_UPGRADE5';
 
 
 
@@ -24224,32 +24224,30 @@ console.log('[App] 从相对路径加载成功');
 
       // 更新全局变量
 
-
-
       if (loadedData) {
 
+        importHistory = loadedData.importHistory || window.importHistory || [];
 
-
-        importHistory = loadedData.importHistory || [];
-
-
-
-        currentData = loadedData.currentData || null;
-
-
+        currentData = loadedData.currentData || window.currentData || null;
 
         window.allMerchantData = loadedData.allMerchantData || window.allMerchantData || null;
 
-
+        // 关键修复：同步闭包局部变量，确保维度下钻（_buildCityDataCache）能读取到有效数据
+        // 拆分模式 loadFromSplitted 只设置了 window.*，未同步局部变量，导致维度表格全0
+        allMerchantData = window.allMerchantData;
 
         currentImportIndex = loadedData.currentImportIndex || 0;
 
-
-
         currentMerchantType = loadedData.currentMerchantType || 'all';
 
+      }
 
-
+      // 关键修复：拆分模式加载成功后重新渲染日期选择器和各Tab
+      // loadFromSplitted 未调用 initializeAppState/renderImportSelector，导致日期下拉框无选项
+      if (importHistory && importHistory.length > 0) {
+        renderImportSelector();
+        renderOverview();
+        renderDimension();
       }
 
 
