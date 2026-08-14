@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE8';
+      var APP_VERSION = '20260814_UPGRADE9';
 
 
 
@@ -6319,6 +6319,46 @@
 
     let currentImportIndex = 0;
 
+    // ===== 统一数据访问层（20260814_UPGRADE9）=====
+    // 唯一的状态写入入口：同时同步"闭包局部变量"与"window.* 全局"，杜绝只更新一边导致的渲染不一致
+    // 后续调整数据结构时只改这里，业务代码无需感知
+    function setAppState(partial) {
+      if (partial && typeof partial === 'object') {
+        if ('allMerchantData' in partial) {
+          allMerchantData = partial.allMerchantData;
+          window.allMerchantData = partial.allMerchantData;
+        }
+        if ('importHistory' in partial) {
+          importHistory = partial.importHistory || [];
+          window.importHistory = partial.importHistory || [];
+        }
+        if ('currentData' in partial) {
+          currentData = partial.currentData;
+          window.currentData = partial.currentData;
+        }
+        if ('currentImportIndex' in partial) {
+          currentImportIndex = partial.currentImportIndex;
+          window.currentImportIndex = partial.currentImportIndex;
+        }
+        if ('currentMerchantType' in partial) {
+          currentMerchantType = partial.currentMerchantType;
+          window.currentMerchantType = partial.currentMerchantType;
+        }
+      }
+      return getAppState();
+    }
+
+    // 统一读取入口：闭包变量为准（window.* 已由 setAppState 保持同步）
+    function getAppState() {
+      return {
+        allMerchantData: allMerchantData,
+        importHistory: importHistory,
+        currentData: currentData,
+        currentImportIndex: currentImportIndex,
+        currentMerchantType: currentMerchantType
+      };
+    }
+
 
 
 
@@ -8681,11 +8721,7 @@
 
 
 
-      allMerchantData = merchantData;
-
-
-
-      window.allMerchantData = merchantData;  // 同步到全局对象，确保 renderDimension() 能访问到最新数据
+      setAppState({ allMerchantData: merchantData });  // 统一访问层：闭包变量与 window.* 一并更新
 
 
 
@@ -8987,11 +9023,7 @@
 
 
 
-      allMerchantData = merchantData;
-
-
-
-      window.allMerchantData = merchantData;  // 同步到全局对象，确保 renderDimension() 能访问到最新数据
+      setAppState({ allMerchantData: merchantData });  // 统一访问层：闭包变量与 window.* 一并更新
 
 
 
@@ -10322,25 +10354,19 @@
 
 
 
-      window.allMerchantData = localAllMerchantData;
-      // 设置全局变量，确保所有函数都能访问
-      window.allMerchantData = localAllMerchantData;
+      
 
 
 
-      window.importHistory = data.importHistory;
+      
 
 
 
-      window.currentData = data.currentData;
+      
 
 
 
-      window.currentImportIndex = data.currentImportIndex;
-
-
-
-      window.currentMerchantType = data.currentMerchantType;
+      
 
 
 
@@ -10364,27 +10390,14 @@
 
 
 
-      // 同时更新外部定义的变量（供内部函数使用）
-
-
-
-      allMerchantData = localAllMerchantData;
-
-
-
-      importHistory = data.importHistory;
-
-
-
-      currentData = data.currentData;
-
-
-
-      currentImportIndex = data.currentImportIndex;
-
-
-
-      currentMerchantType = data.currentMerchantType;
+      // 统一状态写入：一处同时更新闭包变量与 window.*
+      setAppState({
+        allMerchantData: localAllMerchantData,
+        importHistory: data.importHistory,
+        currentData: data.currentData,
+        currentImportIndex: data.currentImportIndex,
+        currentMerchantType: data.currentMerchantType
+      });
 
 
 
@@ -10452,7 +10465,7 @@
 
 
 
-          window.allMerchantData = newValue;
+          setAppState({ allMerchantData: newValue });
 
 
 
@@ -10468,7 +10481,7 @@
 
 
 
-          window.currentData = newValue;
+          setAppState({ currentData: newValue });
 
 
 
@@ -10657,7 +10670,7 @@
         if (!latestMerchant) return false;
 
         // 2. 设置全局数据（首屏概况+维度默认立即可用）
-        window.allMerchantData = latestMerchant;
+        setAppState({ allMerchantData: latestMerchant });
         if (!window.financeToolCache) window.financeToolCache = {};
         window.financeToolCache[latest.date] = latestMerchant;
 
@@ -10668,7 +10681,7 @@
           importedAt: r.updatedAt || '',
           fileName: r.fileName || ''
         }));
-        window.importHistory = importHistory;
+        setAppState({ importHistory: importHistory });
 
         // 4. currentData（最新记录格式化 { totals, cities }，与 loadFromCloud 一致）
         const allCities = latestMerchant.all?.cities || [];
@@ -10678,10 +10691,10 @@
           if (city.name === '总商') totalData = city;
           else if (city.name && city.name !== '城市名称') citiesData.push(city);
         });
-        window.currentData = {
+        setAppState({ currentData: {
           totals: (totalData && totalData.modules && totalData.modules.all) ? totalData.modules.all : {},
           cities: citiesData
-        };
+        } });
 
         // 5. v3 数据保存到 localStorage（init 后续 DataStore.load 复用）
         const dataToSave = {
@@ -24478,19 +24491,13 @@ console.log('[App] 从相对路径加载成功');
 
       if (loadedData) {
 
-        importHistory = loadedData.importHistory || window.importHistory || [];
-
-        currentData = loadedData.currentData || window.currentData || null;
-
-        window.allMerchantData = loadedData.allMerchantData || window.allMerchantData || null;
-
-        // 关键修复：同步闭包局部变量，确保维度下钻（_buildCityDataCache）能读取到有效数据
-        // 拆分模式 loadFromSplitted 只设置了 window.*，未同步局部变量，导致维度表格全0
-        allMerchantData = window.allMerchantData;
-
-        currentImportIndex = loadedData.currentImportIndex || 0;
-
-        currentMerchantType = loadedData.currentMerchantType || 'all';
+        setAppState({
+          allMerchantData: loadedData.allMerchantData || window.allMerchantData || null,
+          importHistory: loadedData.importHistory || window.importHistory || [],
+          currentData: loadedData.currentData || window.currentData || null,
+          currentImportIndex: loadedData.currentImportIndex || 0,
+          currentMerchantType: loadedData.currentMerchantType || 'all'
+        });
 
       }
 
