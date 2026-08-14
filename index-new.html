@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE7';
+      var APP_VERSION = '20260814_UPGRADE8';
 
 
 
@@ -3147,52 +3147,54 @@
 
       }
 
-      /* 趋势数据加载进度条 */
+      /* 趋势数据加载进度条（与应用卡片风格统一，使用CSS变量自适应明暗主题） */
       .trend-load-status {
-        margin-bottom: 12px;
-        padding: 10px 14px;
-        border-radius: 8px;
-        background: var(--bg-hover, #f3f4f6);
-        border: 1px solid var(--border, #e5e7eb);
+        margin-bottom: 14px;
+        padding: 12px 14px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
       }
       .trend-load-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
       }
       .trend-load-bar {
         flex: 1;
-        height: 8px;
-        border-radius: 4px;
-        background: rgba(79, 70, 229, 0.15);
+        height: 6px;
+        border-radius: 999px;
+        background: var(--primary-bg);
         overflow: hidden;
       }
       .trend-load-bar-inner {
         height: 100%;
-        border-radius: 4px;
-        background: linear-gradient(90deg, #4f46e5, #818cf8);
-        transition: width 0.4s ease;
+        border-radius: 999px;
+        background: var(--primary);
+        transition: width 0.4s var(--ease);
       }
       .trend-load-text {
-        margin-top: 6px;
+        margin-top: 8px;
         font-size: 12px;
-        color: var(--text-secondary, #6b7280);
+        color: var(--text-secondary);
       }
       .trend-retry-btn {
         flex-shrink: 0;
-        padding: 5px 12px;
+        padding: 5px 14px;
         border: none;
         border-radius: 6px;
-        background: var(--primary, #4f46e5);
+        background: var(--primary);
         color: #fff;
         font-size: 12px;
+        font-weight: 500;
         cursor: pointer;
       }
       .trend-retry-btn:hover { opacity: 0.9; }
       .trend-load-status.success {
-        border-color: rgba(22, 163, 74, 0.4);
-        background: rgba(22, 163, 74, 0.08);
+        border-color: rgba(16, 185, 129, 0.35);
+        background: var(--positive-bg);
       }
+      .trend-load-status.success .trend-load-text { color: var(--success); }
 
     }
 
@@ -10601,7 +10603,7 @@
         const parsed = await loadDateFromSplitted(date);
         if (parsed) loadedCount++;
       }
-      console.log('[App] 数据补全完成，新增 ' + loadedCount + ' 个月份');
+      console.log('[App] 数据补全完成，新增 ' + loadedCount + ' 个日期');
       if (isTrendActive && typeof _trendLoadEnd === 'function') {
         _trendLoadEnd();
       }
@@ -10626,7 +10628,7 @@
       if (pending.length === 0) return;
 
       if (typeof showToast === 'function') {
-        showToast(`正在加载 ${pending.length} 个月份历史数据...`, 'info');
+        showToast(`正在加载 ${pending.length} 个日期历史数据...`, 'info');
       }
       loadRemainingSplitted(pending, function() {
         console.log('[ensureTrendData] 数据补全完成，重新渲染趋势表格');
@@ -20227,7 +20229,7 @@ console.log('[App] 从相对路径加载成功');
 
     /**
      * 更新趋势页数据加载进度条 UI
-     * - 加载中：显示"已加载 X/Y 个月份（当前：日期）"
+     * - 加载中：显示"已加载 X/Y 个日期（覆盖月份范围）"
      * - 完成且有失败：显示警告 + 重试按钮
      * - 完成且无失败：显示成功并自动隐藏
      */
@@ -20277,22 +20279,32 @@ console.log('[App] 从相对路径加载成功');
       const pct = total > 0 ? Math.min(100, Math.round(loadedCount / total * 100)) : 0;
       if (bar) bar.style.width = pct + '%';
 
+      // 覆盖日期范围：让总数一目了然是"日期列"（趋势表取最近3个月、每月最多3个采样日期），而非月份数
+      let rangeLabel = '';
+      if (total > 0 && trendDates.length > 0) {
+        const first = trendDates[0];
+        const last = trendDates[trendDates.length - 1];
+        const fm = first.slice(0, 7);
+        const lm = last.slice(0, 7);
+        rangeLabel = fm === lm ? '（覆盖 ' + fm + '）' : '（覆盖 ' + fm + ' ~ ' + lm + '）';
+      }
+
       if (text) {
         if (loading) {
-          text.textContent = '⏳ 正在加载历史数据... 已加载 ' + loadedCount + '/' + total + ' 个月份（当前：' + (_trendLoadProgress.current || '-') + '）';
+          text.textContent = '⏳ 正在加载历史数据... 已加载 ' + loadedCount + '/' + total + ' 个日期' + rangeLabel;
         } else if (failedCount > 0) {
-          text.textContent = '⚠️ 已加载 ' + loadedCount + '/' + total + ' 个月份，' + failedCount + ' 个月份加载失败';
+          text.textContent = '⚠️ 已加载 ' + loadedCount + '/' + total + ' 个日期，' + failedCount + ' 个日期加载失败';
         } else if (done) {
-          text.textContent = '✅ 全部 ' + total + ' 个月份数据已就绪';
+          text.textContent = '✅ 全部 ' + total + ' 个日期数据已就绪' + rangeLabel;
         } else {
-          text.textContent = '已加载 ' + loadedCount + '/' + total + ' 个月份';
+          text.textContent = '已加载 ' + loadedCount + '/' + total + ' 个日期';
         }
       }
 
       if (retryBtn) {
         const showRetry = !loading && failedCount > 0;
         retryBtn.classList.toggle('hidden', !showRetry);
-        if (showRetry) retryBtn.textContent = '🔄 重试加载 ' + failedCount + ' 个失败月份';
+        if (showRetry) retryBtn.textContent = '🔄 重试加载 ' + failedCount + ' 个失败日期';
       }
     }
 
@@ -20303,12 +20315,12 @@ console.log('[App] 从相对路径加载成功');
       const failed = Array.from(_trendFailedDates);
       if (failed.length === 0) return;
       _trendFailedDates.clear();
-      if (typeof showToast === 'function') showToast('正在重新加载 ' + failed.length + ' 个失败月份...', 'info');
+      if (typeof showToast === 'function') showToast('正在重新加载 ' + failed.length + ' 个失败日期...', 'info');
       _trendLoadStart();
       const successCount = await loadMissingTrendDates(failed);
       _trendLoadEnd();
       if (typeof showToast === 'function') {
-        if (successCount > 0) showToast('已成功加载 ' + successCount + ' 个月份', 'success');
+        if (successCount > 0) showToast('已成功加载 ' + successCount + ' 个日期', 'success');
         else showToast('重试加载仍失败，请检查网络', 'warning');
       }
       if (typeof renderTrend === 'function') renderTrend();
@@ -20756,7 +20768,7 @@ console.log('[App] 从相对路径加载成功');
           toLoad.forEach(d => _trendLoadingDates.add(d));
           _trendLoadStart();
           if (typeof showToast === 'function') {
-            showToast('正在加载 ' + toLoad.length + ' 个月份趋势数据...', 'info');
+            showToast('正在补全 ' + toLoad.length + ' 个日期的趋势数据...', 'info');
           }
           loadMissingTrendDates(toLoad).then(function(successCount) {
             toLoad.forEach(d => _trendLoadingDates.delete(d));
