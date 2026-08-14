@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE1';
+      var APP_VERSION = '20260814_UPGRADE2';
 
 
 
@@ -388,6 +388,17 @@
 
 
 
+      }
+
+      // 页面顶部版本号与 APP_VERSION 同步（版本号统一管理，只改一处）
+      function syncPageVersion() {
+        var el = document.getElementById('pageVersion');
+        if (el) el.textContent = APP_VERSION;
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncPageVersion);
+      } else {
+        syncPageVersion();
       }
 
 
@@ -5324,7 +5335,7 @@
 
 
 
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: v2026-07-27.2</p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20260814.2</span></p>
 
 
 

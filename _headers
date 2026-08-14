@@ -1,0 +1,28 @@
+# 全站默认：禁用缓存（HTML 入口必须每次检查新版本）
+/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# 数据文件允许 5 分钟强缓存：避免每次重复下载 ~5MB 大文件
+# Cloudflare 会自动 gzip/brotli 压缩 JSON（5MB -> ~1MB）
+# 数据更新后最长 5 分钟内所有用户可见（内部使用可接受）
+/shared-data.json
+  Cache-Control: public, max-age=300
+  Content-Type: application/json; charset=utf-8
+
+/index.json
+  Cache-Control: public, max-age=300
+  Content-Type: application/json; charset=utf-8
+
+/index-new.html
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+
+/upload-data.html
+  Cache-Control: no-cache, no-store, must-revalidate, max-age=0
+  Pragma: no-cache
+  Expires: 0
