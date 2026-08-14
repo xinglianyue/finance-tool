@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE9';
+      var APP_VERSION = '20260814_UPGRADE10';
 
 
 
@@ -7693,7 +7693,7 @@
 
 
 
-      importHistory = [];
+      setAppState({ importHistory: [] });  // 统一访问层
 
 
 
@@ -8145,15 +8145,15 @@
 
 
 
-      currentImportIndex = 0;
+      setAppState({ currentImportIndex: 0 });  // 统一访问层
 
 
 
-      allMerchantData = importHistory[0].data;
+      setAppState({ allMerchantData: importHistory[0].data });  // 统一访问层
 
 
 
-      currentMerchantType = 'all';
+      setAppState({ currentMerchantType: 'all' });  // 统一访问层
 
 
 
@@ -8249,19 +8249,7 @@
 
 
 
-      currentData = {
-
-
-
-        totals: totalData ? (totalData.modules.all || {}) : {},
-
-
-
-        cities: citiesData
-
-
-
-      };
+      setAppState({ currentData: { totals: totalData ? (totalData.modules.all || {}) : {}, cities: citiesData } });  // 统一访问层
 
 
 
@@ -8373,7 +8361,7 @@
 
 
 
-      currentImportIndex = idx;
+      setAppState({ currentImportIndex: idx });  // 统一访问层
 
 
 
@@ -8581,7 +8569,7 @@
 
 
 
-      currentMerchantType = 'all';
+      setAppState({ currentMerchantType: 'all' });  // 统一访问层
 
 
 
@@ -8697,19 +8685,7 @@
 
 
 
-      currentData = {
-
-
-
-        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-
-
-
-        cities: citiesData
-
-
-
-      };
+      setAppState({ currentData: { totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {}, cities: citiesData } });  // 统一访问层
 
 
 
@@ -8769,7 +8745,7 @@
 
 
 
-      currentImportIndex = idx;
+      setAppState({ currentImportIndex: idx });  // 统一访问层
 
 
 
@@ -9143,19 +9119,7 @@
 
 
 
-      currentData = {
-
-
-
-        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-
-
-
-        cities: citiesData
-
-
-
-      };
+      setAppState({ currentData: { totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {}, cities: citiesData } });  // 统一访问层
 
 
 
@@ -9183,7 +9147,7 @@
 
 
 
-      if (!allMerchantData) allMerchantData = {};
+      if (!getAppState().allMerchantData) setAppState({ allMerchantData: {} });
       if (!allMerchantData || (allMerchantData && typeof allMerchantData === "object") ? Object.keys(allMerchantData) : [].length === 0) {
 
 
@@ -9280,7 +9244,7 @@
 
 
 
-      currentMerchantType = type;
+      setAppState({ currentMerchantType: type });  // 统一访问层
 
 
 
@@ -9400,19 +9364,7 @@
 
 
 
-      currentData = {
-
-
-
-        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-
-
-
-        cities: citiesData
-
-
-
-      };
+      setAppState({ currentData: { totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {}, cities: citiesData } });  // 统一访问层
 
 
 
@@ -12590,23 +12542,13 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-          currentData = StateManager.get('currentData');
-
-
-
-          allMerchantData = StateManager.get('allMerchantData');
-
-
-
-          importHistory = StateManager.get('importHistory');
-
-
-
-          currentImportIndex = StateManager.get('currentImportIndex');
-
-
-
-          currentMerchantType = StateManager.get('currentMerchantType');
+          setAppState({
+            currentData: StateManager.get('currentData'),
+            allMerchantData: StateManager.get('allMerchantData'),
+            importHistory: StateManager.get('importHistory'),
+            currentImportIndex: StateManager.get('currentImportIndex'),
+            currentMerchantType: StateManager.get('currentMerchantType')
+          });  // 统一访问层
 
 
 
@@ -14110,11 +14052,11 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-      currentImportIndex = importHistory.findIndex(r => r.monthLabel === importDateLabel);
+      setAppState({ currentImportIndex: importHistory.findIndex(r => r.monthLabel === importDateLabel) });  // 统一访问层
 
 
 
-      if (currentImportIndex < 0) currentImportIndex = 0;
+      if (getAppState().currentImportIndex < 0) setAppState({ currentImportIndex: 0 });
 
 
 
@@ -14126,7 +14068,7 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-      allMerchantData = importHistory[currentImportIndex].data;
+      setAppState({ allMerchantData: importHistory[getAppState().currentImportIndex].data });  // 统一访问层
 
 
 
@@ -14150,12 +14092,12 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-      if (!allMerchantData) allMerchantData = {};
+      if (!getAppState().allMerchantData) setAppState({ allMerchantData: {} });
       const firstKey = (allMerchantData && typeof allMerchantData === "object") ? Object.keys(allMerchantData) : [][0];
 
 
 
-      currentMerchantType = firstKey;
+      setAppState({ currentMerchantType: firstKey });  // 统一访问层
 
 
 
@@ -14231,19 +14173,7 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-      currentData = {
-
-
-
-        totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {},
-
-
-
-        cities: citiesData
-
-
-
-      };
+      setAppState({ currentData: { totals: totalData && totalData.modules && totalData.modules.all ? totalData.modules.all : {}, cities: citiesData } });  // 统一访问层
 
 
 
