@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="20260814.1">
-  <title>财务数据上传 v20260814.1 - 美团代理商专用</title>
+  <meta name="version" content="20260814.2">
+  <title>财务数据上传 v20260814.2 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
   <script src="js/xlsx.full.min.js"></script>
   <style>
@@ -554,7 +554,7 @@
     <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;">
       <h1 style="margin:0;color:white;font-size:24px;">📊 财务数据上传</h1>
       <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">
-        当前版本：<strong style="color:#ffeb3b;">v20260814.1</strong> | 更新时间：2026-08-14
+        当前版本：<strong style="color:#ffeb3b;">v20260814.2</strong> | 更新时间：2026-08-14
       </p>
       <p style="margin:3px 0 0 0;font-size:12px;opacity:0.85;">
         ✓ 已修复计算列过滤问题（跳过单均、比例等列）
@@ -1828,6 +1828,40 @@
       } catch (e) {
         console.error('[Upload] index.json上传异常:', e);
         allSuccess = false;
+      }
+
+      // 3.3 上传拆分数据文件 data/{date}.json（本次涉及的记录，供前端渐进式加载）
+      // 每个日期一个独立文件，避免前端一次性下载 5MB 大文件
+      for (const rec of recordsToAdd) {
+        if (!rec || !rec.date) continue;
+        const dataApi = 'https://api.github.com/repos/xinglianyue/finance-tool/contents/data/' + rec.date + '.json';
+        const dataBody = {
+          message: 'Update split data: ' + rec.date,
+          content: btoa(unescape(encodeURIComponent(JSON.stringify(rec)))),
+          branch: 'main'
+        };
+        try {
+          // 若文件已存在，需附带 sha（否则 PUT 会 422）
+          const getResp = await fetch(dataApi, { headers: headers });
+          if (getResp.ok) {
+            const existing = await getResp.json();
+            if (existing && existing.sha) dataBody.sha = existing.sha;
+          }
+          const putResp = await fetch(dataApi, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify(dataBody)
+          });
+          if (!putResp.ok) {
+            console.error('[Upload] data/' + rec.date + '.json 上传失败:', putResp.status);
+            allSuccess = false;
+          } else {
+            console.log('[Upload] data/' + rec.date + '.json 上传成功');
+          }
+        } catch (e) {
+          console.error('[Upload] data/' + rec.date + '.json 上传异常:', e);
+          allSuccess = false;
+        }
       }
 
       return allSuccess;

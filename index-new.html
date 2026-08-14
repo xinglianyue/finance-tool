@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE3';
+      var APP_VERSION = '20260814_UPGRADE4';
 
 
 
@@ -5325,7 +5325,7 @@
 
 
 
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20260814.2</span></p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20260814.4</span></p>
 
 
 
@@ -6217,7 +6217,11 @@
 
 
 
-        else if (tabName === 'trend') renderTrend();
+        else if (tabName === 'trend') {
+          // 拆分模式：趋势需要全量数据，未补全时先触发补全并显示 loading
+          ensureTrendData();
+          renderTrend();
+        }
 
 
 
@@ -8858,8 +8862,20 @@
 
 
       if (!merchantData) {
-
-
+        // 拆分模式：按需加载该日期数据（避免显示"数据未加载"）
+        if (typeof loadDateFromSplitted === 'function') {
+          showToast('正在加载 ' + selectedRecord.monthLabel + ' 数据...', 'info');
+          loadDateFromSplitted(selectedRecord.monthLabel).then(loadedMd => {
+            if (loadedMd) {
+              // 加载成功，重新执行切换逻辑
+              switchImportDateDim(dateStr);
+            } else {
+              console.error('[App] switchImportDateDim: 无法获取数据');
+              showToast('数据加载失败，请刷新页面', 'warning');
+            }
+          });
+          return;
+        }
 
         console.error('[App] switchImportDateDim: 无法获取数据');
 
@@ -8870,8 +8886,6 @@
 
 
         return;
-
-
 
       }
 
@@ -10485,6 +10499,147 @@
 
 
 
+
+    // ===== 数据拆分渐进式加载（20260814）=====
+    // 首屏只加载索引+最新记录，后台补全其余月份；历史/趋势按需补全
+    // 数据文件：data/{date}.json（每个 ~260KB），避免一次性下载 5MB
+
+    /**
+     * 按需加载单个日期数据（拆分文件）
+     * @param {string} date - 日期 YYYY-MM-DD
+     * @returns {Promise<Object|null>} merchantData 或 null
+     */
+    async function loadDateFromSplitted(date) {
+      try {
+        const resp = await fetch('./data/' + date + '.json');
+        if (!resp.ok) return null;
+        const rec = await resp.json();
+        const parsed = parseRecord(rec);
+        if (parsed) {
+          if (!window.financeToolCache) window.financeToolCache = {};
+          window.financeToolCache[date] = parsed;
+          const existing = window.cloudData || [];
+          if (!existing.some(r => r.date === date)) existing.push(rec);
+          window.cloudData = existing;
+        }
+        return parsed;
+      } catch (e) {
+        console.warn('[App] 按需加载 ' + date + ' 失败:', e);
+        return null;
+      }
+    }
+
+    /**
+     * 后台补全指定日期列表（串行加载，避免并发过多请求）
+     * @param {string[]} dates - 待加载日期数组
+     * @param {Function} [onComplete] - 全部完成后的回调
+     */
+    async function loadRemainingSplitted(dates, onComplete) {
+      let loadedCount = 0;
+      for (const date of dates) {
+        const parsed = await loadDateFromSplitted(date);
+        if (parsed) loadedCount++;
+      }
+      console.log('[App] 数据补全完成，新增 ' + loadedCount + ' 个月份');
+      if (typeof onComplete === 'function') onComplete();
+    }
+
+    /**
+     * 确保趋势分析所需的全量数据已就绪；未就绪则触发补全并提示
+     */
+    function ensureTrendData() {
+      if (typeof loadDateFromSplitted !== 'function') return; // 非拆分模式无需处理
+      const cacheCount = window.financeToolCache ? Object.keys(window.financeToolCache).length : 0;
+      const totalCount = window.importHistory ? window.importHistory.length : 0;
+      if (cacheCount >= totalCount) return; // 已补全
+
+      // 找出未加载的日期，后台补全；完成后刷新趋势
+      const pending = (window.importHistory || [])
+        .map(h => h.monthLabel)
+        .filter(d => !window.financeToolCache[d]);
+      if (pending.length === 0) return;
+
+      if (typeof showToast === 'function') showToast('正在加载历史数据用于趋势分析...', 'info');
+      loadRemainingSplitted(pending, function() {
+        if (typeof renderTrend === 'function') renderTrend();
+      });
+    }
+
+    /**
+     * 渐进式加载：先加载索引+最新记录渲染首屏，后台补全其余月份
+     * @returns {Promise<boolean>} 是否成功
+     */
+    async function loadFromSplitted() {
+      try {
+        const idxResp = await fetch('./index.json');
+        if (!idxResp.ok) return false;
+        const idx = await idxResp.json();
+        const records = (idx.records || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        if (records.length === 0) return false;
+
+        // 1. 加载最新一条记录
+        const latest = records[0];
+        const latestMerchant = await loadDateFromSplitted(latest.date);
+        if (!latestMerchant) return false;
+
+        // 2. 设置全局数据（首屏概况+维度默认立即可用）
+        window.allMerchantData = latestMerchant;
+        if (!window.financeToolCache) window.financeToolCache = {};
+        window.financeToolCache[latest.date] = latestMerchant;
+
+        // 3. 完整 importHistory（日期选择器/趋势选择器立即显示全部月份）
+        const importHistory = records.map(r => ({
+          monthLabel: r.date,
+          data: null,
+          importedAt: r.updatedAt || '',
+          fileName: r.fileName || ''
+        }));
+        window.importHistory = importHistory;
+
+        // 4. currentData（最新记录格式化 { totals, cities }，与 loadFromCloud 一致）
+        const allCities = latestMerchant.all?.cities || [];
+        let totalData = null;
+        const citiesData = [];
+        allCities.forEach(city => {
+          if (city.name === '总商') totalData = city;
+          else if (city.name && city.name !== '城市名称') citiesData.push(city);
+        });
+        window.currentData = {
+          totals: (totalData && totalData.modules && totalData.modules.all) ? totalData.modules.all : {},
+          cities: citiesData
+        };
+
+        // 5. v3 数据保存到 localStorage（init 后续 DataStore.load 复用）
+        const dataToSave = {
+          version: 3,
+          metadata: {
+            lastSyncAt: new Date().toISOString(),
+            cloudVersion: '',
+            availableDates: records.map(r => r.date)
+          },
+          currentData: window.currentData,
+          importHistory: importHistory,
+          currentImportIndex: 0,
+          currentMerchantType: 'all'
+        };
+        DataStore.save(dataToSave);
+
+        console.log('[App] 拆分数据加载成功（最新:' + latest.date + '，索引 ' + records.length + ' 条），后台补全其余月份...');
+
+        // 6. 后台补全其余月份（不阻塞首屏渲染）；趋势 tab 激活时加载完自动刷新
+        const restDates = records.slice(1).map(r => r.date);
+        loadRemainingSplitted(restDates, function() {
+          if (document.querySelector('.tab-btn[data-tab="trend"]')?.classList.contains('active')) {
+            if (typeof renderTrend === 'function') renderTrend();
+          }
+        });
+
+        return true;
+      } catch (e) {
+        console.warn('[App] 拆分渐进加载失败，回退全量:', e);
+        return false;
+      }
+    }
 
     async function loadFromCloud() {
 
@@ -23944,7 +24099,14 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-          loaded = await loadFromCloud();
+          // 首次优先使用拆分渐进式加载（首屏秒开），失败则回退全量加载
+          if (retryCount === 0) {
+            loadingProgress.textContent = '正在加载数据...';
+            loaded = await loadFromSplitted();
+          }
+          if (!loaded) {
+            loaded = await loadFromCloud();
+          }
 
 
 

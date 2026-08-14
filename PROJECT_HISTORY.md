@@ -401,3 +401,39 @@ cloudData.forEach(record => {
 - `node test/check-syntax.cjs` 语法校验通过
 - `python test/check-data.py` 数据完整性校验通过（18 条记录）
 - Playwright 无头浏览器验证：版本号显示 `20260814_UPGRADE2`、18 条数据全部加载、0 控制台错误
+
+### 10.5 移除页面顶部多余代码文本
+- **问题**: index-new.html 中一段非法 JS（`function Object.keys(obj)`）裸露在 `</style>` 与 `</head>` 之间，被浏览器当作普通文本渲染到页面顶部
+- **修复**: 整段删除；该函数名为非法语法且无实际用途
+- 版本号 `20260814_UPGRADE3`
+
+## 十一、2026-08-14 数据拆分渐进式加载升级
+
+### 11.1 背景
+- `shared-data.json` 约 5MB，GitHub Pages 下载不稳定（连接重置）、移动端首屏慢
+- 趋势分析有逐月明细对比表，必须全量数据（无法用摘要文件替代）
+
+### 11.2 数据拆分
+- 新增 `scripts/split_data.py`：将 shared-data.json 拆成 `data/{date}.json` 18 个独立文件（每条 ~260KB，紧凑格式）
+- 保留 shared-data.json 作为向后兼容兜底
+- `index.json` 继续作为索引（records 含日期/文件名/版本）
+
+### 11.3 前端渐进式加载（index-new.html）
+- 新增 `loadFromSplitted()`：首屏只加载 index.json + 最新记录（~260KB）→ 立即渲染概况/维度默认视图
+- 新增 `loadDateFromSplitted(date)`：按需加载单个日期拆分文件
+- 新增 `loadRemainingSplitted(dates)`：后台串行补全其余月份到 financeToolCache
+- 新增 `ensureTrendData()`：趋势 tab 激活时若未补全则触发补全 + loading 提示
+- `switchImportDateDim` 增强：历史日期 cache 缺失时按需加载拆分文件，不再报"数据未加载"
+- init 优先尝试拆分加载，失败回退原 loadFromCloud 全量加载（保留原有完整兜底）
+- 版本号 `20260814_UPGRADE4`
+
+### 11.4 上传页适配（upload-data.html）
+- 主上传函数 `uploadToCloudBatch` 新增步骤 3.3：本次涉及的记录逐个上传 `data/{date}.json`
+- 版本号 `v20260814.2`
+
+### 11.5 部署同步
+- `sync-to-gh-pages.yml`：paths 触发条件与文件复制列表加入 `data/**`（整个 data/ 目录同步到 gh-pages）
+
+### 11.6 本地验证
+- 语法 + 数据校验通过
+- Playwright：首屏仅请求 index.json + data/*.json（不碰 5MB）；18 个月份数据就绪；维度切历史渲染正常；趋势 tab 渲染正常；0 控制台错误
