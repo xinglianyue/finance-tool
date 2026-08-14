@@ -43,9 +43,14 @@ jobs:
           # 从main分支复制关键文件
           git checkout main -- shared-data.json index.json upload-data.html index-new.html
 
+          # 检查是否有变更，没有则跳过提交和推送（避免空提交假失败通知）
+          if git diff --cached --quiet; then
+            echo "No changes to sync, skipping push"
+            exit 0
+          fi
+
           # 提交并推送（基于远程最新，应为fast-forward）
-          git add shared-data.json index.json upload-data.html index-new.html
-          git commit -m "sync: Auto-sync from main branch" || echo "no changes to commit"
+          git commit -m "sync: Auto-sync from main branch"
           git push origin gh-pages
 
       - name: Verify sync
