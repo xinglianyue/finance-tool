@@ -341,3 +341,39 @@ cloudData.forEach(record => {
 
 *文档生成时间: 2026-08-13*  
 *最新版本: 1786599000_PARSE_FIX*
+
+---
+
+## 九、2026-08-14 系统升级记录（稳定性与治理）
+
+### 9.1 修复 DataStore 三重定义
+- **问题**: index-new.html 存在 3 处 DataStore 定义（类实例 L137、对象字面量 L148、fallback L24180），实际生效的是简版对象字面量（save 无 try-catch、无备份、clear 不清缓存）
+- **修复**: 移除 L148 简版和 L24180 fallback，保留 L19 完整类实现（save 有 try-catch+自动备份，clear 清理缓存）
+
+### 9.2 项目目录治理
+- 119 个一次性修复/诊断脚本（fix_*.py、check_*.py、compress_*.py 等）移入 `scripts/archive/`
+- 40+ 个 index-new.html 变体备份、临时数据文件、截图移入 `scripts/archive/`
+- 48 个过时规划/报告文档移入 `docs/archive/`
+- 更新 .gitignore：忽略 `*.pyc`、`__pycache__`、临时文件、敏感配置
+
+### 9.3 安全加固（重要）
+- **发现并处理凭证泄露**: `config-db.json`（含 MySQL root 密码 + GitHub Token）和 `token.json`（GitHub Token）曾被提交到仓库，已从 git 跟踪移除并加入 .gitignore
+- **⚠️ 必须行动**: 请到 GitHub Settings → Developer settings → Personal access tokens **撤销** `ghp_i2BDB...` 这个 Token，并修改 MySQL 密码，创建新 token 填入本地 `config-db.json`（该文件已在本地保留，不受影响）
+- upload-data.html 增加上传密码门禁（客户端 SHA-256 哈希校验，默认密码 `xly2026@upload`）
+
+### 9.4 CI 自动校验
+- 新增 `.github/workflows/ci.yml`：每次推送 main 自动运行
+  - `test/check-syntax.cjs`：提取 HTML 内联 script 块做真实 `node --check` 语法校验
+  - `test/check-data.py`：校验 shared-data.json 18 条记录完整性与 index.json 一致性
+- 修复 sync-to-gh-pages.yml：无变更时跳过提交/推送，避免空提交假失败通知
+
+### 9.5 版本号
+- index-new.html: `20260814_UPGRADE1`
+- upload-data.html: `v20260814.1`
+
+### 9.6 后续修改规范
+1. 始终修改 index-new.html 内联代码（外部 js/ 模块仅供旧版 index.html 使用，勿改）
+2. 修改后运行 `node test/check-syntax.cjs` 校验语法
+3. 修改数据后运行 `python test/check-data.py` 校验完整性
+4. 修改后更新版本号（index-new.html 的 APP_VERSION + upload-data.html 版本文本）
+5. 上传密码修改：搜索 upload-data.html 中 `UPLOAD_PASSWORD_HASH` 并替换为 `echo -n "新密码" | sha256sum` 的结果
