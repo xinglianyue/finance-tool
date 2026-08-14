@@ -142,25 +142,9 @@
       console.log('[Init] DataStore.getCache is:', typeof window.DataStore.getCache);
       console.log('[Init] DataStore.setCache is:', typeof window.DataStore.setCache);
   </script>
-  <!-- Required Dependencies -->
   <!-- DataStore Initialization -->
-  <script>
-    window.DataStore = {
-      STORAGE_KEY: 'finance-tool',
-      BACKUP_KEY: 'finance-tool-backup',
-      CACHE_PREFIX: 'cache_',
-      load: function() { var s = localStorage.getItem(this.STORAGE_KEY); return s ? JSON.parse(s) : null; },
-      save: function(d) { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(d)); return true; },
-      getCache: function(date) { var k = this.CACHE_PREFIX + date; var c = localStorage.getItem(k); return c ? JSON.parse(c) : null; },
-      setCache: function(date, data) { localStorage.setItem(this.CACHE_PREFIX + date, JSON.stringify(data)); return true; },
-      clear: function() { localStorage.removeItem(this.STORAGE_KEY); localStorage.removeItem(this.BACKUP_KEY); },
-      validate: function(d) { return d && typeof d === 'object'; },
-      backup: function() { var d = this.load(); if (d) localStorage.setItem(this.BACKUP_KEY, JSON.stringify(d)); },
-      restoreFromBackup: function() { var b = localStorage.getItem(this.BACKUP_KEY); if (b) { localStorage.setItem(this.STORAGE_KEY, b); return JSON.parse(b); } return null; }
-    };
-    console.log('[Init] DataStore initialized');
-    console.log('[Init] DataStore.save type:', typeof window.DataStore.save);
-  </script>
+  <!-- 注：完整 DataStore 实现在上方 L14-144，此处不再覆盖，避免重复定义导致 save/clear 功能降级 -->
+
   <!-- StateManager 内联实现 -->
   <script>
     class StateManagerClass {
@@ -24169,83 +24153,7 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-  <!-- DataStore fallback -->
-
-  <script>
-
-    (function() {
-
-      if (!window.DataStore || typeof window.DataStore.save !== 'function') {
-
-        window.DataStore = {
-
-          STORAGE_KEY: 'finance-tool',
-
-          BACKUP_KEY: 'finance-tool-backup',
-
-          CACHE_PREFIX: 'cache_',
-
-          load: function() {
-
-            try {
-
-              const stored = localStorage.getItem(this.STORAGE_KEY);
-
-              return stored ? JSON.parse(stored) : null;
-
-            } catch (e) { return null; }
-
-          },
-
-          save: function(data) {
-
-            try {
-
-              localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
-
-              return true;
-
-            } catch (e) { return false; }
-
-          },
-
-          getCache: function(date) {
-
-            try {
-
-              const key = this.CACHE_PREFIX + date;
-
-              const cached = localStorage.getItem(key);
-
-              return cached ? JSON.parse(cached) : null;
-
-            } catch (e) { return null; }
-
-          },
-
-          setCache: function(date, data) {
-
-            try {
-
-              const key = this.CACHE_PREFIX + date;
-
-              localStorage.setItem(key, JSON.stringify(data));
-
-              return true;
-
-            } catch (e) { return false; }
-
-          }
-
-        };
-
-        console.log('[Init] DataStore fallback initialized');
-
-      }
-
-    })();
-
-  </script>
+  <!-- DataStore fallback 已移除：完整实现已在文件头部定义，避免重复定义 -->
 
 </body>
 
