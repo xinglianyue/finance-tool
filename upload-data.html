@@ -507,11 +507,54 @@
   </style>
 </head>
 <body>
+  <!-- 上传密码门禁（客户端哈希校验，防止非授权访问）-->
+  <div id="uploadGate" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+    <div style="background:#fff;border-radius:16px;padding:40px;width:360px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;">
+      <h2 style="margin:0 0 8px 0;font-size:22px;">🔒 上传页面已锁定</h2>
+      <p style="margin:0 0 20px 0;font-size:14px;color:#666;">请输入密码以访问数据上传功能</p>
+      <input type="password" id="uploadGatePwd" placeholder="请输入上传密码" style="width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;margin-bottom:16px;box-sizing:border-box;">
+      <button onclick="checkUploadGate()" style="width:100%;padding:12px;background:#667eea;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">验证并进入</button>
+      <p id="uploadGateError" style="color:#e53e3e;font-size:13px;margin:12px 0 0 0;display:none;"></p>
+    </div>
+    <p style="color:#aaa;font-size:12px;margin-top:20px;">修改密码：在 upload-data.html 中搜索 UPLOAD_PASSWORD_HASH 并替换</p>
+  </div>
+  <script>
+    // 上传密码哈希（SHA-256）
+    // 默认密码：xly2026@upload
+    // 如需修改密码，请用命令生成新哈希：echo -n "新密码" | sha256sum
+    var UPLOAD_PASSWORD_HASH = 'c0fafd9282fa70ffd7c7a714fedd4ce8c292d263f1e2620863632d6edf8fc2d4';
+    async function checkUploadGate() {
+      var pwd = document.getElementById('uploadGatePwd').value;
+      if (!pwd) { showGateError('请输入密码'); return; }
+      var hash = await sha256(pwd);
+      if (hash === UPLOAD_PASSWORD_HASH) {
+        document.getElementById('uploadGate').style.display = 'none';
+      } else {
+        showGateError('密码错误，请重试');
+      }
+    }
+    function showGateError(msg) {
+      var e = document.getElementById('uploadGateError');
+      e.textContent = msg;
+      e.style.display = 'block';
+    }
+    async function sha256(str) {
+      var buf = new TextEncoder().encode(str);
+      var hash = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+    // 回车键触发验证
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('uploadGatePwd').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') checkUploadGate();
+      });
+    });
+  </script>
   <div class="container">
     <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;">
       <h1 style="margin:0;color:white;font-size:24px;">📊 财务数据上传</h1>
       <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">
-        当前版本：<strong style="color:#ffeb3b;">v20260714.1</strong> | 更新时间：2026-07-14
+        当前版本：<strong style="color:#ffeb3b;">v20260814.1</strong> | 更新时间：2026-08-14
       </p>
       <p style="margin:3px 0 0 0;font-size:12px;opacity:0.85;">
         ✓ 已修复计算列过滤问题（跳过单均、比例等列）
