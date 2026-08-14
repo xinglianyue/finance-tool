@@ -377,3 +377,27 @@ cloudData.forEach(record => {
 3. 修改数据后运行 `python test/check-data.py` 校验完整性
 4. 修改后更新版本号（index-new.html 的 APP_VERSION + upload-data.html 版本文本）
 5. 上传密码修改：搜索 upload-data.html 中 `UPLOAD_PASSWORD_HASH` 并替换为 `echo -n "新密码" | sha256sum` 的结果
+
+## 十、2026-08-14 加载性能与版本号治理升级
+
+### 10.1 5MB 数据加载优化（_headers 缓存策略）
+- **问题**: `_headers` 对全站设置 `Cache-Control: no-cache, no-store`，导致 ~5MB 的 shared-data.json 每次打开都完整重新下载，移动端慢网络下加载 5-15 秒
+- **优化**: 
+  - `shared-data.json` / `index.json` 改为 `Cache-Control: public, max-age=300`（5 分钟强缓存）
+  - HTML 入口（index-new.html / upload-data.html）保持 no-store，保证每次检查新版本
+  - 依赖 Cloudflare Pages 对 JSON 的自动 gzip/brotli 压缩（5MB -> ~1MB），配合缓存显著提速
+- **影响**: 数据更新后最长 5 分钟内所有用户可见（内部使用可接受）
+
+### 10.2 版本号统一管理
+- index-new.html 页头硬编码版本 `v2026-07-27.2` 改为 `<span id="pageVersion">` 动态显示，与 APP_VERSION 同步（只改一处）
+- 修复 upload-data.html 标题/meta（v20260714.1）与页面显示（v20260814.1）不一致，统一为 v20260814.1
+- 版本号：index-new.html `20260814_UPGRADE2`，upload-data.html `v20260814.1`
+
+### 10.3 sync-to-gh-pages 工作流修复
+- **问题**: `_headers` 只存在于 main 分支，gh-pages 分支缺失（工作流同步文件列表未包含 _headers），Cloudflare Pages 若从 gh-pages 部署则缓存策略不生效
+- **修复**: 工作流 paths 触发条件与文件复制列表均加入 `_headers`
+
+### 10.4 本地验证
+- `node test/check-syntax.cjs` 语法校验通过
+- `python test/check-data.py` 数据完整性校验通过（18 条记录）
+- Playwright 无头浏览器验证：版本号显示 `20260814_UPGRADE2`、18 条数据全部加载、0 控制台错误
