@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE6';
+      var APP_VERSION = '20260814_UPGRADE7';
 
 
 
@@ -3141,19 +3141,58 @@
 
       #trendDetailTable {
 
-
-
         overflow-x: auto;
-
-
 
         -webkit-overflow-scrolling: touch;
 
-
-
       }
 
-
+      /* 趋势数据加载进度条 */
+      .trend-load-status {
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: var(--bg-hover, #f3f4f6);
+        border: 1px solid var(--border, #e5e7eb);
+      }
+      .trend-load-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .trend-load-bar {
+        flex: 1;
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(79, 70, 229, 0.15);
+        overflow: hidden;
+      }
+      .trend-load-bar-inner {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #4f46e5, #818cf8);
+        transition: width 0.4s ease;
+      }
+      .trend-load-text {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--text-secondary, #6b7280);
+      }
+      .trend-retry-btn {
+        flex-shrink: 0;
+        padding: 5px 12px;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary, #4f46e5);
+        color: #fff;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .trend-retry-btn:hover { opacity: 0.9; }
+      .trend-load-status.success {
+        border-color: rgba(22, 163, 74, 0.4);
+        background: rgba(22, 163, 74, 0.08);
+      }
 
     }
 
@@ -5903,15 +5942,18 @@
 
         <div class="card">
 
-
-
           <div class="card-title">📈 多月份趋势对比</div>
 
-
+          <!-- 数据加载进度条（加载历史月份时显示，完成后自动隐藏） -->
+          <div id="trendLoadStatus" class="trend-load-status hidden">
+            <div class="trend-load-row">
+              <div class="trend-load-bar"><div id="trendLoadBarInner" class="trend-load-bar-inner" style="width:0%"></div></div>
+              <button id="trendRetryBtn" class="trend-retry-btn hidden" onclick="retryFailedTrendLoad()">🔄 重试加载</button>
+            </div>
+            <div id="trendLoadText" class="trend-load-text"></div>
+          </div>
 
           <div id="trendDetailTable"></div>
-
-
 
         </div>
 
@@ -10545,12 +10587,24 @@
      * @param {Function} [onComplete] - 全部完成后的回调
      */
     async function loadRemainingSplitted(dates, onComplete) {
+      // 仅在趋势页激活时驱动进度条（后台预加载不打扰用户）
+      const isTrendActive = !!(document.querySelector('.tab-btn[data-tab="trend"]') && document.querySelector('.tab-btn[data-tab="trend"]').classList.contains('active'));
+      if (isTrendActive && typeof _trendLoadStart === 'function') {
+        _trendLoadStart();
+      }
       let loadedCount = 0;
       for (const date of dates) {
+        if (isTrendActive && typeof updateTrendLoadUI === 'function') {
+          _trendLoadProgress.current = date;
+          updateTrendLoadUI();
+        }
         const parsed = await loadDateFromSplitted(date);
         if (parsed) loadedCount++;
       }
       console.log('[App] 数据补全完成，新增 ' + loadedCount + ' 个月份');
+      if (isTrendActive && typeof _trendLoadEnd === 'function') {
+        _trendLoadEnd();
+      }
       if (typeof onComplete === 'function') onComplete();
     }
 
@@ -20151,22 +20205,134 @@ console.log('[App] 从相对路径加载成功');
     const _trendLoadingDates = new Set();
     const _trendFailedDates = new Set();
 
+    // 数据加载进度状态（驱动趋势页内联进度条）
+    // activeLoads：并发加载任务计数（>0 表示正在加载），避免多路径并发时进度条提前隐藏
+    let _trendLoadProgress = { activeLoads: 0, current: '' };
+
+    /**
+     * 标记开始一个趋势数据加载任务
+     */
+    function _trendLoadStart() {
+      _trendLoadProgress.activeLoads++;
+      updateTrendLoadUI();
+    }
+
+    /**
+     * 标记结束一个趋势数据加载任务
+     */
+    function _trendLoadEnd() {
+      _trendLoadProgress.activeLoads = Math.max(0, _trendLoadProgress.activeLoads - 1);
+      updateTrendLoadUI();
+    }
+
+    /**
+     * 更新趋势页数据加载进度条 UI
+     * - 加载中：显示"已加载 X/Y 个月份（当前：日期）"
+     * - 完成且有失败：显示警告 + 重试按钮
+     * - 完成且无失败：显示成功并自动隐藏
+     */
+    function updateTrendLoadUI() {
+      const status = document.getElementById('trendLoadStatus');
+      if (!status) return;
+      const isTrendActive = !!(document.querySelector('.tab-btn[data-tab="trend"]') && document.querySelector('.tab-btn[data-tab="trend"]').classList.contains('active'));
+
+      // 进度以趋势当前展示的月份为准（默认窗口 + 用户添加的对比日期），而非全部历史月份
+      const allDates = (window.importHistory || []).map(h => h.monthLabel).sort();
+      let trendDates = [];
+      try {
+        const filtered = typeof getFilteredTrendDates === 'function' ? getFilteredTrendDates(allDates) : [];
+        trendDates = [...new Set([...filtered, ...(trendAddedDates || [])])].sort();
+      } catch (e) {
+        trendDates = allDates;
+      }
+
+      const hasMonthData = function(date) {
+        const rec = (window.importHistory || []).find(h => h.monthLabel === date);
+        if (rec && rec.data) return true;
+        if (window.financeToolCache && window.financeToolCache[date]) return true;
+        // cloudData 兜底：云数据中该日期的原始记录可提供 merchantData
+        const cloudRec = (window.cloudData || []).find(r => r.date === date);
+        return !!(cloudRec && (cloudRec.merchantData || cloudRec.currentData?.merchantData));
+      };
+
+      const total = trendDates.length;
+      const loadedCount = trendDates.filter(d => hasMonthData(d)).length;
+      const failedDates = trendDates.filter(d => _trendFailedDates.has(d));
+      const failedCount = failedDates.length;
+      const bar = document.getElementById('trendLoadBarInner');
+      const text = document.getElementById('trendLoadText');
+      const retryBtn = document.getElementById('trendRetryBtn');
+
+      const loading = _trendLoadProgress.activeLoads > 0;
+      const done = !loading && (loadedCount >= total || total === 0);
+
+      // 不在趋势页，或（已完成且无失败）时隐藏进度条
+      if (!isTrendActive || (done && failedCount === 0)) {
+        status.classList.add('hidden');
+        return;
+      }
+      status.classList.remove('hidden');
+      status.classList.toggle('success', done && failedCount === 0);
+
+      const pct = total > 0 ? Math.min(100, Math.round(loadedCount / total * 100)) : 0;
+      if (bar) bar.style.width = pct + '%';
+
+      if (text) {
+        if (loading) {
+          text.textContent = '⏳ 正在加载历史数据... 已加载 ' + loadedCount + '/' + total + ' 个月份（当前：' + (_trendLoadProgress.current || '-') + '）';
+        } else if (failedCount > 0) {
+          text.textContent = '⚠️ 已加载 ' + loadedCount + '/' + total + ' 个月份，' + failedCount + ' 个月份加载失败';
+        } else if (done) {
+          text.textContent = '✅ 全部 ' + total + ' 个月份数据已就绪';
+        } else {
+          text.textContent = '已加载 ' + loadedCount + '/' + total + ' 个月份';
+        }
+      }
+
+      if (retryBtn) {
+        const showRetry = !loading && failedCount > 0;
+        retryBtn.classList.toggle('hidden', !showRetry);
+        if (showRetry) retryBtn.textContent = '🔄 重试加载 ' + failedCount + ' 个失败月份';
+      }
+    }
+
+    /**
+     * 手动重试加载所有失败的月份
+     */
+    async function retryFailedTrendLoad() {
+      const failed = Array.from(_trendFailedDates);
+      if (failed.length === 0) return;
+      _trendFailedDates.clear();
+      if (typeof showToast === 'function') showToast('正在重新加载 ' + failed.length + ' 个失败月份...', 'info');
+      _trendLoadStart();
+      const successCount = await loadMissingTrendDates(failed);
+      _trendLoadEnd();
+      if (typeof showToast === 'function') {
+        if (successCount > 0) showToast('已成功加载 ' + successCount + ' 个月份', 'success');
+        else showToast('重试加载仍失败，请检查网络', 'warning');
+      }
+      if (typeof renderTrend === 'function') renderTrend();
+    }
+
     /**
      * 按需加载缺失的趋势月份数据（串行+重试），加载成功后重新渲染
      * @param {string[]} dates - 缺失日期列表
-     * @param {Function} [onComplete] - 完成回调，参数为成功加载的数量
+     * @returns {Promise<number>} 成功加载的数量
      */
-    async function loadMissingTrendDates(dates, onComplete) {
+    async function loadMissingTrendDates(dates) {
       let successCount = 0;
       for (const date of dates) {
+        _trendLoadProgress.current = date;
+        updateTrendLoadUI();
         const parsed = await loadDateFromSplitted(date);
         if (parsed) {
           successCount++;
         } else {
-          _trendFailedDates.add(date); // 永久失败，避免反复触发
+          _trendFailedDates.add(date); // 多次重试后仍失败，避免反复触发
         }
+        updateTrendLoadUI();
       }
-      if (typeof onComplete === 'function') onComplete(successCount);
+      return successCount;
     }
 
 
@@ -20588,11 +20754,13 @@ console.log('[App] 从相对路径加载成功');
         const toLoad = missingTrendDates.filter(d => !_trendLoadingDates.has(d));
         if (toLoad.length > 0) {
           toLoad.forEach(d => _trendLoadingDates.add(d));
+          _trendLoadStart();
           if (typeof showToast === 'function') {
             showToast('正在加载 ' + toLoad.length + ' 个月份趋势数据...', 'info');
           }
-          loadMissingTrendDates(toLoad, function(successCount) {
+          loadMissingTrendDates(toLoad).then(function(successCount) {
             toLoad.forEach(d => _trendLoadingDates.delete(d));
+            _trendLoadEnd();
             if (successCount > 0) renderTrend();
           });
         }
@@ -21224,7 +21392,11 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-              const val = d ? (d[metric.key] || 0) : 0;
+              if (!d) return; // 跳过未加载完成的月份，避免用0干扰趋势计算
+
+
+
+              const val = d[metric.key] || 0;
 
 
 
@@ -21660,11 +21832,9 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-          // 绝对值行
+          // 绝对值行（排除未加载的null月份，避免用0干扰趋势计算）
 
-
-
-          const absValues = monthlyData.map(d => d ? (d[metric.key] || 0) : 0);
+          const absValues = monthlyData.filter(Boolean).map(d => d[metric.key] || 0);
 
 
 
@@ -21698,17 +21868,18 @@ console.log('[App] 从相对路径加载成功');
 
             const isLatest = idx === monthlyData.length - 1;
 
+            if (!d) {
+              // 未加载完成的月份：显示占位符 --（避免显示0误导用户以为该月真的没有数据）
+              const phHtml = '<div style="text-align: right; font-size: 12px; color: var(--text-tertiary); line-height: 1.5;">--</div>';
+              html += '<td style="padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums;">' + phHtml + '</td>';
+              return;
+            }
 
+            const val = d[metric.key] || 0;
 
-            const val = d ? (d[metric.key] || 0) : 0;
+            const orders = d.orders || 1;
 
-
-
-            const orders = d ? (d.orders || 1) : 1;
-
-
-
-            const gmvAmount = d ? (d.gmvAmount || 1) : 1;
+            const gmvAmount = d.gmvAmount || 1;
 
 
 
