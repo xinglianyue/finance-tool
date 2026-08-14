@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE5';
+      var APP_VERSION = '20260814_UPGRADE6';
 
 
 
@@ -10505,28 +10505,38 @@
     // 数据文件：data/{date}.json（每个 ~260KB），避免一次性下载 5MB
 
     /**
-     * 按需加载单个日期数据（拆分文件）
+     * 按需加载单个日期数据（拆分文件），带重试机制
      * @param {string} date - 日期 YYYY-MM-DD
+     * @param {number} [retries] - 额外重试次数，默认2次（应对 GitHub Pages 偶发 ERR_NETWORK_IO_SUSPENDED）
      * @returns {Promise<Object|null>} merchantData 或 null
      */
-    async function loadDateFromSplitted(date) {
-      try {
-        const resp = await fetch('./data/' + date + '.json');
-        if (!resp.ok) return null;
-        const rec = await resp.json();
-        const parsed = parseRecord(rec);
-        if (parsed) {
-          if (!window.financeToolCache) window.financeToolCache = {};
-          window.financeToolCache[date] = parsed;
-          const existing = window.cloudData || [];
-          if (!existing.some(r => r.date === date)) existing.push(rec);
-          window.cloudData = existing;
+    async function loadDateFromSplitted(date, retries) {
+      const maxRetries = retries ?? 2;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const resp = await fetch('./data/' + date + '.json');
+          if (!resp.ok) return null;
+          const rec = await resp.json();
+          const parsed = parseRecord(rec);
+          if (parsed) {
+            if (!window.financeToolCache) window.financeToolCache = {};
+            window.financeToolCache[date] = parsed;
+            const existing = window.cloudData || [];
+            if (!existing.some(r => r.date === date)) existing.push(rec);
+            window.cloudData = existing;
+          }
+          return parsed;
+        } catch (e) {
+          if (attempt < maxRetries) {
+            // 递增退避重试，应对偶发的网络悬挂（ERR_NETWORK_IO_SUSPENDED）
+            await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+          } else {
+            console.warn('[App] 按需加载 ' + date + ' 失败（已重试' + maxRetries + '次）:', e);
+            return null;
+          }
         }
-        return parsed;
-      } catch (e) {
-        console.warn('[App] 按需加载 ' + date + ' 失败:', e);
-        return null;
       }
+      return null;
     }
 
     /**
@@ -10546,6 +10556,8 @@
 
     /**
      * 确保趋势分析所需的全量数据已就绪；未就绪则触发补全并提示
+     * - 自动重试加载失败的月份（应对 GitHub Pages 偶发 ERR_NETWORK_IO_SUSPENDED）
+     * - 完成后强制重新渲染确保所有月份数据都显示
      */
     function ensureTrendData() {
       if (typeof loadDateFromSplitted !== 'function') return; // 非拆分模式无需处理
@@ -10559,9 +10571,15 @@
         .filter(d => !window.financeToolCache[d]);
       if (pending.length === 0) return;
 
-      if (typeof showToast === 'function') showToast('正在加载历史数据用于趋势分析...', 'info');
+      if (typeof showToast === 'function') {
+        showToast(`正在加载 ${pending.length} 个月份历史数据...`, 'info');
+      }
       loadRemainingSplitted(pending, function() {
+        console.log('[ensureTrendData] 数据补全完成，重新渲染趋势表格');
         if (typeof renderTrend === 'function') renderTrend();
+        if (typeof showToast === 'function') {
+          showToast('趋势数据加载完成', 'success');
+        }
       });
     }
 
@@ -10627,8 +10645,14 @@
         console.log('[App] 拆分数据加载成功（最新:' + latest.date + '，索引 ' + records.length + ' 条），后台补全其余月份...');
 
         // 6. 后台补全其余月份（不阻塞首屏渲染）；趋势 tab 激活时加载完自动刷新
+        // 优先补全趋势默认展示的近3月数据，保证趋势分析打开即显示
         const restDates = records.slice(1).map(r => r.date);
-        loadRemainingSplitted(restDates, function() {
+        const defaultTrendDates = (typeof getFilteredTrendDates === 'function')
+          ? getFilteredTrendDates(records.map(r => r.date))
+          : [];
+        const priorityDates = restDates.filter(d => defaultTrendDates.includes(d));
+        const otherDates = restDates.filter(d => !defaultTrendDates.includes(d));
+        loadRemainingSplitted([...priorityDates, ...otherDates], function() {
           if (document.querySelector('.tab-btn[data-tab="trend"]')?.classList.contains('active')) {
             if (typeof renderTrend === 'function') renderTrend();
           }
@@ -19741,17 +19765,21 @@ console.log('[App] 从相对路径加载成功');
 
     function getFilteredTrendDates(allDates) {
 
+      // 以最新一条数据的日期为基准（而非系统当前时间）
+      // 确保趋势始终显示已有的最近3个月数据，避免因系统日期超前导致5月/6月数据不显示
+      const sorted = [...allDates].sort();
+      const latest = sorted[sorted.length - 1];
 
-
-      const now = new Date();
-
-
-
-      const currentYear = now.getFullYear();
-
-
-
-      const currentMonth = now.getMonth() + 1;
+      let currentYear, currentMonth;
+      if (latest) {
+        const parts = latest.split('-');
+        currentYear = parseInt(parts[0], 10);
+        currentMonth = parseInt(parts[1], 10);
+      } else {
+        const now = new Date();
+        currentYear = now.getFullYear();
+        currentMonth = now.getMonth() + 1;
+      }
 
 
 
@@ -20117,9 +20145,29 @@ console.log('[App] 从相对路径加载成功');
 
     // 趋势分析中用户额外添加的对比日期
 
-
-
     let trendAddedDates = [];
+
+    // 自愈加载状态：记录正在加载/加载失败的月份，避免重复请求和死循环
+    const _trendLoadingDates = new Set();
+    const _trendFailedDates = new Set();
+
+    /**
+     * 按需加载缺失的趋势月份数据（串行+重试），加载成功后重新渲染
+     * @param {string[]} dates - 缺失日期列表
+     * @param {Function} [onComplete] - 完成回调，参数为成功加载的数量
+     */
+    async function loadMissingTrendDates(dates, onComplete) {
+      let successCount = 0;
+      for (const date of dates) {
+        const parsed = await loadDateFromSplitted(date);
+        if (parsed) {
+          successCount++;
+        } else {
+          _trendFailedDates.add(date); // 永久失败，避免反复触发
+        }
+      }
+      if (typeof onComplete === 'function') onComplete(successCount);
+    }
 
 
 
@@ -20525,9 +20573,30 @@ console.log('[App] 从相对路径加载成功');
 
       // 合并用户添加的对比日期（去重）
 
-
-
       const allTrendDates = [...new Set([...filteredDates, ...trendAddedDates])].sort();
+
+      // ===== 自愈加载：趋势月份数据缺失时自动按需加载（含重试）并重渲染 =====
+      // 解决 GitHub Pages 后台补全偶发失败导致5月/6月数据不显示的问题
+      // 用户无需手动操作，打开趋势页/添加对比日期都会自动触发加载
+      const hasMonthData = function(date) {
+        const rec = importHistory.find(h => h.monthLabel === date);
+        if (rec && rec.data) return true;
+        return !!(window.financeToolCache && window.financeToolCache[date]);
+      };
+      const missingTrendDates = allTrendDates.filter(date => !hasMonthData(date) && !_trendFailedDates.has(date));
+      if (missingTrendDates.length > 0 && typeof loadDateFromSplitted === 'function') {
+        const toLoad = missingTrendDates.filter(d => !_trendLoadingDates.has(d));
+        if (toLoad.length > 0) {
+          toLoad.forEach(d => _trendLoadingDates.add(d));
+          if (typeof showToast === 'function') {
+            showToast('正在加载 ' + toLoad.length + ' 个月份趋势数据...', 'info');
+          }
+          loadMissingTrendDates(toLoad, function(successCount) {
+            toLoad.forEach(d => _trendLoadingDates.delete(d));
+            if (successCount > 0) renderTrend();
+          });
+        }
+      }
 
 
 
