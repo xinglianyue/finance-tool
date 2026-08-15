@@ -54,6 +54,7 @@ FIELD_MAP = {
     ("其他收入", "众包补贴调账"):   "crowdSubsidyAdjust",
     ("其他收入", "发展计划调账"):   "otherRevenue",
     ("其他收入", "星火激励调账"):   "otherRevenue",
+    ("其他收入", "天补调账"):       "otherRevenue",
     ("其他收入", "竞价返还调账"):   "otherRevenue",
     ("其他收入", "跑腿结算调账"):   "otherRevenue",
     ("其他收入", "其他收入汇总"):   "otherRevenue",
@@ -64,6 +65,8 @@ FIELD_MAP = {
     ("代补金额花费", "拼单补贴"):           "pinDanSubsidy",
     ("代补金额花费", "拼好饭补贴"):         "pinHaoFanSubsidy",
     ("代补金额花费", "整体代补金额"):       "subsidyTotal",
+    # 20260808 新表四级指标名为「AI外呼费用结算」（大写AI），统一兼容大小写
+    ("平台成本", "AI外呼费用结算"):          "platformCommissionCost",
     ("平台成本", "ai外呼费用结算"):          "platformCommissionCost",
     ("抽佣比例", "城市单均保底"):           "otherRevenue",
     ("抽佣比例", "城市商家单均保底"):       "otherRevenue",

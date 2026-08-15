@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="20260815.1">
-  <title>财务数据上传 v20260815.1 - 美团代理商专用</title>
+  <meta name="version" content="20260815.2">
+  <title>财务数据上传 v20260815.2 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
   <script src="js/xlsx.full.min.js"></script>
   <style>
@@ -554,7 +554,7 @@
     <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;">
       <h1 style="margin:0;color:white;font-size:24px;">📊 财务数据上传</h1>
       <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">
-        当前版本：<strong style="color:#ffeb3b;">v20260815.1</strong> | 更新时间：2026-08-15
+        当前版本：<strong style="color:#ffeb3b;">v20260815.2</strong> | 更新时间：2026-08-15
       </p>
       <p style="margin:3px 0 0 0;font-size:12px;opacity:0.85;">
         ✓ 已修复计算列过滤问题（跳过单均、比例等列）
@@ -901,6 +901,9 @@
         ['', '发展计划调账', 'otherRevenue', true],
         ['', '竞价返还调账', 'otherRevenue', true],
         ['', '跑腿结算调账', 'otherRevenue', true],
+        // 20260808 新表新增指标（同属其他收入，累加）
+        ['', '星火激励调账', 'otherRevenue', true],
+        ['', '天补调账', 'otherRevenue', true],
         ['', '其他收入汇总', 'otherRevenue', false],
         ['', '专项补贴', 'specialSubsidy', false],
         ['', '众包补贴调账', 'crowdSubsidyAdjust', false],
@@ -913,6 +916,8 @@
         ['代补金额花费', '拼好饭补贴', 'pinHaoFanSubsidy', false],
         ['代补金额花费', '整体代补金额', 'subsidyTotal', false],
         // 全量 - 平台成本新增
+        // 20260808 新表四级指标名为「AI外呼费用结算」（大写AI），统一匹配大小写
+        ['平台成本', 'AI外呼费用结算', 'platformCommissionCost', false],
         ['平台成本', 'ai外呼费用结算', 'platformCommissionCost', false],
         // 拼好饭 - 业务数据新增
         ['抽佣比例', '城市单均保底', 'otherRevenue', true],
