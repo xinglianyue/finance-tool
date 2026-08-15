@@ -41,6 +41,7 @@ FIELD_MAP = {
     ("抽佣金额（收入一）", "企客商家抽佣金额"):   "enterpriseCommission",
     ("抽佣金额（收入一）", "抽佣金额汇总"):       "commission",
     ("配送费（收入二）", "加盟配送费"):       "franchiseDeliveryFee",
+    ("配送费（收入二）", "配送服务费"):       "deliveryServiceFee",
     ("配送费（收入二）", "二次配送费"):       "secondDeliveryFee",
     ("配送费（收入二）", "企客配送费"):       "enterpriseDeliveryFee",
     ("配送费（收入二）", "一对一急送配送费"): "urgentDeliveryFee",

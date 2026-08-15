@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260814_UPGRADE11';
+      var APP_VERSION = '20260815_UPGRADE1';
 
 
 
@@ -13164,6 +13164,12 @@ console.log('[App] 从相对路径加载成功');
 
 
 
+
+        ['', '配送服务费', 'deliveryServiceFee'],
+
+
+
+
         ['', '二次配送费', 'secondDeliveryFee'],
 
 
@@ -13930,11 +13936,34 @@ console.log('[App] 从相对路径加载成功');
 
       }
 
-
-
-
-
-
+      // ===== 竞价 sheet 合并（20260814 新格式）=====
+      if (workbook.SheetNames.includes('竞价')) {
+        try {
+          const bidWs = workbook.Sheets['竞价'];
+          const bidRows = XLSX.utils.sheet_to_json(bidWs, { header: 1 });
+          const allMerchant = merchantData.all;
+          if (allMerchant && Array.isArray(allMerchant.cities)) {
+            const bidMap = {};
+            for (let r = 1; r < bidRows.length; r++) {
+              const row = bidRows[r];
+              if (!row) continue;
+              const cityName = String(row[0] || '').trim();
+              if (!cityName) continue;
+              const totalVal = parseFloat(String(row[1] || '').replace(/,/g, '')) || 0;
+              if (totalVal !== 0) bidMap[cityName] = totalVal;
+            }
+            allMerchant.cities.forEach(city => {
+              const bidVal = bidMap[city.name] || bidMap[city.displayName];
+              if (bidVal !== undefined && city.modules && city.modules.all) {
+                city.modules.all.biddingCost = bidVal;
+              }
+            });
+            console.log('[parseExcelData] 竞价sheet合并完成，城市数:', Object.keys(bidMap).length);
+          }
+        } catch (e) {
+          console.warn('[parseExcelData] 竞价sheet合并失败:', e);
+        }
+      }
 
       if (Object.keys(merchantData).length === 0) {
 
@@ -16105,6 +16134,12 @@ console.log('[App] 从相对路径加载成功');
 
 
 
+
+            { key: 'deliveryServiceFee', label: '配送服务费', format: 'money' },
+
+
+
+
             { key: 'secondDeliveryFee', label: '二次配送费', format: 'money' },
 
 
@@ -16597,6 +16632,12 @@ console.log('[App] 从相对路径加载成功');
 
 
 
+
+            { key: 'deliveryServiceFee', label: '配送服务费', format: 'money' },
+
+
+
+
             { key: 'secondDeliveryFee', label: '二次配送费', format: 'money' },
 
 
@@ -17057,6 +17098,12 @@ console.log('[App] 从相对路径加载成功');
 
 
 
+
+            { key: 'deliveryServiceFee', label: '配送服务费', format: 'money' },
+
+
+
+
             { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
 
 
@@ -17349,6 +17396,12 @@ console.log('[App] 从相对路径加载成功');
 
 
 
+
+            { key: 'deliveryServiceFee', label: '配送服务费', format: 'money' },
+
+
+
+
             { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
 
 
@@ -17638,6 +17691,12 @@ console.log('[App] 从相对路径加载成功');
 
 
             { key: 'franchiseDeliveryFee', label: '加盟配送费', format: 'money' },
+
+
+
+
+            { key: 'deliveryServiceFee', label: '配送服务费', format: 'money' },
+
 
 
 

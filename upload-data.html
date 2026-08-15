@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="20260814.2">
-  <title>财务数据上传 v20260814.2 - 美团代理商专用</title>
+  <meta name="version" content="20260815.1">
+  <title>财务数据上传 v20260815.1 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
   <script src="js/xlsx.full.min.js"></script>
   <style>
@@ -554,7 +554,7 @@
     <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;">
       <h1 style="margin:0;color:white;font-size:24px;">📊 财务数据上传</h1>
       <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">
-        当前版本：<strong style="color:#ffeb3b;">v20260814.2</strong> | 更新时间：2026-08-14
+        当前版本：<strong style="color:#ffeb3b;">v20260815.1</strong> | 更新时间：2026-08-15
       </p>
       <p style="margin:3px 0 0 0;font-size:12px;opacity:0.85;">
         ✓ 已修复计算列过滤问题（跳过单均、比例等列）
@@ -886,21 +886,24 @@
         ['抽佣金额（收入一）', '抽佣金额汇总', 'commission', false],
         // 收入 - 配送费
         ['配送费（收入二）', '加盟配送费', 'franchiseDeliveryFee', false],
+        ['配送费（收入二）', '配送服务费', 'deliveryServiceFee', false],
         ['配送费（收入二）', '二次配送费', 'secondDeliveryFee', false],
         ['配送费（收入二）', '企客配送费', 'enterpriseDeliveryFee', false],
         ['配送费（收入二）', '一对一急送配送费', 'urgentDeliveryFee', false],
         ['配送费（收入二）', '配送费汇总', 'deliveryFee', false],
         // 收入 - 其他收入（需要累加）
-        ['其他收入', '合作商运营服务费', 'otherRevenue', true],
-        ['其他收入', '拼单宝激励', 'otherRevenue', true],
-        ['其他收入', '神券包激励', 'otherRevenue', true],
-        ['其他收入', '广告收入', 'otherRevenue', true],
-        ['其他收入', '发展计划调账', 'otherRevenue', true],
-        ['其他收入', '竞价返还调账', 'otherRevenue', true],
-        ['其他收入', '跑腿结算调账', 'otherRevenue', true],
-        ['其他收入', '其他收入汇总', 'otherRevenue', false],
-        ['其他收入', '专项补贴', 'specialSubsidy', false],
-        ['其他收入', '众包补贴调账', 'crowdSubsidyAdjust', false],
+        // 说明：新表(20260814起)删除了「其他收入」三级指标标题行，四级指标直接继承上一模块，
+        // 故 k3 设为空串，仅按四级指标名匹配（与 index-new.html 规则一致），兼容新旧两种格式
+        ['', '合作商运营服务费', 'otherRevenue', true],
+        ['', '拼单宝激励', 'otherRevenue', true],
+        ['', '神券包激励', 'otherRevenue', true],
+        ['', '广告收入', 'otherRevenue', true],
+        ['', '发展计划调账', 'otherRevenue', true],
+        ['', '竞价返还调账', 'otherRevenue', true],
+        ['', '跑腿结算调账', 'otherRevenue', true],
+        ['', '其他收入汇总', 'otherRevenue', false],
+        ['', '专项补贴', 'specialSubsidy', false],
+        ['', '众包补贴调账', 'crowdSubsidyAdjust', false],
         // 支出 - 代补
         ['代补金额花费', 'B端代补金额', 'subsidyB', false],
         ['代补金额花费', 'C端代补金额', 'subsidyC', false],
@@ -1139,6 +1142,38 @@
       if (Object.keys(merchantData).length === 0) {
         throw new Error('未识别到任何商家类型数据，请确认文件格式正确');
       }
+
+      // ===== 竞价 sheet 合并（20260814 新格式：主表竞价行已清空，竞价移至独立sheet）=====
+      // 独立「竞价」sheet 结构：第0行表头[城市, 汇总, 1..31]，后续行[城市名, 汇总值, 各日值]
+      // 说明：竞价数据为城市级汇总（无模块维度），映射到「全量商家/全品类」模块的 biddingCost
+      if (workbook.SheetNames.includes('竞价')) {
+        try {
+          const bidWs = workbook.Sheets['竞价'];
+          const bidRows = XLSX.utils.sheet_to_json(bidWs, { header: 1 });
+          const allMerchant = merchantData.all;
+          if (allMerchant && Array.isArray(allMerchant.cities)) {
+            const bidMap = {}; // 城市名 -> 竞价汇总值
+            for (let r = 1; r < bidRows.length; r++) {
+              const row = bidRows[r];
+              if (!row) continue;
+              const cityName = String(row[0] || '').trim();
+              if (!cityName) continue;
+              const totalVal = parseFloat(String(row[1] || '').replace(/,/g, '')) || 0;
+              if (totalVal !== 0) bidMap[cityName] = totalVal;
+            }
+            allMerchant.cities.forEach(city => {
+              const bidVal = bidMap[city.name] || bidMap[city.displayName];
+              if (bidVal !== undefined && city.modules && city.modules.all) {
+                city.modules.all.biddingCost = bidVal;
+              }
+            });
+            console.log('[parseExcelFile] 竞价sheet合并完成，城市数:', Object.keys(bidMap).length);
+          }
+        } catch (e) {
+          console.warn('[parseExcelFile] 竞价sheet合并失败:', e);
+        }
+      }
+
       return merchantData;
     }
     
