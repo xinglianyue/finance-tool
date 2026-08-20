@@ -41,14 +41,21 @@ def main():
         problems.append('存在重复日期')
 
     # 2. index.json 一致性
+    # 说明：上传页分步写入（先 shared-data.json，后 index.json），
+    # 中间态允许 shared 领先 index（上传未完成时 index 少一条属正常）。
+    # 但 index 不允许出现 shared 没有的日期（那才是真正的数据错乱），
+    # 且 index.recordCount 必须与自身 records 长度一致。
     with io.open('index.json', 'r', encoding='utf-8') as f:
         idx = json.load(f)
     idx_records = idx.get('records', [])
     idx_dates = [r.get('date') for r in idx_records]
-    if idx.get('recordCount') != len(data):
-        problems.append(f'index.json recordCount({idx.get("recordCount")}) 与 shared-data.json 记录数({len(data)})不一致')
-    if sorted(idx_dates) != sorted(dates):
-        problems.append('index.json 与 shared-data.json 日期列表不一致')
+    dates_set = set(dates)
+    idx_dates_set = set(idx_dates)
+    extra_in_idx = idx_dates_set - dates_set
+    if extra_in_idx:
+        problems.append(f'index.json 存在 shared-data.json 没有的日期: {sorted(extra_in_idx)}')
+    if idx.get('recordCount') != len(idx_records):
+        problems.append(f'index.json recordCount({idx.get("recordCount")}) 与自身记录数({len(idx_records)})不一致')
 
     if problems:
         print('✗ 数据完整性校验未通过:')
