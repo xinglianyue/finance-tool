@@ -1661,6 +1661,47 @@
 
     .toast.info { background: var(--primary); color: white; }
 
+    /* 新数据提示条：页面加载后检测到云端有更新时显示 */
+    .update-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 14px;
+      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.35);
+      transform: translateY(-100%);
+      transition: transform 0.4s ease;
+    }
+    .update-banner.show { transform: translateY(0); }
+    .update-banner .btn-refresh {
+      background: #fff;
+      color: var(--primary);
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .update-banner .btn-refresh:active { opacity: 0.8; }
+    .update-banner .btn-dismiss {
+      background: transparent;
+      color: rgba(255,255,255,0.85);
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
 
 
 
@@ -5284,6 +5325,13 @@
 
 <body>
 
+  <!-- 新数据提示条：云端检测到更新时显示 -->
+  <div class="update-banner" id="updateBanner" style="display:none;">
+    <span id="updateBannerText">📢 发现新的数据更新</span>
+    <button class="btn-refresh" onclick="refreshToLatest()">🔄 立即刷新加载</button>
+    <button class="btn-dismiss" onclick="dismissUpdateBanner()">稍后</button>
+  </div>
+
 
 
   <div class="diagnostic-panel" id="diagnosticPanel" style="display: none;">
@@ -5366,7 +5414,7 @@
 
 
 
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20260814.4</span></p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20260815.3</span></p>
 
 
 
@@ -12365,6 +12413,27 @@ console.log('[App] 从相对路径加载成功');
     }
 
 
+
+
+
+    // 新数据提示条：点击「立即刷新加载」重新加载页面，获取云端最新数据
+    function refreshToLatest() {
+      console.log('[App] 用户点击刷新加载最新数据');
+      // 清除本地缓存，确保刷新后从云端拉取最新（而非读到本地旧缓存）
+      try {
+        localStorage.removeItem('finance_tool_state');
+        localStorage.removeItem('finance_tool_data');
+        localStorage.removeItem('finance_tool_cache');
+      } catch (e) { /* 忽略清理异常 */ }
+      location.reload();
+    }
+
+    // 新数据提示条：点击「稍后」关闭提示条（本次会话不再打扰）
+    function dismissUpdateBanner() {
+      const banner = document.getElementById('updateBanner');
+      banner.classList.remove('show');
+      setTimeout(() => { banner.style.display = 'none'; }, 400);
+    }
 
 
 
@@ -24528,7 +24597,24 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-
+      // 加载成功后，静默检查云端是否有更新的数据（新日期或已有日期被重新上传）
+      // 若发现更新，弹出顶部提示条，用户可一键刷新加载最新数据
+      checkCloudForUpdates({ importHistory: importHistory || [] }).then(hasUpdate => {
+        if (hasUpdate) {
+          const newDates = [];
+          const cloudUpdateText = '📢 云端发现更新的数据，请刷新加载最新内容';
+          document.getElementById('updateBannerText').textContent = cloudUpdateText;
+          const banner = document.getElementById('updateBanner');
+          banner.style.display = 'flex';
+          // 延迟一帧，确保 display 生效后再触发动画
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => banner.classList.add('show'));
+          });
+          console.log('[App] 检测到云端有更新，已显示提示条');
+        }
+      }).catch(err => {
+        console.warn('[App] 云端更新检测失败（忽略）:', err);
+      });
 
 
 
