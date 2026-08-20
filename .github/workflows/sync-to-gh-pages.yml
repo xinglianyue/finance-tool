@@ -14,6 +14,15 @@ on:
       - 'data/**'
   workflow_dispatch:
 
+# 串行化：同一时刻只允许一个 Sync 运行。
+# 上传页分三步推送（shared-data.json → index.json → data/*.json），
+# 每次 push 都会触发本工作流，若并发执行会用各自基于的旧 gh-pages，
+# 导致 push 时 non-fast-forward 冲突而误报失败。
+# concurrency 让新触发的运行等待上一个完成后再开始，从根上避免抢跑。
+concurrency:
+  group: sync-data-to-gh-pages
+  cancel-in-progress: false
+
 # 显式声明权限，允许推送
 permissions:
   contents: write
@@ -51,9 +60,28 @@ jobs:
             exit 0
           fi
 
-          # 提交并推送（基于远程最新，应为fast-forward）
-          git commit -m "sync: Auto-sync from main branch"
-          git push origin gh-pages
+          # 提交并推送（基于远程最新，应为fast-forward）。
+          # 推送失败时（并发抢占导致 non-fast-forward）拉取最新后重新应用再试，
+          # 确保最终 gh-pages 与 main 对齐，避免误报失败邮件。
+          # 每次重试都基于最新 origin/gh-pages 重新 checkout 文件并重建提交，
+          # 避免 reset 丢掉首次提交后 push 空内容。
+          for i in 1 2 3; do
+            git fetch origin gh-pages
+            git reset --hard origin/gh-pages
+            git checkout main -- shared-data.json index.json upload-data.html index-new.html _headers data
+            if git diff --cached --quiet; then
+              echo "No new changes to sync on attempt $i, already up-to-date"
+              exit 0
+            fi
+            git commit -m "sync: Auto-sync from main branch"
+            if git push origin gh-pages; then
+              echo "Push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "Push failed on attempt $i (non-fast-forward), retrying..."
+          done
+          echo "Push failed after 3 attempts"
+          exit 1
 
       - name: Verify sync
         run: |
