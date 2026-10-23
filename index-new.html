@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20260815_UPGRADE1';
+      var APP_VERSION = '20261023_UPGRADE1';
 
 
 
@@ -5414,7 +5414,7 @@
 
 
 
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20260815.3</span></p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20261023.1</span></p>
 
 
 
@@ -8453,15 +8453,8 @@
 
 
 
-        // cache 中没有，尝试从 StateManager 获取
-
-
-
-        merchantData = StateManager.get('allMerchantData');
-
-
-
-        console.log('[App] switchImportDate: 从 StateManager 获取数据，merchantData 存在：' + !!merchantData);
+        // cache 中没有：不再静默复用「当前日期」的数据，否则点击后页面数字毫无变化
+        merchantData = null;
 
 
 
@@ -8545,26 +8538,25 @@
 
 
 
-      // 如果还是没有数据，提示用户重新加载
-
-
-
+      // 如果还是没有数据：按需加载该日期，避免用当前日期数据渲染导致「点击无变化」
       if (!merchantData) {
-
-
+        if (typeof loadDateFromSplitted === 'function') {
+          showToast('正在加载 ' + selectedRecord.monthLabel + ' 数据...', 'info');
+          loadDateFromSplitted(selectedRecord.monthLabel).then(loadedMd => {
+            if (loadedMd) {
+              // 加载成功，重新执行切换逻辑
+              switchImportDate(dateStr);
+            } else {
+              console.error('[App] switchImportDate: 加载失败 ' + selectedRecord.monthLabel);
+              showToast('数据加载失败，请刷新页面重试', 'warning');
+            }
+          });
+          return;
+        }
 
         console.error('[App] switchImportDate: 无法获取 ' + selectedRecord.monthLabel + ' 的数据');
-
-
-
         showToast('该日期数据未缓存，请重新从云端加载', 'warning');
-
-
-
         return;
-
-
-
       }
 
 
@@ -8937,23 +8929,8 @@
 
 
 
-      // 4. 从 allMerchantData 获取（最终兜底）
-
-
-
-      if (!merchantData && allMerchantData) {
-
-
-
-        merchantData = allMerchantData;
-
-
-
-        console.log('[App] switchImportDateDim: 从 allMerchantData 获取');
-
-
-
-      }
+      // 4. 不再用 allMerchantData 兜底：它是「当前日期」的数据，
+      // 用它冒充目标日期会让点击后页面数字毫无变化；缺失时交给下方按需加载。
 
 
 
@@ -10719,9 +10696,12 @@
         const defaultTrendDates = (typeof getFilteredTrendDates === 'function')
           ? getFilteredTrendDates(records.map(r => r.date))
           : [];
-        const priorityDates = restDates.filter(d => defaultTrendDates.includes(d));
-        const otherDates = restDates.filter(d => !defaultTrendDates.includes(d));
-        loadRemainingSplitted([...priorityDates, ...otherDates], function() {
+        // 最近 3 个日期最常被点开，必须最先加载；
+        // 趋势采样（5/15/30 号）会漏掉 10-18 这类日期，不能只靠它排优先级。
+        const recentDates = restDates.slice(0, 3);
+        const priorityDates = restDates.filter(d => defaultTrendDates.includes(d) && !recentDates.includes(d));
+        const otherDates = restDates.filter(d => !recentDates.includes(d) && !priorityDates.includes(d));
+        loadRemainingSplitted([...recentDates, ...priorityDates, ...otherDates], function() {
           if (document.querySelector('.tab-btn[data-tab="trend"]')?.classList.contains('active')) {
             if (typeof renderTrend === 'function') renderTrend();
           }
