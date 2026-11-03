@@ -26,6 +26,7 @@ TYPE_MAP = {
     "闪购":  "flash",
     "医药":  "medicine",
     "拼好饭": "group",
+    "神抢手": "shenqiangshou",
 }
 
 FIELD_MAP = {
@@ -57,6 +58,7 @@ FIELD_MAP = {
     ("其他收入", "天补调账"):       "otherRevenue",
     ("其他收入", "竞价返还调账"):   "otherRevenue",
     ("其他收入", "跑腿结算调账"):   "otherRevenue",
+    ("其他收入", "校园绩效激励"):   "otherRevenue",
     ("其他收入", "其他收入汇总"):   "otherRevenue",
     ("代补金额花费", "B端代补金额"):     "subsidyB",
     ("代补金额花费", "C端代补金额"):     "subsidyC",
