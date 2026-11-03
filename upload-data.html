@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="20260815.2">
-  <title>财务数据上传 v20260815.2 - 美团代理商专用</title>
+  <meta name="version" content="20261023.1">
+  <title>财务数据上传 v20261023.1 - 美团代理商专用</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" type="image/svg+xml">
   <script src="js/xlsx.full.min.js"></script>
   <style>
@@ -554,10 +554,10 @@
     <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;">
       <h1 style="margin:0;color:white;font-size:24px;">📊 财务数据上传</h1>
       <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">
-        当前版本：<strong style="color:#ffeb3b;">v20260815.2</strong> | 更新时间：2026-08-15
+        当前版本：<strong style="color:#ffeb3b;">v20261023.1</strong> | 更新时间：2026-10-23
       </p>
       <p style="margin:3px 0 0 0;font-size:12px;opacity:0.85;">
-        ✓ 已修复计算列过滤问题（跳过单均、比例等列）
+        ✓ 新增神抢手模块 + 校园绩效激励指标
       </p>
     </div>
     <p class="subtitle" style="display:none;">上传美团财务Excel账单，数据将自动同步到云端</p>
@@ -749,7 +749,8 @@
         food: { key: 'food', name: '餐饮外卖' },
         flash: { key: 'flash', name: '闪购' },
         medicine: { key: 'medicine', name: '医药' },
-        group: { key: 'group', name: '到店' }
+        group: { key: 'group', name: '到店' },
+        shenqiangshou: { key: 'shenqiangshou', name: '神抢手' }
       }
     };
 
@@ -904,6 +905,8 @@
         // 20260808 新表新增指标（同属其他收入，累加）
         ['', '星火激励调账', 'otherRevenue', true],
         ['', '天补调账', 'otherRevenue', true],
+        // 202610 新表新增指标（全品类其他收入，累加）
+        ['', '校园绩效激励', 'otherRevenue', true],
         ['', '其他收入汇总', 'otherRevenue', false],
         ['', '专项补贴', 'specialSubsidy', false],
         ['', '众包补贴调账', 'crowdSubsidyAdjust', false],
@@ -977,7 +980,8 @@
         { searchName: '餐饮财务指标', key: 'food', label: '餐饮' },
         { searchName: '闪购财务指标', key: 'flash', label: '闪购' },
         { searchName: '医药财务指标', key: 'medicine', label: '医药' },
-        { searchName: '拼好饭财务指标', key: 'group', label: '拼好饭' }
+        { searchName: '拼好饭财务指标', key: 'group', label: '拼好饭' },
+        { searchName: '神抢手财务指标', key: 'shenqiangshou', label: '神抢手' }
       ];
 
       function extractModule(data, startRow, colIdx) {
@@ -1103,7 +1107,8 @@
           if (!row) continue;
           const c0 = String(row[0] || '').trim();
           for (const md of MODULE_DEFS) {
-            if (c0 === md.searchName && !modulePositions[md.key]) {
+            // 兼容两种写法：A 列可能写「神抢手财务指标」，也可能只写「神抢手」
+            if ((c0 === md.searchName || c0 === md.label) && !modulePositions[md.key]) {
               modulePositions[md.key] = rn;
             }
           }

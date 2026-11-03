@@ -296,8 +296,8 @@
       }
   </script>
 
-  <script src="js/xlsx.full.min.js?v=1786504553"></script>
-  <script src="js/chart.umd.min.js?v=1786504553"></script>
+  <script src="js/xlsx.full.min.js?v=2026102302"></script>
+  <script src="js/chart.umd.min.js?v=2026102302"></script>
 
   <meta charset="UTF-8">
 
@@ -340,7 +340,7 @@
 
 
       // 强制刷新版本号 - 每次修改必须更新此数字
-      var APP_VERSION = '20261023_UPGRADE1';
+      var APP_VERSION = '20261023_UPGRADE2';
 
 
 
@@ -5414,7 +5414,7 @@
 
 
 
-      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20261023.1</span></p>
+      <p style="font-size:12px;opacity:0.7;margin-top:4px;">版本: <span id="pageVersion">v20261023.2</span></p>
 
 
 
@@ -5741,6 +5741,9 @@
                 <option value="group">拼好饭</option>
 
 
+                <option value="shenqiangshou">神抢手</option>
+
+
 
               </select>
 
@@ -5915,6 +5918,9 @@
 
 
                 <option value="group">拼好饭</option>
+
+
+                <option value="shenqiangshou">神抢手</option>
 
 
 
@@ -6465,7 +6471,10 @@
 
 
 
-        { key: 'group', name: '拼好饭', searchName: '拼好饭财务指标' }
+        { key: 'group', name: '拼好饭', searchName: '拼好饭财务指标' },
+
+
+        { key: 'shenqiangshou', name: '神抢手', searchName: '神抢手财务指标' }
 
 
 
@@ -7933,6 +7942,34 @@
 
 
 
+                ),
+
+
+
+                shenqiangshou: buildFullModuleData(
+
+
+
+                  Math.floor((Math.random() * 15000 + 4000) * baseMultiplier * growthRate),
+
+
+
+                  Math.floor((Math.random() * 2000000 + 800000) * baseMultiplier * growthRate),
+
+
+
+                  Math.floor((Math.random() * 3000000 + 1200000) * baseMultiplier * growthRate),
+
+
+
+                  Math.floor((Math.random() * 80000 - 40000) * baseMultiplier * growthRate),
+
+
+
+                  baseMultiplier * growthRate
+
+
+
                 )
 
 
@@ -7989,7 +8026,7 @@
 
 
 
-          const modules = ['all', 'food', 'flash', 'medicine', 'group'];
+          const modules = ['all', 'food', 'flash', 'medicine', 'group', 'shenqiangshou'];
 
 
 
@@ -13847,7 +13884,8 @@ console.log('[App] 从相对路径加载成功');
 
 
 
-            if (c0 === md.searchName && !modulePositions[md.key]) {
+            // 兼容两种写法：A 列可能写「神抢手财务指标」，也可能只写「神抢手」
+            if ((c0 === md.searchName || c0 === md.name) && !modulePositions[md.key]) {
 
 
 
@@ -18058,6 +18096,464 @@ console.log('[App] 从相对路径加载成功');
 
 
             { key: 'ue', label: '拼好饭UE', format: 'ue' },
+
+
+
+            { key: 'profitRate', label: '利润率', format: 'percent' },
+
+
+
+            { key: 'subsidyRatio', label: '补贴率', format: 'percent' },
+
+
+
+            { key: 'avgRevenuePerOrder', label: '单均收入', format: 'money' },
+
+
+
+            { key: 'avgCostPerOrder', label: '单均支出', format: 'money' },
+
+
+
+            { key: 'deliveryCostRate', label: '配送成本率', format: 'percent' },
+
+
+
+            { key: 'fixedCostRate', label: '固定成本率', format: 'percent' }
+
+
+
+          ]
+
+
+
+        }
+
+
+      ],
+
+
+
+
+      shenqiangshou: [ // 神抢手 - 专属指标
+
+
+
+        {
+
+
+
+          name: '订单指标',
+
+
+
+          metrics: [
+
+
+
+            { key: 'orders', label: '神抢手订单量', format: 'number' },
+
+
+
+            { key: 'franchiseOrders', label: '加盟订单量', format: 'number' },
+
+
+
+            { key: 'selfOrders', label: '自配订单量', format: 'number' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: 'GMV指标',
+
+
+
+          metrics: [
+
+
+
+            { key: 'gmvAmount', label: '神抢手交易额', format: 'money' },
+
+
+
+            { key: 'franchiseGMV', label: '加盟交易额', format: 'money' },
+
+
+
+            { key: 'selfGMV', label: '自配交易额', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '收入指标',
+
+
+
+          metrics: [
+
+
+
+            { key: 'onlineRevenue', label: '神抢手线上收入', format: 'money' },
+
+
+
+            { key: 'commission', label: '抽佣金额汇总', format: 'money' },
+
+
+
+            { key: 'franchiseCommission', label: '加盟抽佣金额', format: 'money' },
+
+
+
+            { key: 'selfCommission', label: '自配抽佣金额', format: 'money' },
+
+
+
+            { key: 'deliveryFee', label: '配送费汇总', format: 'money' },
+
+
+
+            { key: 'franchiseDeliveryFee', label: '加盟配送费', format: 'money' },
+
+
+
+
+            { key: 'deliveryServiceFee', label: '配送服务费', format: 'money' },
+
+
+
+
+            { key: 'otherRevenue', label: '其他收入汇总', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '补贴支出',
+
+
+
+          metrics: [
+
+
+
+            { key: 'subsidyTotal', label: '神抢手补贴总花费', format: 'money' },
+
+
+
+            { key: 'subsidyB', label: 'B端代补金额', format: 'money' },
+
+
+
+            { key: 'subsidyC', label: 'C端代补金额', format: 'money' },
+
+
+
+            { key: 'subsidyDiff', label: '账单-代补差额', format: 'money' },
+
+
+
+            { key: 'pinHaoFanSubsidy', label: '神抢手专属补贴', format: 'money' },
+
+
+
+            { key: 'pinDanSubsidy', label: '拼单补贴', format: 'money' },
+
+
+
+            { key: 'specialSubsidy', label: '专项补贴', format: 'money' },
+
+
+
+            { key: 'crowdSubsidyAdjust', label: '众包补贴调账', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '平台成本',
+
+
+
+          metrics: [
+
+
+
+            { key: 'platformCost', label: '神抢手平台成本', format: 'money' },
+
+
+
+            { key: 'platformCommissionCost', label: '平台抽佣金额', format: 'money' },
+
+
+
+            { key: 'afterSaleCost', label: '售后赔付费用', format: 'money' },
+
+
+
+            { key: 'insuranceCost', label: '保险费用', format: 'money' },
+
+
+
+            { key: 'biddingCost', label: '竞价', format: 'money' },
+
+
+
+            { key: 'penalty', label: '罚款', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '配送成本',
+
+
+
+          metrics: [
+
+
+
+            { key: 'deliveryCost', label: '神抢手配送成本', format: 'money' },
+
+
+
+            { key: 'franchiseDeliverOrders', label: '加盟承接订单量', format: 'number' },
+
+
+
+            { key: 'franchiseAvgPostage', label: '加盟单均邮资', format: 'money' },
+
+
+
+            { key: 'franchiseActivityCost', label: '加盟活动花费', format: 'money' },
+
+
+
+            { key: 'franchiseDelivery', label: '加盟邮资', format: 'money' },
+
+
+
+            { key: 'crowdOrders', label: '普众众包订单量', format: 'number' },
+
+
+
+            { key: 'crowdBasePostage', label: '普众众包基础邮资', format: 'money' },
+
+
+
+            { key: 'crowdActivityCost', label: '普众众包活动花费', format: 'money' },
+
+
+
+            { key: 'crowdDelivery', label: '普众众包邮资', format: 'money' },
+
+
+
+            { key: 'yuepaoOrders', label: '悦跑订单量', format: 'number' },
+
+
+
+            { key: 'yuepaoBasePostage', label: '悦跑基础邮资', format: 'money' },
+
+
+
+            { key: 'yuepaoActivityCost', label: '悦跑活动花费', format: 'money' },
+
+
+
+            { key: 'yuepaoDelivery', label: '悦跑邮资', format: 'money' },
+
+
+
+            { key: 'weatherSubsidy', label: '众包天气补贴', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '固定成本',
+
+
+
+          metrics: [
+
+
+
+            { key: 'fixedCost', label: '固定成本汇总', format: 'money' },
+
+
+
+            { key: 'officeRent', label: '办公室房租', format: 'money' },
+
+
+
+            { key: 'teamCost', label: '业务团队', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '附加成本',
+
+
+
+          metrics: [
+
+
+
+            { key: 'additionalCost', label: '附加成本汇总', format: 'money' },
+
+
+
+            { key: 'thirdPartyServiceCost', label: '三方服务费', format: 'money' },
+
+
+
+            { key: 'socialInsurance', label: '社保', format: 'money' },
+
+
+
+            { key: 'taxCost', label: '税', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '其他成本',
+
+
+
+          metrics: [
+
+
+
+            { key: 'otherCost', label: '其他成本汇总', format: 'money' },
+
+
+
+            { key: 'operationBoostCost', label: '外卖运营增单', format: 'money' },
+
+
+
+            { key: 'utilityCost', label: '水电电话网物料费', format: 'money' },
+
+
+
+            { key: 'travelCost', label: '差旅招待', format: 'money' },
+
+
+
+            { key: 'otherMiscCost', label: '其他成本', format: 'money' }
+
+
+
+          ]
+
+
+
+        },
+
+
+
+        {
+
+
+
+          name: '利润指标',
+
+
+
+          metrics: [
+
+
+
+            { key: 'profit', label: '神抢手毛利', format: 'money' },
+
+
+
+            { key: 'ue', label: '神抢手UE', format: 'ue' },
 
 
 
